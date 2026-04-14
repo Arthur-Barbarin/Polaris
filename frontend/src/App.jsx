@@ -60,45 +60,41 @@ export default function App() {
     }
   }
 
-  const scoreColor = useMemo(() => {
-    if (!result) return '#0f172a'
-    if (result.viability_score >= 65) return '#16a34a'
-    if (result.viability_score >= 50) return '#f59e0b'
-    return '#dc2626'
-  }, [result])
-
-  const scoreLabel = useMemo(() => {
-    if (!result) return 'Awaiting scenario run'
-    if (result.viability_score >= 65) return 'Promising concept'
-    if (result.viability_score >= 50) return 'Needs refinement'
-    return 'Concept at risk'
-  }, [result])
-
-  const insightLabel = useMemo(() => {
-    if (!result) return 'No insight yet'
-    if (result.viability_score >= 65) return 'Strong investment narrative'
-    if (result.viability_score >= 50) return 'Sensitive to assumptions'
-    return 'High-risk narrative'
-  }, [result])
-
   const radarData = useMemo(() => {
     if (!result) return []
+
     return [
-      { metric: 'Economics', value: Math.max(0, Math.min(100, 200 - result.unit_cost)) },
-      { metric: 'Adoption', value: result.adoption },
-      { metric: 'Climate', value: Math.max(0, Math.min(100, 100 - result.emissions)) },
-      { metric: 'Investor', value: result.investor_score },
-      { metric: 'Technical', value: Math.max(0, Math.min(100, 100 - result.technical_risk)) },
+      {
+        metric: 'Cost position',
+        value: Math.max(0, Math.min(100, 200 - result.outputs.unit_cost)),
+      },
+      {
+        metric: 'Adoption',
+        value: result.outputs.adoption,
+      },
+      {
+        metric: 'Climate',
+        value: Math.max(0, Math.min(100, 100 - result.outputs.emissions)),
+      },
+      {
+        metric: 'Investor',
+        value: result.outputs.investor_score,
+      },
+      {
+        metric: 'Technical',
+        value: Math.max(0, Math.min(100, 100 - result.outputs.technical_risk)),
+      },
     ]
   }, [result])
 
   const scatterData = useMemo(() => {
     if (!result) return []
+
     return [
       {
-        unit_cost: result.unit_cost,
-        technical_risk: result.technical_risk,
-        size: Math.max(80, result.investor_score * 4),
+        unit_cost: result.outputs.unit_cost,
+        technical_risk: result.outputs.technical_risk,
+        size: Math.max(80, result.outputs.investor_score * 4),
       },
     ]
   }, [result])
@@ -107,14 +103,13 @@ export default function App() {
     <div style={styles.page}>
       <div style={styles.container}>
         <div style={styles.topBar}>
-            <img src={logo} alt="Polaris logo" style={styles.logoCentered} />
+          <img src={logo} alt="Polaris logo" style={styles.logoCentered} />
         </div>
 
         <div style={styles.hero}>
           <h1 style={styles.title}>Scenario Explorer</h1>
           <p style={styles.subtitle}>
-            A decision-support demo for aerospace and climate transport teams. Adjust assumptions,
-            run the scenario, and translate technical uncertainty into a decision-oriented readout.
+            Test a set of assumptions and compare the resulting implications against explicit reference benchmarks.
           </p>
         </div>
 
@@ -135,13 +130,13 @@ export default function App() {
                 <option value="drone">Advanced air mobility / drone</option>
               </select>
 
-              <label style={styles.label}>SAF share</label>
+              <label style={styles.label}>SAF share (%)</label>
               <input type="number" value={safShare} onChange={(e) => setSafShare(e.target.value)} style={styles.input} />
 
               <label style={styles.label}>Hydrogen readiness</label>
               <input type="number" value={hydrogenReadiness} onChange={(e) => setHydrogenReadiness(e.target.value)} style={styles.input} />
 
-              <label style={styles.label}>Electricity price</label>
+              <label style={styles.label}>Electricity price exposure</label>
               <input type="number" value={electricityPrice} onChange={(e) => setElectricityPrice(e.target.value)} style={styles.input} />
 
               <label style={styles.label}>Carbon price</label>
@@ -158,11 +153,10 @@ export default function App() {
             </div>
 
             <div style={styles.darkCard}>
-              <div style={styles.darkEyebrow}>Why this feels useful</div>
-              <div style={styles.darkTitle}>Decision-ready, not just technical</div>
+              <div style={styles.darkEyebrow}>Positioning</div>
+              <div style={styles.darkTitle}>Structured assumptions, not black-box scoring</div>
               <p style={styles.darkText}>
-                This prototype is meant to show how Polaris can turn uncertain engineering assumptions
-                into a credible recommendation for founders, CTOs, or investors.
+                Polaris is most credible when it translates assumptions into explicit implications and benchmark comparisons, rather than into a single opaque score.
               </p>
             </div>
           </div>
@@ -170,28 +164,84 @@ export default function App() {
           <div style={styles.rightColumn}>
             <div style={styles.heroResultCard}>
               <div>
-                <div style={styles.sectionEyebrow}>Decision signal</div>
-                <h2 style={styles.resultHeadline}>{scoreLabel}</h2>
+                <div style={styles.sectionEyebrow}>Scenario implications</div>
+                <h2 style={styles.resultHeadline}>
+                  {result ? result.headline : 'Run a scenario to see benchmarked implications'}
+                </h2>
                 <p style={styles.resultSubtext}>
                   {result
-                    ? result.executive_summary
-                    : 'Run a scenario to generate a viability score, executive summary, and visual trade-off view.'}
+                    ? result.interpretation
+                    : 'The goal is not to produce a magic score, but to show what your assumptions imply relative to explicit reference points.'}
                 </p>
-              </div>
-
-              <div style={{ ...styles.scorePill, borderColor: scoreColor }}>
-                <div style={styles.scorePillLabel}>Viability</div>
-                <div style={{ ...styles.scorePillValue, color: scoreColor }}>
-                  {result ? result.viability_score : '--'}
-                </div>
               </div>
             </div>
 
             <div style={styles.kpiGrid}>
-              <KpiCard title="Adoption" value={result ? result.adoption : '--'} subtitle="Market-fit proxy" />
-              <KpiCard title="Unit cost" value={result ? result.unit_cost : '--'} subtitle="Relative cost index" />
-              <KpiCard title="Emissions" value={result ? result.emissions : '--'} subtitle="Residual footprint" />
-              <KpiCard title="Insight" value={insightLabel} subtitle="Decision framing" largeText />
+              <KpiCard
+                title="Unit cost index"
+                value={result ? result.outputs.unit_cost : '--'}
+                subtitle="Lower is better"
+              />
+              <KpiCard
+                title="Emissions proxy"
+                value={result ? result.outputs.emissions : '--'}
+                subtitle="Lower is better"
+              />
+              <KpiCard
+                title="Technical risk"
+                value={result ? result.outputs.technical_risk : '--'}
+                subtitle="Lower is better"
+              />
+              <KpiCard
+                title="Adoption potential"
+                value={result ? result.outputs.adoption : '--'}
+                subtitle="Higher is better"
+              />
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.chartHeader}>
+                <div>
+                  <div style={styles.sectionEyebrow}>Benchmark comparison</div>
+                  <h3 style={styles.chartTitle}>Your scenario vs reference points</h3>
+                </div>
+              </div>
+
+              {!result ? (
+                <div style={styles.chartPlaceholder}>
+                  Run a scenario to generate the comparison table.
+                </div>
+              ) : (
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Metric</th>
+                        <th style={styles.th}>Your scenario</th>
+                        <th style={styles.th}>Reference</th>
+                        <th style={styles.th}>Reading</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.comparison_table.map((row) => (
+                        <tr key={row.metric}>
+                          <td style={styles.tdMetric}>{row.metric}</td>
+                          <td style={styles.td}>
+                            {row.scenario_value} {row.scenario_unit}
+                          </td>
+                          <td style={styles.td}>
+                            {row.benchmark_value} {row.benchmark_unit}
+                            <div style={styles.benchmarkLabel}>{row.benchmark_label}</div>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={readingPillStyle(row.reading)}>{row.reading}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div style={styles.chartGrid}>
@@ -247,24 +297,46 @@ export default function App() {
 
             <div style={styles.bottomGrid}>
               <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Recommendation</div>
-                <h3 style={styles.bottomTitle}>{result ? result.recommendation : 'No recommendation yet'}</h3>
-                <p style={styles.bottomText}>
-                  {result
-                    ? 'This recommendation is generated by the backend model based on cost, emissions, risk, and investor-facing attractiveness.'
-                    : 'The recommendation will appear here after running a scenario.'}
-                </p>
+                <div style={styles.sectionEyebrow}>Strengths</div>
+                <h3 style={styles.bottomTitle}>What supports the case</h3>
+                {!result ? (
+                  <p style={styles.bottomText}>Run a scenario to see the positive signals.</p>
+                ) : (
+                  <ul style={styles.list}>
+                    {result.strengths.map((item) => (
+                      <li key={item} style={styles.listItem}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Executive summary</div>
-                <h3 style={styles.bottomTitle}>Client-ready interpretation</h3>
-                <p style={styles.bottomText}>
-                  {result
-                    ? result.executive_summary
-                    : 'This area is designed to feel presentation-ready for a startup, investor, or strategy conversation.'}
-                </p>
+                <div style={styles.sectionEyebrow}>Watchouts</div>
+                <h3 style={styles.bottomTitle}>What still needs validation</h3>
+                {!result ? (
+                  <p style={styles.bottomText}>Run a scenario to see the benchmark gaps.</p>
+                ) : (
+                  <ul style={styles.list}>
+                    {result.watchouts.map((item) => (
+                      <li key={item} style={styles.listItem}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.sectionEyebrow}>Method note</div>
+              <h3 style={styles.bottomTitle}>How to read this prototype</h3>
+              <p style={styles.bottomText}>
+                {result
+                  ? result.methodology_note
+                  : 'This prototype is intended to compare scenario implications to explicit references, not to serve as a certified forecast.'}
+              </p>
             </div>
           </div>
         </div>
@@ -273,22 +345,41 @@ export default function App() {
   )
 }
 
-function KpiCard({ title, value, subtitle, largeText = false }) {
+function KpiCard({ title, value, subtitle }) {
   return (
     <div style={styles.kpiCard}>
       <div style={styles.kpiLabel}>{title}</div>
-      <div
-        style={{
-          ...styles.kpiValue,
-          fontSize: largeText ? '22px' : '40px',
-          lineHeight: largeText ? '1.25' : '1',
-        }}
-      >
-        {value}
-      </div>
+      <div style={styles.kpiValue}>{value}</div>
       <div style={styles.kpiSubtitle}>{subtitle}</div>
     </div>
   )
+}
+
+function readingPillStyle(reading) {
+  let background = '#e2e8f0'
+  let color = '#334155'
+
+  if (reading === 'Better than benchmark') {
+    background = '#dcfce7'
+    color = '#166534'
+  } else if (reading === 'Near benchmark') {
+    background = '#fef3c7'
+    color = '#92400e'
+  } else if (reading === 'Above benchmark' || reading === 'Below benchmark') {
+    background = '#fee2e2'
+    color = '#991b1b'
+  }
+
+  return {
+    display: 'inline-block',
+    padding: '6px 10px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: '700',
+    background,
+    color,
+    whiteSpace: 'nowrap',
+  }
 }
 
 const styles = {
@@ -309,39 +400,9 @@ const styles = {
     alignItems: 'center',
     marginBottom: '0px',
   },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '14px',
-  },
-  
-  logo: {
-    height: '200px',
-    width: '200px',
+  logoCentered: {
+    height: '180px',
     objectFit: 'contain',
-    
-  },
-  
-  logoText: {
-    fontSize: '18px',
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: '0.2px',
-  },
-  
-  logoSubtext: {
-    fontSize: '13px',
-    color: '#64748b',
-    marginTop: '4px',
-  },
-  smallTag: {
-    fontSize: '13px',
-    color: '#475569',
-    background: 'rgba(255,255,255,0.65)',
-    border: '1px solid rgba(148,163,184,0.2)',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    backdropFilter: 'blur(8px)',
   },
   hero: {
     marginBottom: '28px',
@@ -352,14 +413,15 @@ const styles = {
     margin: '0 0 14px 0',
     letterSpacing: '-1.8px',
     color: '#0f172a',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: '20px',
-    maxWidth: '1000px',
+    maxWidth: '900px',
     lineHeight: '1.6',
     color: '#475569',
-    margin: '0 auto',        
-    textAlign: 'center',   
+    margin: '0 auto',
+    textAlign: 'center',
   },
   grid: {
     display: 'grid',
@@ -421,25 +483,6 @@ const styles = {
     gap: '20px',
     alignItems: 'center',
   },
-  scorePill: {
-    minWidth: '150px',
-    padding: '16px 18px',
-    borderRadius: '22px',
-    border: '2px solid #0f172a',
-    background: 'white',
-    textAlign: 'center',
-    boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
-  },
-  scorePillLabel: {
-    fontSize: '13px',
-    color: '#64748b',
-    marginBottom: '6px',
-  },
-  scorePillValue: {
-    fontSize: '42px',
-    fontWeight: '800',
-    lineHeight: '1',
-  },
   sectionHeader: {
     marginBottom: '8px',
   },
@@ -468,7 +511,7 @@ const styles = {
     color: '#475569',
     lineHeight: '1.6',
     fontSize: '16px',
-    maxWidth: '700px',
+    maxWidth: '800px',
   },
   label: {
     display: 'block',
@@ -527,7 +570,7 @@ const styles = {
     fontWeight: '600',
   },
   kpiValue: {
-    fontSize: '40px',
+    fontSize: '34px',
     fontWeight: '800',
     color: '#0f172a',
     marginBottom: '10px',
@@ -558,7 +601,7 @@ const styles = {
   },
   chartPlaceholder: {
     width: '100%',
-    height: '100%',
+    minHeight: '140px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -568,6 +611,41 @@ const styles = {
     textAlign: 'center',
     padding: '20px',
     boxSizing: 'border-box',
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '14px',
+  },
+  th: {
+    textAlign: 'left',
+    padding: '12px 10px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#475569',
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+  },
+  td: {
+    padding: '14px 10px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#334155',
+    verticalAlign: 'top',
+  },
+  tdMetric: {
+    padding: '14px 10px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#0f172a',
+    fontWeight: '700',
+    verticalAlign: 'top',
+  },
+  benchmarkLabel: {
+    fontSize: '12px',
+    color: '#64748b',
+    marginTop: '4px',
   },
   bottomGrid: {
     display: 'grid',
@@ -586,8 +664,13 @@ const styles = {
     lineHeight: '1.7',
     fontSize: '16px',
   },
-  logoCentered: {
-    height: '200px',       // ajuste si tu veux plus grand
-    objectFit: 'contain',
+  list: {
+    margin: 0,
+    paddingLeft: '18px',
+    color: '#475569',
+  },
+  listItem: {
+    marginBottom: '10px',
+    lineHeight: '1.6',
   },
 }

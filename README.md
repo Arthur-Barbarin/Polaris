@@ -5,6 +5,10 @@ Polaris Systems is an independent systems modeling and techno-economic analysis 
 
 We develop decision-support models, trade studies, and scenario-based analyses to help teams evaluate complex engineering concepts under uncertainty.
 
+## Who We Work With
+
+We work with early-stage aerospace startups, climate-tech teams, and R&D groups who need to make critical decisions before the full picture is clear.
+
 ## What We Do
 
 - Techno-economic scenario analysis  
