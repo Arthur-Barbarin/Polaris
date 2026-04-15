@@ -1,81 +1,107 @@
 import logo from './assets/Polaris_logo.png'
-import { useMemo, useState } from 'react'
-import {
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ReferenceLine,
-  Cell,
-} from 'recharts'
+import { useState } from 'react'
 
-// ── Input metadata ──────────────────────────────────────────────────────────
-// Provides frontend context for each input slider.
-const INPUT_META = {
-  saf_share: {
-    label: 'SAF share',
-    unit: '%',
-    hint: '% of fuel mix that is Sustainable Aviation Fuel. 0 = pure kerosene, 100 = full SAF.',
-    min: 0,
-    max: 100,
-    step: 1,
-  },
-  hydrogen_readiness: {
-    label: 'Hydrogen readiness',
-    unit: 'index (0–100)',
-    hint: 'Heuristic technology maturity signal. 0 = no hydrogen pathway, 100 = fully deployment-ready.',
-    min: 0,
-    max: 100,
-    step: 1,
-  },
-  electricity_price: {
-    label: 'Electricity price exposure',
-    unit: 'index (0–100)',
-    hint: 'Relative electricity cost sensitivity. 0 = no exposure, 100 = high-cost grid dependency.',
-    min: 0,
-    max: 100,
-    step: 1,
-  },
-  carbon_price: {
-    label: 'Carbon price signal',
-    unit: '$/tCO₂ (0–200)',
-    hint: 'Policy carbon price assumption. 0 = no carbon cost, 200 = strong policy environment.',
-    min: 0,
-    max: 200,
-    step: 5,
-  },
-  demand_growth: {
-    label: 'Demand growth signal',
-    unit: 'index (0–100)',
-    hint: 'Relative market demand growth signal. 0 = stagnant market, 100 = fast-growing market.',
-    min: 0,
-    max: 100,
-    step: 1,
-  },
-}
+// ── Option metadata ──────────────────────────────────────────────────────────
 
-// ── Color helpers ───────────────────────────────────────────────────────────
+const CONCEPT_OPTIONS = [
+  {
+    value: 'narrowbody',
+    label: 'Narrowbody — A320 / B737-family',
+    hint: '2019 fleet avg: 88 gCO₂/RPK · Ref flight: 165 seats × 800 km · Source: IATA Net-Zero 2023',
+  },
+  {
+    value: 'regional',
+    label: 'Regional — ATR-72 / E175-class',
+    hint: '2019 fleet avg: 110 gCO₂/RPK · Ref flight: 75 seats × 500 km · Source: ICAO CAEP/12 2022',
+  },
+  {
+    value: 'widebody',
+    label: 'Long-haul widebody — A350 / B787-class',
+    hint: '2019 fleet avg: 72 gCO₂/RPK · Ref flight: 280 seats × 8,000 km · Source: IATA Net-Zero 2023',
+  },
+]
+
+const SAF_TYPE_OPTIONS = [
+  {
+    value: 'hefa',
+    label: 'Bio-SAF — HEFA',
+    hint: '75% WTW CO₂ saving · TRL 9 · Commercially available · Source: ICAO CORSIA 2022',
+  },
+  {
+    value: 'mix',
+    label: 'Mixed blend — Bio-SAF + PtL',
+    hint: '82% WTW CO₂ saving · TRL 8 · Transition mix · Source: IATA CR 2024',
+  },
+  {
+    value: 'ptl',
+    label: 'Power-to-Liquid — PtL',
+    hint: '90% WTW CO₂ saving · TRL 6 · Pilot-stage only · Source: ICAO CORSIA 2022',
+  },
+]
+
+const TECH_OPTIONS = [
+  {
+    value: 'conservative',
+    label: 'Conservative — 0.9%/yr',
+    hint: 'In-pipeline aircraft only · Low deployment risk · Source: ICAO CAEP/12 2022',
+  },
+  {
+    value: 'moderate',
+    label: 'Moderate — 1.3%/yr',
+    hint: 'New aircraft + ATM improvements · Source: ICAO + IATA roadmap assumptions',
+  },
+  {
+    value: 'advanced',
+    label: 'Advanced — 2.0%/yr',
+    hint: 'Next-generation concepts required · Higher deployment risk · Source: IATA CR 2024',
+  },
+]
+
+const DEMAND_OPTIONS = [
+  {
+    value: 'low',
+    label: 'Low — 2.1%/yr CAGR',
+    hint: 'IEA Net-Zero pathway · Source: IATA CR 2024',
+  },
+  {
+    value: 'mid',
+    label: 'Mid — 2.9%/yr CAGR',
+    hint: 'IATA S2 central case · Source: IATA CR 2024',
+  },
+  {
+    value: 'high',
+    label: 'High — 3.8%/yr CAGR',
+    hint: 'ICAO LTAG-style growth · Source: IATA CR 2024',
+  },
+]
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function readingColor(reading) {
-  if (reading === 'Better than benchmark') return { bg: '#dcfce7', text: '#166534', bar: '#22c55e' }
-  if (reading === 'Near benchmark') return { bg: '#fef3c7', text: '#92400e', bar: '#f59e0b' }
-  return { bg: '#fee2e2', text: '#991b1b', bar: '#ef4444' }
+  const GREEN = new Set([
+    'Better than benchmark',
+    'Meets or exceeds ReFuelEU mandate',
+    'Cost-competitive under EU ETS',
+    'Commercially available',
+  ])
+  const AMBER = new Set([
+    'Near benchmark',
+    'Near ReFuelEU mandate (within 5pp)',
+    'Near commercial readiness',
+  ])
+  if (GREEN.has(reading)) return { bg: '#dcfce7', text: '#166534', border: '#22c55e' }
+  if (AMBER.has(reading)) return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' }
+  return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' }
 }
 
 function readingPillStyle(reading) {
+  if (!reading) return {}
   const c = readingColor(reading)
   return {
     display: 'inline-block',
-    padding: '5px 10px',
+    padding: '4px 10px',
     borderRadius: '999px',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: '700',
     background: c.bg,
     color: c.text,
@@ -83,42 +109,56 @@ function readingPillStyle(reading) {
   }
 }
 
-// ── Custom tooltip for bar chart ────────────────────────────────────────────
-function BenchmarkTooltip({ active, payload }) {
-  if (!active || !payload || !payload.length) return null
-  const d = payload[0].payload
+function SelectInput({ label, value, onChange, options }) {
+  const selected = options.find((o) => o.value === value)
   return (
-    <div style={{
-      background: 'white',
-      border: '1px solid #e2e8f0',
-      borderRadius: '12px',
-      padding: '12px 16px',
-      fontSize: '13px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-      maxWidth: '240px',
-    }}>
-      <div style={{ fontWeight: '700', marginBottom: '6px', color: '#0f172a' }}>{d.name}</div>
-      <div style={{ color: '#475569' }}>Scenario: <strong>{d.scenario}</strong></div>
-      <div style={{ color: '#475569' }}>Benchmark: <strong>{d.benchmark}</strong></div>
-      <div style={{ marginTop: '6px' }}>
-        <span style={readingPillStyle(d.reading)}>{d.reading}</span>
-      </div>
+    <div>
+      <label style={styles.label}>{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.input}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {selected?.hint && <p style={styles.inputHint}>{selected.hint}</p>}
     </div>
   )
 }
 
-// ── Main App ────────────────────────────────────────────────────────────────
+function KpiCard({ title, value, unit, subtitle, benchmark, reading }) {
+  const color = reading ? readingColor(reading).border : '#e2e8f0'
+  return (
+    <div style={{ ...styles.kpiCard, borderTop: `3px solid ${color}` }}>
+      <div style={styles.kpiLabel}>{title}</div>
+      <div style={styles.kpiValueRow}>
+        <span style={styles.kpiValue}>{value}</span>
+        {unit && <span style={styles.kpiUnit}>{unit}</span>}
+      </div>
+      <div style={styles.kpiSubtitle}>{subtitle}</div>
+      {benchmark && <div style={styles.kpiBenchmark}>{benchmark}</div>}
+      {reading && (
+        <div style={{ marginTop: '10px' }}>
+          <span style={readingPillStyle(reading)}>{reading}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [concept, setConcept] = useState('narrowbody')
-  const [safShare, setSafShare] = useState(35)
-  const [hydrogenReadiness, setHydrogenReadiness] = useState(42)
-  const [electricityPrice, setElectricityPrice] = useState(18)
-  const [carbonPrice, setCarbonPrice] = useState(75)
-  const [demandGrowth, setDemandGrowth] = useState(22)
+  const [targetYear, setTargetYear] = useState(2030)
+  const [safSharePct, setSafSharePct] = useState(20)
+  const [safType, setSafType] = useState('hefa')
+  const [techScenario, setTechScenario] = useState('moderate')
+  const [demandScenario, setDemandScenario] = useState('mid')
+  const [carbonPrice, setCarbonPrice] = useState(80)
 
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activeInsightTab, setActiveInsightTab] = useState('strengths')
 
   async function runScenario() {
     setLoading(true)
@@ -129,14 +169,20 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           concept,
-          saf_share: Number(safShare),
-          hydrogen_readiness: Number(hydrogenReadiness),
-          electricity_price: Number(electricityPrice),
-          carbon_price: Number(carbonPrice),
-          demand_growth: Number(demandGrowth),
+          target_year: Number(targetYear),
+          saf_share_pct: Number(safSharePct),
+          saf_type: safType,
+          tech_scenario: techScenario,
+          demand_scenario: demandScenario,
+          carbon_price_usd_tco2: Number(carbonPrice),
         }),
       })
-      if (!response.ok) throw new Error('Backend error')
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || 'Backend error')
+      }
+
       const data = await response.json()
       setResult(data)
     } catch {
@@ -146,41 +192,19 @@ export default function App() {
     }
   }
 
-  // Radar chart: all axes point outward = better. Inversions are explicit.
-  const radarData = useMemo(() => {
-    if (!result) return []
-    const o = result.outputs
-    return [
-      { metric: 'Cost position', value: Math.max(0, Math.min(100, 200 - o.cost_pressure_index)), note: '↑ lower cost pressure' },
-      { metric: 'Adoption', value: o.adoption_index, note: '↑ higher is better' },
-      { metric: 'Climate', value: Math.max(0, Math.min(100, 100 - o.emissions_index)), note: '↑ lower emissions' },
-      { metric: 'Readiness', value: Math.max(0, Math.min(100, 100 - o.technical_risk_index)), note: '↑ lower risk' },
-      { metric: 'Narrative', value: o.narrative_index, note: '↑ stronger narrative (heuristic)' },
-    ]
-  }, [result])
-
-  // Benchmark comparison bar chart: scenario value vs benchmark value per metric
-  const barData = useMemo(() => {
-    if (!result) return []
-    return result.comparison_table.map((row) => ({
-      name: row.metric_label.replace(' index', '').replace(' ⚠', ' ⚠'),
-      scenario: row.scenario_value,
-      benchmark: row.benchmark_value,
-      reading: row.reading,
-      lower_is_better: row.lower_is_better,
-    }))
-  }, [result])
+  const insightItems =
+    result && activeInsightTab === 'strengths'
+      ? result.strengths
+      : result && activeInsightTab === 'watchouts'
+      ? result.watchouts
+      : []
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
-        {/* Disclaimer banner */}
         <div style={styles.disclaimer}>
           <span style={styles.disclaimerBadge}>Prototype</span>
-          This tool is a decision-support prototype — not a certified engineering or financial model.
-          All metrics are heuristic indexes. Benchmarks are illustrative references, not official standards.
-          Use for structured conversation and early-stage exploration only.
+          Quantitative decision-support tool based on published aviation roadmaps. Outputs are benchmarked quantities, not a synthetic score.
         </div>
 
         <div style={styles.topBar}>
@@ -190,257 +214,199 @@ export default function App() {
         <div style={styles.hero}>
           <h1 style={styles.title}>Scenario Explorer</h1>
           <p style={styles.subtitle}>
-            Test a set of assumptions and compare the resulting implications against explicit reference benchmarks.
+            Test aviation decarbonization assumptions and compare them against explicit reference benchmarks.
           </p>
         </div>
 
         <div style={styles.grid}>
-
-          {/* ── Left column: inputs ── */}
           <div style={styles.leftColumn}>
             <div style={styles.card}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionEyebrow}>Inputs</div>
-                <h2 style={styles.sectionTitle}>Scenario controls</h2>
+                <h2 style={styles.sectionTitle}>Scenario parameters</h2>
               </div>
 
-              <label style={styles.label}>Concept</label>
-              <select value={concept} onChange={(e) => setConcept(e.target.value)} style={styles.input}>
-                <option value="regional">Regional aircraft</option>
-                <option value="narrowbody">Low-emission narrowbody</option>
-                <option value="drone">Advanced air mobility / drone</option>
-              </select>
+              <SelectInput
+                label="Aircraft concept"
+                value={concept}
+                onChange={setConcept}
+                options={CONCEPT_OPTIONS}
+              />
 
-              {[
-                { key: 'saf_share', state: safShare, setter: setSafShare },
-                { key: 'hydrogen_readiness', state: hydrogenReadiness, setter: setHydrogenReadiness },
-                { key: 'electricity_price', state: electricityPrice, setter: setElectricityPrice },
-                { key: 'carbon_price', state: carbonPrice, setter: setCarbonPrice },
-                { key: 'demand_growth', state: demandGrowth, setter: setDemandGrowth },
-              ].map(({ key, state, setter }) => {
-                const meta = INPUT_META[key]
-                return (
-                  <div key={key}>
-                    <label style={styles.label}>
-                      {meta.label}
-                      <span style={styles.unitBadge}>{meta.unit}</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={state}
-                      min={meta.min}
-                      max={meta.max}
-                      step={meta.step}
-                      onChange={(e) => setter(e.target.value)}
-                      style={styles.input}
-                    />
-                    <p style={styles.inputHint}>{meta.hint}</p>
-                  </div>
-                )
-              })}
+              <div>
+                <label style={styles.label}>Target year</label>
+                <select
+                  value={targetYear}
+                  onChange={(e) => setTargetYear(Number(e.target.value))}
+                  style={styles.input}
+                >
+                  <option value={2030}>2030</option>
+                  <option value={2035}>2035</option>
+                  <option value={2050}>2050</option>
+                </select>
+                <p style={styles.inputHint}>Sets the roadmap benchmark and policy milestone year.</p>
+              </div>
 
-              <button onClick={runScenario} disabled={loading} style={styles.button}>
-                {loading ? 'Running…' : 'Run scenario'}
+              <div>
+                <label style={styles.label}>
+                  SAF share
+                  <span style={styles.unitBadge}>% of fuel mix</span>
+                  <span style={styles.valueBadge}>{safSharePct}%</span>
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={safSharePct}
+                  onChange={(e) => setSafSharePct(e.target.value)}
+                  style={styles.slider}
+                />
+                <div style={styles.sliderTicks}>
+                  <span>0%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+                <p style={styles.inputHint}>
+                  Fuel mix share assumed to come from SAF.
+                </p>
+              </div>
+
+              <SelectInput
+                label="SAF pathway"
+                value={safType}
+                onChange={setSafType}
+                options={SAF_TYPE_OPTIONS}
+              />
+
+              <SelectInput
+                label="Technology scenario"
+                value={techScenario}
+                onChange={setTechScenario}
+                options={TECH_OPTIONS}
+              />
+
+              <SelectInput
+                label="Demand scenario"
+                value={demandScenario}
+                onChange={setDemandScenario}
+                options={DEMAND_OPTIONS}
+              />
+
+              <div>
+                <label style={styles.label}>
+                  Carbon price
+                  <span style={styles.unitBadge}>$/tCO₂</span>
+                  <span style={styles.valueBadge}>${carbonPrice}</span>
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={200}
+                  step={5}
+                  value={carbonPrice}
+                  onChange={(e) => setCarbonPrice(e.target.value)}
+                  style={styles.slider}
+                />
+                <div style={styles.sliderTicks}>
+                  <span>$0</span>
+                  <span>$100</span>
+                  <span>$200</span>
+                </div>
+                <p style={styles.inputHint}>
+                  Used to compare SAF premium to carbon-cost pressure.
+                </p>
+              </div>
+
+              <button
+                onClick={runScenario}
+                disabled={loading}
+                style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+              >
+                {loading ? 'Computing…' : 'Run scenario'}
               </button>
 
               {error && <p style={styles.error}>{error}</p>}
             </div>
-
-            <div style={styles.darkCard}>
-              <div style={styles.darkEyebrow}>Design principle</div>
-              <div style={styles.darkTitle}>Structured assumptions, not black-box scoring</div>
-              <p style={styles.darkText}>
-                Polaris shows what your assumptions <em>imply</em> relative to explicit reference points —
-                not a magic score. Every number is a proxy. Every benchmark is a reference, not a truth.
-              </p>
-            </div>
           </div>
 
-          {/* ── Right column: results ── */}
           <div style={styles.rightColumn}>
-
-            {/* Headline */}
             <div style={styles.heroResultCard}>
-              <div>
-                <div style={styles.sectionEyebrow}>Scenario implications</div>
-                <h2 style={styles.resultHeadline}>
-                  {result ? result.headline : 'Run a scenario to see benchmarked implications'}
-                </h2>
-                <p style={styles.resultSubtext}>
-                  {result
-                    ? result.interpretation
-                    : 'The goal is not to produce a magic score, but to show what your assumptions imply relative to explicit reference points.'}
-                </p>
-              </div>
+              <div style={styles.sectionEyebrow}>Scenario implication</div>
+              <h2 style={styles.resultHeadline}>
+                {result
+                  ? result.headline
+                  : 'Run a scenario to see the key decision signal'}
+              </h2>
+              <p style={styles.resultSubtext}>
+                {result
+                  ? result.interpretation
+                  : 'This demo is designed to show what a set of assumptions implies relative to published climate, policy, and cost benchmarks.'}
+              </p>
             </div>
 
-            {/* KPI cards — 4 core metrics only */}
             <div style={styles.kpiGrid}>
               <KpiCard
-                title="Cost pressure index"
-                value={result ? result.outputs.cost_pressure_index : '--'}
-                subtitle="Lower = more favorable cost position"
-                benchmark="Ref: 100"
-                reading={result ? result.comparison_table.find(r => r.key === 'cost_pressure_index')?.reading : null}
+                title="CO₂ intensity"
+                value={result ? String(result.outputs.co2_intensity_gco2_rpk) : '--'}
+                unit="gCO₂/RPK"
+                subtitle="Lower is better"
+                benchmark={result ? `Moderate ${result.target_year} benchmark: ${result.benchmarks.co2_moderate_gco2_rpk}` : ''}
+                reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
               />
               <KpiCard
-                title="Emissions intensity index"
-                value={result ? result.outputs.emissions_index : '--'}
-                subtitle="Lower = better climate performance"
-                benchmark="CORSIA proxy: 80"
-                reading={result ? result.comparison_table.find(r => r.key === 'emissions_index')?.reading : null}
+                title="CO₂ reduction"
+                value={result ? `${result.outputs.co2_reduction_from_2019_pct}%` : '--'}
+                unit=""
+                subtitle="vs 2019 baseline"
+                benchmark={result ? `2019 baseline: ${result.benchmarks.co2_2019_baseline} gCO₂/RPK` : ''}
+                reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
               />
               <KpiCard
-                title="Technical readiness risk"
-                value={result ? result.outputs.technical_risk_index : '--'}
-                subtitle="Lower = closer to deployment-ready"
-                benchmark="Threshold proxy: 30"
-                reading={result ? result.comparison_table.find(r => r.key === 'technical_risk_index')?.reading : null}
+                title="SAF cost premium"
+                value={result ? `$${result.outputs.saf_cost_premium_usd_per_seat.toFixed(2)}` : '--'}
+                unit="/seat"
+                subtitle="Reference flight"
+                benchmark={result ? `EU ETS equivalent: $${result.outputs.eu_ets_carbon_cost_per_seat.toFixed(2)}/seat` : ''}
+                reading={result ? result.comparison_table.find((r) => r.key === 'saf_cost_premium')?.reading : null}
               />
               <KpiCard
-                title="Adoption potential index"
-                value={result ? result.outputs.adoption_index : '--'}
-                subtitle="Higher = stronger market traction signal"
-                benchmark="Traction ref: 50"
-                reading={result ? result.comparison_table.find(r => r.key === 'adoption_index')?.reading : null}
+                title="Policy gap"
+                value={
+                  result
+                    ? `${result.outputs.gap_vs_refueleu_pp > 0 ? '+' : ''}${result.outputs.gap_vs_refueleu_pp}pp`
+                    : '--'
+                }
+                unit=""
+                subtitle="vs ReFuelEU mandate"
+                benchmark={result ? `${result.inputs.saf_share_pct}% assumed vs ${result.benchmarks.refueleu_saf_target_pct}% target` : ''}
+                reading={result ? result.comparison_table.find((r) => r.key === 'saf_policy_alignment')?.reading : null}
               />
             </div>
 
-            {/* Narrative index — shown separately with caveat */}
-            {result && (
-              <div style={styles.narrativeCard}>
-                <div style={styles.narrativeLeft}>
-                  <div style={styles.sectionEyebrow}>Heuristic signal</div>
-                  <div style={styles.narrativeTitle}>Narrative strength index</div>
-                  <p style={styles.narrativeNote}>
-                    ⚠ Heuristic composite only — not a predictive metric. Use for investor framing conversations, not as a forecast.
-                    Benchmark reference: 65.
-                  </p>
-                </div>
-                <div style={styles.narrativeRight}>
-                  <div style={styles.narrativeValue}>{result.outputs.narrative_index}</div>
-                  <span style={readingPillStyle(result.comparison_table.find(r => r.key === 'narrative_index')?.reading)}>
-                    {result.comparison_table.find(r => r.key === 'narrative_index')?.reading}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Charts */}
-            <div style={styles.chartGrid}>
-
-              {/* Radar chart */}
-              <div style={styles.card}>
-                <div style={styles.chartHeader}>
-                  <div style={styles.sectionEyebrow}>Balanced view</div>
-                  <h3 style={styles.chartTitle}>Scenario profile</h3>
-                  <p style={styles.chartNote}>All axes: outward = more favorable. "Cost position" and "Climate" are inverted so higher = better.</p>
-                </div>
-                <div style={styles.chartBox}>
-                  {result ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={radarData}>
-                        <PolarGrid />
-                        <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
-                        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar dataKey="value" stroke="#0f172a" fill="#0f172a" fillOpacity={0.3} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div style={styles.chartPlaceholder}>Run a scenario to generate the radar chart.</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Benchmark bar chart — replaces the single-point scatter */}
-              <div style={styles.card}>
-                <div style={styles.chartHeader}>
-                  <div style={styles.sectionEyebrow}>Trade-off view</div>
-                  <h3 style={styles.chartTitle}>Scenario vs benchmarks</h3>
-                  <p style={styles.chartNote}>Colored bars = your scenario. Grey line = benchmark reference. Colors reflect benchmark reading.</p>
-                </div>
-                <div style={styles.chartBox}>
-                  {result ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={barData}
-                        layout="vertical"
-                        margin={{ top: 8, right: 28, bottom: 8, left: 8 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" domain={[0, 120]} tick={{ fontSize: 11 }} />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          width={100}
-                          tick={{ fontSize: 10 }}
-                          tickFormatter={(v) => v.length > 14 ? v.slice(0, 14) + '…' : v}
-                        />
-                        <Tooltip content={<BenchmarkTooltip />} />
-                        <Bar dataKey="scenario" radius={[0, 6, 6, 0]}>
-                          {barData.map((entry, i) => (
-                            <Cell key={i} fill={readingColor(entry.reading).bar} />
-                          ))}
-                        </Bar>
-                        {barData.map((entry, i) => (
-                          <ReferenceLine
-                            key={i}
-                            x={entry.benchmark}
-                            stroke="#94a3b8"
-                            strokeDasharray="4 3"
-                            strokeWidth={1.5}
-                          />
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div style={styles.chartPlaceholder}>Run a scenario to generate the benchmark chart.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Comparison table */}
             <div style={styles.card}>
-              <div style={styles.chartHeader}>
-                <div style={styles.sectionEyebrow}>Benchmark comparison</div>
-                <h3 style={styles.chartTitle}>Your scenario vs reference points</h3>
-              </div>
+              <div style={styles.sectionEyebrow}>Benchmark comparison</div>
+              <h3 style={styles.blockTitle}>How this scenario compares</h3>
+
               {!result ? (
-                <div style={styles.chartPlaceholder}>Run a scenario to generate the comparison table.</div>
+                <div style={styles.placeholder}>Run a scenario to generate the comparison table.</div>
               ) : (
                 <div style={styles.tableWrapper}>
                   <table style={styles.table}>
                     <thead>
                       <tr>
                         <th style={styles.th}>Metric</th>
-                        <th style={styles.th}>Scenario</th>
-                        <th style={styles.th}>Reference</th>
-                        <th style={styles.th}>Gap</th>
-                        <th style={styles.th}>Reading</th>
+                        <th style={styles.th}>You</th>
+                        <th style={styles.th}>Benchmark</th>
+                        <th style={styles.th}>Signal</th>
                       </tr>
                     </thead>
                     <tbody>
                       {result.comparison_table.map((row) => (
                         <tr key={row.key}>
-                          <td style={styles.tdMetric}>
-                            {row.metric_label}
-                          </td>
-                          <td style={styles.td}>{row.scenario_value}</td>
-                          <td style={styles.td}>
-                            {row.benchmark_value}
-                            <div style={styles.benchmarkLabel}>{row.benchmark_label}</div>
-                          </td>
-                          <td style={styles.td}>
-                            <span style={{
-                              color: row.gap_pct === null ? '#94a3b8' :
-                                (row.lower_is_better ? (row.gap_pct < 0 ? '#16a34a' : '#dc2626') : (row.gap_pct > 0 ? '#16a34a' : '#dc2626')),
-                              fontWeight: '700',
-                              fontSize: '13px',
-                            }}>
-                              {row.gap_pct !== null ? `${row.gap_pct > 0 ? '+' : ''}${row.gap_pct}%` : '—'}
-                            </span>
-                          </td>
+                          <td style={styles.tdMetric}>{shortMetricLabel(row.metric_label)}</td>
+                          <td style={styles.td}>{formatScenarioValue(row)}</td>
+                          <td style={styles.td}>{formatBenchmarkValue(row)}</td>
                           <td style={styles.td}>
                             <span style={readingPillStyle(row.reading)}>{row.reading}</span>
                           </td>
@@ -448,71 +414,45 @@ export default function App() {
                       ))}
                     </tbody>
                   </table>
-                  <p style={styles.tableNote}>
-                    Gap = (scenario − benchmark) / benchmark × 100.{' '}
-                    Green = favorable direction. Red = unfavorable direction.
-                  </p>
                 </div>
               )}
             </div>
 
-            {/* Strengths and watchouts */}
-            <div style={styles.bottomGrid}>
-              <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Strengths</div>
-                <h3 style={styles.bottomTitle}>What supports the case</h3>
-                {!result ? (
-                  <p style={styles.bottomText}>Run a scenario to see the positive signals.</p>
-                ) : (
-                  <ul style={styles.list}>
-                    {result.strengths.map((item, i) => (
-                      <li key={i} style={styles.listItem}>{item}</li>
-                    ))}
-                  </ul>
-                )}
+            <div style={styles.card}>
+              <div style={styles.sectionEyebrow}>Insights</div>
+              <div style={styles.tabHeader}>
+                <button
+                  style={{
+                    ...styles.tabButton,
+                    ...(activeInsightTab === 'strengths' ? styles.tabButtonActive : {}),
+                  }}
+                  onClick={() => setActiveInsightTab('strengths')}
+                >
+                  Strengths
+                </button>
+                <button
+                  style={{
+                    ...styles.tabButton,
+                    ...(activeInsightTab === 'watchouts' ? styles.tabButtonActive : {}),
+                  }}
+                  onClick={() => setActiveInsightTab('watchouts')}
+                >
+                  Watchouts
+                </button>
               </div>
 
-              <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Watchouts</div>
-                <h3 style={styles.bottomTitle}>What still needs validation</h3>
-                {!result ? (
-                  <p style={styles.bottomText}>Run a scenario to see the benchmark gaps.</p>
-                ) : (
-                  <ul style={styles.list}>
-                    {result.watchouts.map((item, i) => (
-                      <li key={i} style={styles.listItem}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            {/* Model caveats */}
-            {result && (
-              <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Model limits</div>
-                <h3 style={styles.bottomTitle}>What this prototype cannot tell you</h3>
-                <ul style={styles.list}>
-                  {result.model_caveats.map((c, i) => (
-                    <li key={i} style={styles.listItem}>{c}</li>
+              {!result ? (
+                <div style={styles.placeholder}>Run a scenario to see the key decision insights.</div>
+              ) : (
+                <ul style={styles.insightList}>
+                  {insightItems.map((item, i) => (
+                    <li key={i} style={styles.insightListItem}>
+                      {item}
+                    </li>
                   ))}
                 </ul>
-                <p style={{ ...styles.bottomText, marginTop: '14px', fontStyle: 'italic' }}>
-                  {result.methodology_note}
-                </p>
-              </div>
-            )}
-
-            {!result && (
-              <div style={styles.card}>
-                <div style={styles.sectionEyebrow}>Method note</div>
-                <h3 style={styles.bottomTitle}>How to read this prototype</h3>
-                <p style={styles.bottomText}>
-                  This prototype compares scenario implications to explicit references — not a certified forecast.
-                  All metrics are heuristic indexes. Benchmarks are illustrative anchors, not official standards.
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -520,28 +460,32 @@ export default function App() {
   )
 }
 
-// ── KPI Card ────────────────────────────────────────────────────────────────
-function KpiCard({ title, value, subtitle, benchmark, reading }) {
-  const hasReading = reading != null
-  return (
-    <div style={{
-      ...styles.kpiCard,
-      borderTop: hasReading ? `3px solid ${readingColor(reading).bar}` : '3px solid #e2e8f0',
-    }}>
-      <div style={styles.kpiLabel}>{title}</div>
-      <div style={styles.kpiValue}>{value}</div>
-      <div style={styles.kpiSubtitle}>{subtitle}</div>
-      {benchmark && <div style={styles.kpiBenchmark}>{benchmark}</div>}
-      {hasReading && (
-        <div style={{ marginTop: '10px' }}>
-          <span style={readingPillStyle(reading)}>{reading}</span>
-        </div>
-      )}
-    </div>
-  )
+function shortMetricLabel(label) {
+  const map = {
+    'CO₂ emissions intensity': 'CO₂ intensity',
+    'SAF mandate compliance': 'SAF compliance',
+    'SAF cost premium per seat': 'SAF cost premium',
+    'SAF pathway technology readiness': 'SAF pathway TRL',
+  }
+  return map[label] || label
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+function formatScenarioValue(row) {
+  if (row.key === 'co2_intensity') return `${row.scenario_value} gCO₂/RPK`
+  if (row.key === 'saf_policy_alignment') return `${row.scenario_value}%`
+  if (row.key === 'saf_cost_premium') return `$${Number(row.scenario_value).toFixed(2)}/seat`
+  if (row.key === 'saf_trl') return `TRL ${row.scenario_value}/9`
+  return row.scenario_value
+}
+
+function formatBenchmarkValue(row) {
+  if (row.key === 'co2_intensity') return `${row.benchmark_value} gCO₂/RPK`
+  if (row.key === 'saf_policy_alignment') return `${row.benchmark_value}%`
+  if (row.key === 'saf_cost_premium') return `$${Number(row.benchmark_value).toFixed(2)}/seat`
+  if (row.key === 'saf_trl') return 'TRL 9'
+  return row.benchmark_value
+}
+
 const styles = {
   page: {
     minHeight: '100vh',
@@ -552,7 +496,7 @@ const styles = {
   container: {
     maxWidth: '1320px',
     margin: '0 auto',
-    padding: '24px 24px 48px',
+    padding: '24px 24px 56px',
   },
   disclaimer: {
     background: '#fffbeb',
@@ -564,7 +508,7 @@ const styles = {
     color: '#78350f',
     lineHeight: '1.5',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '12px',
   },
   disclaimerBadge: {
@@ -577,39 +521,39 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
     whiteSpace: 'nowrap',
+    marginTop: '1px',
   },
   topBar: {
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: '0px',
   },
   logoCentered: {
-    height: '160px',
+    height: '150px',
     objectFit: 'contain',
   },
   hero: {
     marginBottom: '28px',
   },
   title: {
-    fontSize: '52px',
+    fontSize: '50px',
     lineHeight: '1',
     margin: '0 0 14px 0',
-    letterSpacing: '-1.8px',
+    letterSpacing: '-1.6px',
     color: '#0f172a',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: '18px',
-    maxWidth: '860px',
-    lineHeight: '1.6',
+    fontSize: '17px',
+    maxWidth: '760px',
+    lineHeight: '1.65',
     color: '#475569',
     margin: '0 auto',
     textAlign: 'center',
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: '380px 1fr',
+    gridTemplateColumns: '400px minmax(0, 1fr)',
     gap: '24px',
     alignItems: 'start',
   },
@@ -617,46 +561,22 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    minWidth: 0,
   },
   rightColumn: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    minWidth: 0,
   },
   card: {
-    background: 'rgba(255,255,255,0.82)',
+    background: 'rgba(255,255,255,0.84)',
     borderRadius: '20px',
     padding: '24px',
-    border: '1px solid rgba(226,232,240,0.8)',
+    border: '1px solid rgba(226,232,240,0.85)',
     boxShadow: '0 12px 40px rgba(15, 23, 42, 0.07)',
-    backdropFilter: 'blur(10px)',
-  },
-  darkCard: {
-    background: 'linear-gradient(135deg, #0b1736 0%, #111c44 100%)',
-    color: 'white',
-    borderRadius: '20px',
-    padding: '24px',
-    boxShadow: '0 12px 40px rgba(11, 23, 54, 0.2)',
-  },
-  darkEyebrow: {
-    fontSize: '11px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    opacity: 0.65,
-    marginBottom: '10px',
-    fontWeight: '700',
-  },
-  darkTitle: {
-    fontSize: '22px',
-    fontWeight: '700',
-    marginBottom: '12px',
-    lineHeight: '1.3',
-  },
-  darkText: {
-    margin: 0,
-    color: 'rgba(255,255,255,0.78)',
-    lineHeight: '1.65',
-    fontSize: '14px',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   heroResultCard: {
     background: 'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(246,250,255,0.95) 100%)',
@@ -664,6 +584,8 @@ const styles = {
     padding: '26px',
     border: '1px solid rgba(226,232,240,0.9)',
     boxShadow: '0 12px 40px rgba(15, 23, 42, 0.07)',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   sectionHeader: {
     marginBottom: '16px',
@@ -678,27 +600,32 @@ const styles = {
   },
   sectionTitle: {
     margin: 0,
-    fontSize: '26px',
+    fontSize: '24px',
     letterSpacing: '-0.4px',
     color: '#0f172a',
   },
   resultHeadline: {
     margin: '0 0 12px 0',
-    fontSize: '28px',
-    letterSpacing: '-0.6px',
+    fontSize: '24px',
+    letterSpacing: '-0.4px',
     color: '#0f172a',
     lineHeight: '1.25',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
   },
   resultSubtext: {
     margin: 0,
     color: '#475569',
     lineHeight: '1.65',
-    fontSize: '15px',
+    fontSize: '14px',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
   },
   label: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    flexWrap: 'wrap',
+    gap: '6px',
     marginTop: '18px',
     marginBottom: '6px',
     fontWeight: '700',
@@ -713,15 +640,35 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600',
   },
+  valueBadge: {
+    background: '#dbeafe',
+    color: '#1d4ed8',
+    borderRadius: '6px',
+    padding: '2px 7px',
+    fontSize: '11px',
+    fontWeight: '700',
+  },
   input: {
     width: '100%',
-    padding: '12px 14px',
+    padding: '11px 14px',
     borderRadius: '12px',
     border: '1px solid #cbd5e1',
-    fontSize: '15px',
+    fontSize: '14px',
     background: '#ffffff',
     color: '#0f172a',
     boxSizing: 'border-box',
+  },
+  slider: {
+    width: '100%',
+    marginTop: '2px',
+    accentColor: '#0b1736',
+  },
+  sliderTicks: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '11px',
+    color: '#94a3b8',
+    marginTop: '2px',
   },
   inputHint: {
     margin: '5px 0 0 0',
@@ -741,40 +688,55 @@ const styles = {
     fontWeight: '700',
     cursor: 'pointer',
     boxShadow: '0 8px 24px rgba(11, 23, 54, 0.22)',
-    opacity: 1,
-    transition: 'opacity 0.2s',
   },
   error: {
     color: '#dc2626',
     marginTop: '12px',
     fontWeight: '600',
-    fontSize: '14px',
+    fontSize: '13px',
+    lineHeight: '1.5',
   },
   kpiGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '14px',
   },
   kpiCard: {
-    background: 'rgba(255,255,255,0.88)',
+    background: 'rgba(255,255,255,0.9)',
     padding: '18px',
     borderRadius: '18px',
     border: '1px solid rgba(226,232,240,0.9)',
-    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05)',
     boxSizing: 'border-box',
+    minWidth: 0,
+    textAlign: 'center',
   },
   kpiLabel: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#64748b',
-    marginBottom: '12px',
-    fontWeight: '600',
+    marginBottom: '10px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
     lineHeight: '1.4',
   },
+  kpiValueRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: '5px',
+    marginBottom: '8px',
+    flexWrap: 'wrap',
+  },
   kpiValue: {
-    fontSize: '30px',
+    fontSize: '28px',
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: '8px',
+    lineHeight: '1',
+  },
+  kpiUnit: {
+    fontSize: '12px',
+    color: '#64748b',
+    fontWeight: '500',
   },
   kpiSubtitle: {
     fontSize: '12px',
@@ -786,72 +748,16 @@ const styles = {
     color: '#94a3b8',
     marginTop: '4px',
     fontStyle: 'italic',
+    lineHeight: '1.4',
   },
-  narrativeCard: {
-    background: 'rgba(255,255,255,0.82)',
-    borderRadius: '18px',
-    padding: '20px 24px',
-    border: '1px solid #fcd34d',
-    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  narrativeLeft: {
-    flex: 1,
-  },
-  narrativeRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '8px',
-  },
-  narrativeTitle: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: '6px',
-  },
-  narrativeNote: {
-    fontSize: '12px',
-    color: '#78350f',
-    margin: 0,
-    lineHeight: '1.5',
-    maxWidth: '480px',
-  },
-  narrativeValue: {
-    fontSize: '36px',
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  chartGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '20px',
-  },
-  chartHeader: {
-    marginBottom: '12px',
-  },
-  chartTitle: {
-    margin: '0 0 4px 0',
+  blockTitle: {
+    margin: '0 0 14px 0',
     fontSize: '20px',
     letterSpacing: '-0.3px',
     color: '#0f172a',
   },
-  chartNote: {
-    margin: 0,
-    fontSize: '12px',
-    color: '#94a3b8',
-    lineHeight: '1.45',
-  },
-  chartBox: {
-    width: '100%',
-    height: '280px',
-  },
-  chartPlaceholder: {
-    width: '100%',
-    minHeight: '120px',
+  placeholder: {
+    minHeight: '100px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -870,6 +776,7 @@ const styles = {
     width: '100%',
     borderCollapse: 'collapse',
     fontSize: '14px',
+    tableLayout: 'fixed',
   },
   th: {
     textAlign: 'left',
@@ -882,58 +789,52 @@ const styles = {
     fontWeight: '700',
   },
   td: {
-    padding: '13px 10px',
+    padding: '12px 10px',
     borderBottom: '1px solid #f1f5f9',
     color: '#334155',
     verticalAlign: 'top',
     fontSize: '14px',
+    overflowWrap: 'anywhere',
   },
   tdMetric: {
-    padding: '13px 10px',
+    padding: '12px 10px',
     borderBottom: '1px solid #f1f5f9',
     color: '#0f172a',
     fontWeight: '700',
     verticalAlign: 'top',
     fontSize: '13px',
-    maxWidth: '160px',
+    overflowWrap: 'anywhere',
   },
-  benchmarkLabel: {
-    fontSize: '11px',
-    color: '#94a3b8',
-    marginTop: '4px',
-    lineHeight: '1.4',
+  tabHeader: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '16px',
   },
-  tableNote: {
-    margin: '12px 0 0 0',
-    fontSize: '11px',
-    color: '#94a3b8',
-    fontStyle: 'italic',
-  },
-  bottomGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '20px',
-  },
-  bottomTitle: {
-    margin: '0 0 14px 0',
-    fontSize: '22px',
-    letterSpacing: '-0.4px',
-    color: '#0f172a',
-  },
-  bottomText: {
-    margin: 0,
+  tabButton: {
+    padding: '10px 14px',
+    borderRadius: '999px',
+    border: '1px solid #cbd5e1',
+    background: '#ffffff',
     color: '#475569',
-    lineHeight: '1.7',
-    fontSize: '15px',
+    fontSize: '13px',
+    fontWeight: '700',
+    cursor: 'pointer',
   },
-  list: {
+  tabButtonActive: {
+    background: '#0b1736',
+    color: 'white',
+    border: '1px solid #0b1736',
+  },
+  insightList: {
     margin: 0,
-    paddingLeft: '18px',
+    paddingLeft: '20px',
     color: '#475569',
+    textAlign: 'left',
   },
-  listItem: {
+  insightListItem: {
     marginBottom: '12px',
     lineHeight: '1.6',
     fontSize: '14px',
+    textAlign: 'left',
   },
 }
