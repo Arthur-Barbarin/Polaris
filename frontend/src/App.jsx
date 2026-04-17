@@ -1,5 +1,16 @@
 import logo from './assets/Polaris_logo.png'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ReferenceLine,
+  Cell,
+} from 'recharts'
 
 // ── Option metadata ──────────────────────────────────────────────────────────
 
@@ -57,31 +68,12 @@ const TECH_OPTIONS = [
   },
 ]
 
-const DEMAND_OPTIONS = [
-  {
-    value: 'low',
-    label: 'Low — 2.1%/yr CAGR',
-    hint: 'IEA Net-Zero pathway · Source: IATA CR 2024',
-  },
-  {
-    value: 'mid',
-    label: 'Mid — 2.9%/yr CAGR',
-    hint: 'IATA S2 central case · Source: IATA CR 2024',
-  },
-  {
-    value: 'high',
-    label: 'High — 3.8%/yr CAGR',
-    hint: 'ICAO LTAG-style growth · Source: IATA CR 2024',
-  },
-]
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function readingColor(reading) {
   const GREEN = new Set([
     'Better than benchmark',
     'Meets or exceeds ReFuelEU mandate',
-    'Cost-competitive under EU ETS',
     'Commercially available',
   ])
   const AMBER = new Set([
@@ -89,9 +81,9 @@ function readingColor(reading) {
     'Near ReFuelEU mandate (within 5pp)',
     'Near commercial readiness',
   ])
-  if (GREEN.has(reading)) return { bg: '#dcfce7', text: '#166534', border: '#22c55e' }
-  if (AMBER.has(reading)) return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' }
-  return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' }
+  if (GREEN.has(reading)) return { bg: '#dcfce7', text: '#166534', border: '#22c55e', bar: '#22c55e' }
+  if (AMBER.has(reading)) return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b', bar: '#f59e0b' }
+  return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444', bar: '#ef4444' }
 }
 
 function readingPillStyle(reading) {
@@ -107,6 +99,17 @@ function readingPillStyle(reading) {
     color: c.text,
     whiteSpace: 'nowrap',
   }
+}
+
+function benchmarkBarColor(entry) {
+  if (!entry) return '#94a3b8'
+
+  const favorable = entry.lowerIsBetter
+    ? entry.scenario <= entry.benchmark
+    : entry.scenario >= entry.benchmark
+
+  if (Math.abs(entry.scenario - entry.benchmark) <= 10) return '#f59e0b'
+  return favorable ? '#22c55e' : '#ef4444'
 }
 
 function SelectInput({ label, value, onChange, options }) {
@@ -146,19 +149,53 @@ function KpiCard({ title, value, unit, subtitle, benchmark, reading }) {
   )
 }
 
+function BenchmarkTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div
+      style={{
+        background: 'white',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '12px 16px',
+        fontSize: '13px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+        maxWidth: '260px',
+      }}
+    >
+      <div style={{ fontWeight: '700', marginBottom: '6px', color: '#0f172a' }}>{d.name}</div>
+      <div style={{ color: '#475569' }}>
+        Scenario: <strong>{d.displayScenario}</strong>
+      </div>
+      <div style={{ color: '#475569' }}>
+        Benchmark: <strong>{d.displayBenchmark}</strong>
+      </div>
+      <div style={{ marginTop: '6px' }}>
+        <span style={readingPillStyle(d.reading)}>{d.reading}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [concept, setConcept] = useState('narrowbody')
   const [targetYear, setTargetYear] = useState(2030)
   const [safSharePct, setSafSharePct] = useState(20)
   const [safType, setSafType] = useState('hefa')
   const [techScenario, setTechScenario] = useState('moderate')
-  const [demandScenario, setDemandScenario] = useState('mid')
-  const [carbonPrice, setCarbonPrice] = useState(80)
+
+  // Hidden for the aviation demo for now:
+  // demand and carbon price remain fixed so the backend contract stays unchanged.
+  // Re-enable these inputs later if we build a market/policy layer.
+  const [demandScenario] = useState('mid')
+  const [carbonPrice] = useState(80)
 
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeInsightTab, setActiveInsightTab] = useState('strengths')
+  const [activeMainTab, setActiveMainTab] = useState('overview')
 
   async function runScenario() {
     setLoading(true)
@@ -198,6 +235,57 @@ export default function App() {
       : result && activeInsightTab === 'watchouts'
       ? result.watchouts
       : []
+
+const benchmarkBarData = useMemo(() => {
+  if (!result) return []
+
+  const co2Row = result.comparison_table.find((r) => r.key === 'co2_intensity')
+  const policyRow = result.comparison_table.find((r) => r.key === 'saf_policy_alignment')
+  const trlRow = result.comparison_table.find((r) => r.key === 'saf_trl')
+
+  const rows = []
+
+  if (co2Row) {
+    rows.push({
+      key: 'co2',
+      name: 'CO₂ intensity',
+      scenario: co2Row.benchmark_value > 0 ? Math.round((co2Row.scenario_value / co2Row.benchmark_value) * 100) : 0,
+      benchmark: 100,
+      reading: co2Row.reading,
+      displayScenario: `${co2Row.scenario_value} gCO₂/RPK`,
+      displayBenchmark: `${co2Row.benchmark_value} gCO₂/RPK`,
+      lowerIsBetter: true,
+    })
+  }
+
+  if (policyRow) {
+    rows.push({
+      key: 'policy',
+      name: 'SAF compliance',
+      scenario: policyRow.benchmark_value > 0 ? Math.round((policyRow.scenario_value / policyRow.benchmark_value) * 100) : 0,
+      benchmark: 100,
+      reading: policyRow.reading,
+      displayScenario: `${policyRow.scenario_value}%`,
+      displayBenchmark: `${policyRow.benchmark_value}%`,
+      lowerIsBetter: false,
+    })
+  }
+
+  if (trlRow) {
+    rows.push({
+      key: 'trl',
+      name: 'SAF pathway TRL',
+      scenario: trlRow.benchmark_value > 0 ? Math.round((trlRow.scenario_value / trlRow.benchmark_value) * 100) : 0,
+      benchmark: 100,
+      reading: trlRow.reading,
+      displayScenario: `TRL ${trlRow.scenario_value}/9`,
+      displayBenchmark: 'TRL 9',
+      lowerIsBetter: false,
+    })
+  }
+
+  return rows
+}, [result])
 
   return (
     <div style={styles.page}>
@@ -267,9 +355,7 @@ export default function App() {
                   <span>50%</span>
                   <span>100%</span>
                 </div>
-                <p style={styles.inputHint}>
-                  Fuel mix share assumed to come from SAF.
-                </p>
+                <p style={styles.inputHint}>Fuel mix share assumed to come from SAF.</p>
               </div>
 
               <SelectInput
@@ -285,38 +371,6 @@ export default function App() {
                 onChange={setTechScenario}
                 options={TECH_OPTIONS}
               />
-
-              <SelectInput
-                label="Demand scenario"
-                value={demandScenario}
-                onChange={setDemandScenario}
-                options={DEMAND_OPTIONS}
-              />
-
-              <div>
-                <label style={styles.label}>
-                  Carbon price
-                  <span style={styles.unitBadge}>$/tCO₂</span>
-                  <span style={styles.valueBadge}>${carbonPrice}</span>
-                </label>
-                <input
-                  type="range"
-                  min={0}
-                  max={200}
-                  step={5}
-                  value={carbonPrice}
-                  onChange={(e) => setCarbonPrice(e.target.value)}
-                  style={styles.slider}
-                />
-                <div style={styles.sliderTicks}>
-                  <span>$0</span>
-                  <span>$100</span>
-                  <span>$200</span>
-                </div>
-                <p style={styles.inputHint}>
-                  Used to compare SAF premium to carbon-cost pressure.
-                </p>
-              </div>
 
               <button
                 onClick={runScenario}
@@ -334,9 +388,7 @@ export default function App() {
             <div style={styles.heroResultCard}>
               <div style={styles.sectionEyebrow}>Scenario implication</div>
               <h2 style={styles.resultHeadline}>
-                {result
-                  ? result.headline
-                  : 'Run a scenario to see the key decision signal'}
+                {result ? result.headline : 'Run a scenario to see the key decision signal'}
               </h2>
               <p style={styles.resultSubtext}>
                 {result
@@ -345,79 +397,193 @@ export default function App() {
               </p>
             </div>
 
-            <div style={styles.kpiGrid}>
-              <KpiCard
-                title="CO₂ intensity"
-                value={result ? String(result.outputs.co2_intensity_gco2_rpk) : '--'}
-                unit="gCO₂/RPK"
-                subtitle="Lower is better"
-                benchmark={result ? `Moderate ${result.target_year} benchmark: ${result.benchmarks.co2_moderate_gco2_rpk}` : ''}
-                reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
-              />
-              <KpiCard
-                title="CO₂ reduction"
-                value={result ? `${result.outputs.co2_reduction_from_2019_pct}%` : '--'}
-                unit=""
-                subtitle="vs 2019 baseline"
-                benchmark={result ? `2019 baseline: ${result.benchmarks.co2_2019_baseline} gCO₂/RPK` : ''}
-                reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
-              />
-              <KpiCard
-                title="SAF cost premium"
-                value={result ? `$${result.outputs.saf_cost_premium_usd_per_seat.toFixed(2)}` : '--'}
-                unit="/seat"
-                subtitle="Reference flight"
-                benchmark={result ? `EU ETS equivalent: $${result.outputs.eu_ets_carbon_cost_per_seat.toFixed(2)}/seat` : ''}
-                reading={result ? result.comparison_table.find((r) => r.key === 'saf_cost_premium')?.reading : null}
-              />
-              <KpiCard
-                title="Policy gap"
-                value={
-                  result
-                    ? `${result.outputs.gap_vs_refueleu_pp > 0 ? '+' : ''}${result.outputs.gap_vs_refueleu_pp}pp`
-                    : '--'
-                }
-                unit=""
-                subtitle="vs ReFuelEU mandate"
-                benchmark={result ? `${result.inputs.saf_share_pct}% assumed vs ${result.benchmarks.refueleu_saf_target_pct}% target` : ''}
-                reading={result ? result.comparison_table.find((r) => r.key === 'saf_policy_alignment')?.reading : null}
-              />
+            <div style={styles.tabHeaderMain}>
+              <button
+                style={{
+                  ...styles.tabButtonMain,
+                  ...(activeMainTab === 'overview' ? styles.tabButtonMainActive : {}),
+                }}
+                onClick={() => setActiveMainTab('overview')}
+              >
+                Overview
+              </button>
+              <button
+                style={{
+                  ...styles.tabButtonMain,
+                  ...(activeMainTab === 'details' ? styles.tabButtonMainActive : {}),
+                }}
+                onClick={() => setActiveMainTab('details')}
+              >
+                Details
+              </button>
             </div>
 
-            <div style={styles.card}>
-              <div style={styles.sectionEyebrow}>Benchmark comparison</div>
-              <h3 style={styles.blockTitle}>How this scenario compares</h3>
-
-              {!result ? (
-                <div style={styles.placeholder}>Run a scenario to generate the comparison table.</div>
-              ) : (
-                <div style={styles.tableWrapper}>
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Metric</th>
-                        <th style={styles.th}>You</th>
-                        <th style={styles.th}>Benchmark</th>
-                        <th style={styles.th}>Signal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.comparison_table.map((row) => (
-                        <tr key={row.key}>
-                          <td style={styles.tdMetric}>{shortMetricLabel(row.metric_label)}</td>
-                          <td style={styles.td}>{formatScenarioValue(row)}</td>
-                          <td style={styles.td}>{formatBenchmarkValue(row)}</td>
-                          <td style={styles.td}>
-                            <span style={readingPillStyle(row.reading)}>{row.reading}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {activeMainTab === 'overview' && (
+              <>
+                <div style={styles.kpiGrid}>
+                  <KpiCard
+                    title="CO₂ intensity"
+                    value={result ? String(result.outputs.co2_intensity_gco2_rpk) : '--'}
+                    unit="gCO₂/RPK"
+                    subtitle="Lower is better"
+                    benchmark={
+                      result
+                        ? `Moderate ${result.target_year} benchmark: ${result.benchmarks.co2_moderate_gco2_rpk}`
+                        : ''
+                    }
+                    reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
+                  />
+                  <KpiCard
+                    title="CO₂ reduction"
+                    value={result ? `${result.outputs.co2_reduction_from_2019_pct}%` : '--'}
+                    unit=""
+                    subtitle="vs 2019 baseline"
+                    benchmark={
+                      result
+                        ? `2019 baseline: ${result.benchmarks.co2_2019_baseline} gCO₂/RPK`
+                        : ''
+                    }
+                    reading={result ? result.comparison_table.find((r) => r.key === 'co2_intensity')?.reading : null}
+                  />
+                  <KpiCard
+                    title="SAF cost premium"
+                    value={result ? `$${result.outputs.saf_cost_premium_usd_per_seat.toFixed(2)}` : '--'}
+                    unit="/seat"
+                    subtitle="Reference flight"
+                    benchmark={
+                      result
+                        ? `EU ETS equivalent: $${result.outputs.eu_ets_carbon_cost_per_seat.toFixed(2)}/seat`
+                        : ''
+                    }
+                    reading={result ? result.comparison_table.find((r) => r.key === 'saf_cost_premium')?.reading : null}
+                  />
+                  <KpiCard
+                    title="Policy gap"
+                    value={
+                      result
+                        ? `${result.outputs.gap_vs_refueleu_pp > 0 ? '+' : ''}${result.outputs.gap_vs_refueleu_pp}pp`
+                        : '--'
+                    }
+                    unit=""
+                    subtitle="vs ReFuelEU mandate"
+                    benchmark={
+                      result
+                        ? `${result.inputs.saf_share_pct}% assumed vs ${result.benchmarks.refueleu_saf_target_pct}% target`
+                        : ''
+                    }
+                    reading={result ? result.comparison_table.find((r) => r.key === 'saf_policy_alignment')?.reading : null}
+                  />
                 </div>
-              )}
-            </div>
 
+                <div style={styles.card}>
+                  <div style={styles.sectionEyebrow}>Benchmark view</div>
+                  <h3 style={styles.blockTitle}>Position against key benchmarks</h3>
+                  {!result ? (
+                    <div style={styles.placeholder}>Run a scenario to generate the benchmark chart.</div>
+                  ) : (
+                    <div style={styles.chartBox}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={benchmarkBarData}
+                          layout="vertical"
+                          margin={{ top: 8, right: 32, bottom: 8, left: 12 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                          <XAxis
+                            type="number"
+                            domain={[0, 200]}
+                            tickFormatter={(v) => `${v}%`}
+                            tick={{ fontSize: 11 }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            width={110}
+                            tick={{ fontSize: 10 }}
+                          />
+                          <Tooltip content={<BenchmarkTooltip />} />
+                          <Bar dataKey="scenario" radius={[0, 6, 6, 0]}>
+                            {benchmarkBarData.map((entry, i) => (
+                              <Cell key={i} fill={benchmarkBarColor(entry)} />
+                            ))}
+                          </Bar>
+                          <ReferenceLine
+                            x={100}
+                            stroke="#475569"
+                            strokeDasharray="5 4"
+                            strokeWidth={2}
+                            label={{
+                              value: 'Benchmark',
+                              position: 'insideTopRight',
+                              fontSize: 10,
+                              fill: '#475569',
+                            }}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {activeMainTab === 'details' && (
+              <div style={styles.card}>
+                <div style={styles.sectionEyebrow}>Details</div>
+                <h3 style={styles.blockTitle}>Absolute values and benchmark gaps</h3>
+
+                {!result ? (
+                  <div style={styles.placeholder}>Run a scenario to generate the detailed comparison table.</div>
+                ) : (
+                  <div style={styles.tableWrapper}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>Metric</th>
+                          <th style={styles.th}>You</th>
+                          <th style={styles.th}>Benchmark</th>
+                          <th style={styles.th}>Gap</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.comparison_table.map((row) => (
+                          <tr key={row.key}>
+                            <td style={styles.tdMetric}>{shortMetricLabel(row.metric_label)}</td>
+                            <td style={styles.td}>{formatScenarioValue(row)}</td>
+                            <td style={styles.td}>{formatBenchmarkValue(row)}</td>
+                            <td style={styles.td}>
+                              {row.gap_pct !== null ? (
+                                <span
+                                  style={{
+                                    fontWeight: '700',
+                                    fontSize: '13px',
+                                    color: row.lower_is_better
+                                      ? row.gap_pct <= 0
+                                        ? '#16a34a'
+                                        : '#dc2626'
+                                      : row.gap_pct >= 0
+                                      ? '#16a34a'
+                                      : '#dc2626',
+                                  }}
+                                >
+                                  {row.gap_pct > 0 ? '+' : ''}
+                                  {row.gap_pct}%
+                                </span>
+                              ) : (
+                                <span style={{ color: '#94a3b8' }}>—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p style={styles.tableNote}>
+                      Gap = (scenario − benchmark) / benchmark × 100.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <div style={styles.card}>
               <div style={styles.sectionEyebrow}>Insights</div>
               <div style={styles.tabHeader}>
@@ -459,6 +625,7 @@ export default function App() {
     </div>
   )
 }
+
 
 function shortMetricLabel(label) {
   const map = {
@@ -696,6 +863,25 @@ const styles = {
     fontSize: '13px',
     lineHeight: '1.5',
   },
+  tabHeaderMain: {
+    display: 'flex',
+    gap: '10px',
+  },
+  tabButtonMain: {
+    padding: '10px 14px',
+    borderRadius: '999px',
+    border: '1px solid #cbd5e1',
+    background: '#ffffff',
+    color: '#475569',
+    fontSize: '13px',
+    fontWeight: '700',
+    cursor: 'pointer',
+  },
+  tabButtonMainActive: {
+    background: '#0b1736',
+    color: 'white',
+    border: '1px solid #0b1736',
+  },
   kpiGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -742,6 +928,7 @@ const styles = {
     fontSize: '12px',
     color: '#64748b',
     lineHeight: '1.4',
+    textAlign: 'center',
   },
   kpiBenchmark: {
     fontSize: '11px',
@@ -749,6 +936,7 @@ const styles = {
     marginTop: '4px',
     fontStyle: 'italic',
     lineHeight: '1.4',
+    textAlign: 'center',
   },
   blockTitle: {
     margin: '0 0 14px 0',
@@ -768,6 +956,10 @@ const styles = {
     padding: '20px',
     boxSizing: 'border-box',
     fontSize: '14px',
+  },
+  chartBox: {
+    width: '100%',
+    height: '300px',
   },
   tableWrapper: {
     overflowX: 'auto',
@@ -804,6 +996,13 @@ const styles = {
     verticalAlign: 'top',
     fontSize: '13px',
     overflowWrap: 'anywhere',
+  },
+  tableNote: {
+    margin: '12px 0 0 0',
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    lineHeight: '1.5',
   },
   tabHeader: {
     display: 'flex',
