@@ -75,11 +75,13 @@ function readingColor(reading) {
     'Better than benchmark',
     'Meets or exceeds ReFuelEU mandate',
     'Commercially available',
+    'Cost-competitive under EU ETS',
   ])
   const AMBER = new Set([
     'Near benchmark',
     'Near ReFuelEU mandate (within 5pp)',
     'Near commercial readiness',
+    'Near cost parity',
   ])
   if (GREEN.has(reading)) return { bg: '#dcfce7', text: '#166534', border: '#22c55e', bar: '#22c55e' }
   if (AMBER.has(reading)) return { bg: '#fef3c7', text: '#92400e', border: '#f59e0b', bar: '#f59e0b' }
@@ -99,17 +101,6 @@ function readingPillStyle(reading) {
     color: c.text,
     whiteSpace: 'nowrap',
   }
-}
-
-function benchmarkBarColor(entry) {
-  if (!entry) return '#94a3b8'
-
-  const favorable = entry.lowerIsBetter
-    ? entry.scenario <= entry.benchmark
-    : entry.scenario >= entry.benchmark
-
-  if (Math.abs(entry.scenario - entry.benchmark) <= 10) return '#f59e0b'
-  return favorable ? '#22c55e' : '#ef4444'
 }
 
 function SelectInput({ label, value, onChange, options }) {
@@ -169,7 +160,7 @@ function BenchmarkTooltip({ active, payload }) {
         Scenario: <strong>{d.displayScenario}</strong>
       </div>
       <div style={{ color: '#475569' }}>
-        Benchmark: <strong>{d.displayBenchmark}</strong>
+        {d.referenceLabel}: <strong>{d.displayBenchmark}</strong>
       </div>
       <div style={{ marginTop: '6px' }}>
         <span style={readingPillStyle(d.reading)}>{d.reading}</span>
@@ -241,6 +232,7 @@ const benchmarkBarData = useMemo(() => {
 
   const co2Row = result.comparison_table.find((r) => r.key === 'co2_intensity')
   const policyRow = result.comparison_table.find((r) => r.key === 'saf_policy_alignment')
+  const costRow = result.comparison_table.find((r) => r.key === 'saf_cost_premium')
   const trlRow = result.comparison_table.find((r) => r.key === 'saf_trl')
 
   const rows = []
@@ -254,6 +246,7 @@ const benchmarkBarData = useMemo(() => {
       reading: co2Row.reading,
       displayScenario: `${co2Row.scenario_value} gCO₂/RPK`,
       displayBenchmark: `${co2Row.benchmark_value} gCO₂/RPK`,
+      referenceLabel: `Moderate ${result.target_year} pathway`,
       lowerIsBetter: true,
     })
   }
@@ -267,7 +260,21 @@ const benchmarkBarData = useMemo(() => {
       reading: policyRow.reading,
       displayScenario: `${policyRow.scenario_value}%`,
       displayBenchmark: `${policyRow.benchmark_value}%`,
+      referenceLabel: `ReFuelEU ${result.target_year} mandate`,
       lowerIsBetter: false,
+    })
+  }
+
+  if (costRow) {
+    rows.push({
+      key: 'cost',
+      name: 'Cost parity vs EU ETS',
+      scenario: costRow.benchmark_value > 0 ? Math.round((costRow.scenario_value / costRow.benchmark_value) * 100) : 0,
+      benchmark: 100,
+      reading: costRow.reading,
+      displayScenario: `$${Number(costRow.scenario_value).toFixed(2)}/seat`,
+      displayBenchmark: `$${Number(costRow.benchmark_value).toFixed(2)}/seat`,
+      referenceLabel: `EU ETS equivalent cost`,
     })
   }
 
@@ -280,6 +287,7 @@ const benchmarkBarData = useMemo(() => {
       reading: trlRow.reading,
       displayScenario: `TRL ${trlRow.scenario_value}/9`,
       displayBenchmark: 'TRL 9',
+      referenceLabel: 'Commercial deployment reference',
       lowerIsBetter: false,
     })
   }
@@ -477,7 +485,7 @@ const benchmarkBarData = useMemo(() => {
 
                 <div style={styles.card}>
                   <div style={styles.sectionEyebrow}>Benchmark view</div>
-                  <h3 style={styles.blockTitle}>Position against key benchmarks</h3>
+                  <h3 style={styles.blockTitle}>Position against key references</h3>
                   {!result ? (
                     <div style={styles.placeholder}>Run a scenario to generate the benchmark chart.</div>
                   ) : (
@@ -504,7 +512,7 @@ const benchmarkBarData = useMemo(() => {
                           <Tooltip content={<BenchmarkTooltip />} />
                           <Bar dataKey="scenario" radius={[0, 6, 6, 0]}>
                             {benchmarkBarData.map((entry, i) => (
-                              <Cell key={i} fill={benchmarkBarColor(entry)} />
+                              <Cell key={i} fill={readingColor(entry.reading).bar} />
                             ))}
                           </Bar>
                           <ReferenceLine
@@ -513,7 +521,7 @@ const benchmarkBarData = useMemo(() => {
                             strokeDasharray="5 4"
                             strokeWidth={2}
                             label={{
-                              value: 'Benchmark',
+                              value: 'Reference',
                               position: 'insideTopRight',
                               fontSize: 10,
                               fill: '#475569',
@@ -530,7 +538,7 @@ const benchmarkBarData = useMemo(() => {
             {activeMainTab === 'details' && (
               <div style={styles.card}>
                 <div style={styles.sectionEyebrow}>Details</div>
-                <h3 style={styles.blockTitle}>Absolute values and benchmark gaps</h3>
+                <h3 style={styles.blockTitle}>Absolute values and gaps</h3>
 
                 {!result ? (
                   <div style={styles.placeholder}>Run a scenario to generate the detailed comparison table.</div>
@@ -541,7 +549,7 @@ const benchmarkBarData = useMemo(() => {
                         <tr>
                           <th style={styles.th}>Metric</th>
                           <th style={styles.th}>You</th>
-                          <th style={styles.th}>Benchmark</th>
+                          <th style={styles.th}>Reference</th>
                           <th style={styles.th}>Gap</th>
                         </tr>
                       </thead>
@@ -631,7 +639,7 @@ function shortMetricLabel(label) {
   const map = {
     'CO₂ emissions intensity': 'CO₂ intensity',
     'SAF mandate compliance': 'SAF compliance',
-    'SAF cost premium per seat': 'SAF cost premium',
+    'SAF cost premium per seat': 'Incremental SAF cost',
     'SAF pathway technology readiness': 'SAF pathway TRL',
   }
   return map[label] || label
@@ -987,6 +995,7 @@ const styles = {
     verticalAlign: 'top',
     fontSize: '14px',
     overflowWrap: 'anywhere',
+    textAlign: 'left',
   },
   tdMetric: {
     padding: '12px 10px',
@@ -996,6 +1005,7 @@ const styles = {
     verticalAlign: 'top',
     fontSize: '13px',
     overflowWrap: 'anywhere',
+    textAlign: 'left',
   },
   tableNote: {
     margin: '12px 0 0 0',

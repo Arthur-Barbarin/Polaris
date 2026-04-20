@@ -113,6 +113,7 @@ SAF_TYPES: dict = {
         "label": "Bio-SAF — HEFA (Hydroprocessed Esters and Fatty Acids)",
         "lca_saving": 0.75,
         "trl": 9,
+        "price_usd_t": {2030: 1100, 2035: 900, 2050: 750},
         "description": "Dominant commercial SAF pathway today. Produced from waste fats, oils, and greases (FOG). Certified as ASTM D7566 Annex 2 drop-in fuel.",
         "source": "[CORSIA] 2022 — HEFA from used cooking oil / waste fats: average 75% WTW CO₂ saving vs Jet-A (range: 55–85% depending on feedstock; feedstock displacement effects excluded here). TRL 9: commercially available, multiple production facilities operational.",
     },
@@ -120,6 +121,7 @@ SAF_TYPES: dict = {
         "label": "Power-to-Liquid SAF (e-fuel / PtL-SPK)",
         "lca_saving": 0.90,
         "trl": 6,
+        "price_usd_t": {2030: 2500, 2035: 1800, 2050: 1100},
         "description": "Synthetic kerosene produced via Fischer-Tropsch or methanol-to-jet using green hydrogen (electrolytic H₂ from renewable electricity) and captured CO₂. Near-zero lifecycle emissions.",
         "source": "[CORSIA] 2022 — PtL using 100% renewable electricity: 85–95% WTW CO₂ saving vs Jet-A; central estimate 90%. [IATA-CR] Table 4 (2024): PtL commercial entry assumed 2025–2030 across roadmaps. TRL 6–7: pilot plants demonstrated, first commercial-scale plants announced for 2027+.",
     },
@@ -127,6 +129,7 @@ SAF_TYPES: dict = {
         "label": "Mixed blend — Bio-SAF + PtL (50/50)",
         "lca_saving": 0.82,
         "trl": 8,
+        "price_usd_t": {2030: 1700, 2035: 1300, 2050: 950},
         "description": "Blended pathway reflecting the 2030–2040 transition where HEFA remains dominant near-term but PtL share grows. Represents a weighted average lifecycle performance.",
         "source": "[IATA-CR] 2024 (Table 4) — majority of roadmaps assume HEFA dominates to 2030, with PtL growing to ~50%+ by 2040. Weighted lifecycle saving = 0.50 × 0.75 + 0.50 × 0.90 = 0.825 ≈ 0.82.",
     },
@@ -317,6 +320,11 @@ def classify_gap(value: float, benchmark: float, lower_is_better: bool) -> dict:
     """
     Compare scenario value to benchmark.
     Returns qualitative label + gap percentage (+ = above benchmark, - = below).
+
+    Decision logic:
+    - Green when benchmark is met or exceeded in the favorable direction
+    - Amber when within 10% on the unfavorable side
+    - Red beyond that
     """
     if benchmark == 0:
         return {"label": "No benchmark available", "gap_pct": None}
@@ -324,14 +332,14 @@ def classify_gap(value: float, benchmark: float, lower_is_better: bool) -> dict:
     gap_pct = round((value - benchmark) / benchmark * 100, 1)
 
     if lower_is_better:
-        if value <= benchmark * 0.90:
+        if value <= benchmark:
             label = "Better than benchmark"
         elif value <= benchmark * 1.10:
             label = "Near benchmark"
         else:
             label = "Above benchmark"
     else:
-        if value >= benchmark * 1.10:
+        if value >= benchmark:
             label = "Better than benchmark"
         elif value >= benchmark * 0.90:
             label = "Near benchmark"
@@ -402,7 +410,7 @@ def run_scenario(data: ScenarioInput):
     # SAF cost premium per seat (USD):
     #   = SAF_tonnes_per_seat × SAF_premium_per_tonne
 
-    saf_price_usd_t: int = SAF_PRICE_USD_PER_TONNE[data.target_year]
+    saf_price_usd_t: float = saf["price_usd_t"][data.target_year]
     saf_premium_usd_t: float = max(0.0, saf_price_usd_t - JET_A_REF_USD_PER_TONNE)
 
     fuel_per_seat_l: float = ac["fuel_l_per_rpk"] * ac["ref_range_km"]
@@ -462,8 +470,13 @@ def run_scenario(data: ScenarioInput):
     # ── METRIC 4: Technology readiness (TRL) ──────────────────────────────────
     # TRL for the SAF pathway (from CORSIA source data above).
     # Deployment risk for technology efficiency scenario × target year.
+    trl_year_bonus = {
+        2030: 0,
+        2035: 1,
+        2050: 2,
+    }
 
-    saf_trl: int = saf["trl"]
+    saf_trl: int = min(9, saf["trl"] + trl_year_bonus[data.target_year])
 
     if data.tech_scenario == "advanced" and data.target_year <= 2035:
         tech_risk_label = "High"
@@ -551,7 +564,7 @@ def run_scenario(data: ScenarioInput):
             "benchmark_value": eu_ets_carbon_cost_per_seat,
             "benchmark_label": f"EU ETS avoided carbon cost per seat (~$80/tCO₂)",
             "benchmark_description": (
-                f"SAF price assumption for {data.target_year}: ${saf_price_usd_t}/tonne "
+                f"{saf['label']} price assumption for {data.target_year}: ${saf_price_usd_t}/tonne. "
                 f"(source: [IATA-CR] 2024, Table 4 median). "
                 f"Jet-A reference: ${JET_A_REF_USD_PER_TONNE}/tonne. "
                 f"Premium per tonne SAF: ${saf_premium_usd_t:.0f}. "
@@ -559,7 +572,10 @@ def run_scenario(data: ScenarioInput):
                 f"Breakeven carbon price for this scenario: ~${saf_breakeven_carbon_price:.0f}/tCO₂."
             ),
             "reading": (
-                "Cost-competitive under EU ETS" if saf_cost_premium_per_seat <= eu_ets_carbon_cost_per_seat
+                "Cost-competitive under EU ETS"
+                if saf_cost_premium_per_seat <= eu_ets_carbon_cost_per_seat
+                else "Near cost parity"
+                if saf_cost_premium_per_seat <= eu_ets_carbon_cost_per_seat * 1.10
                 else "Premium above EU ETS equivalent"
             ),
             "gap_pct": (
@@ -581,7 +597,8 @@ def run_scenario(data: ScenarioInput):
             "benchmark_value": 9.0,
             "benchmark_label": "Commercially deployed (TRL 9)",
             "benchmark_description": (
-                f"TRL for {saf['label']}: {saf_trl}/9. "
+                f"Pathway-adjusted TRL for {saf['label']} at {data.target_year}: {saf_trl}/9 "
+                f"(base TRL {saf['trl']} + horizon maturity adjustment). "
                 "TRL 9 = flight-proven, commercially available at scale. "
                 "TRL 7–8 = prototype demonstrated, approaching commercial readiness. "
                 "TRL 6 = system prototype demonstrated in operational environment. "
@@ -774,7 +791,7 @@ def run_scenario(data: ScenarioInput):
                 "saf_price_usd_t": saf_price_usd_t,
                 "jet_a_reference_usd_t": JET_A_REF_USD_PER_TONNE,
                 "premium_usd_t": saf_premium_usd_t,
-                "source": "[IATA-CR] 2024, Table 4: median SAF cost projections across roadmaps",
+                "source": f"{saf['label']} pathway-specific price assumption for {data.target_year}",
             },
         },
         "outputs": {

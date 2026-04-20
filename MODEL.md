@@ -21,8 +21,8 @@ Built for:
 | An authoritative standard | Benchmarks are trajectory-derived references, not regulatory mandates |
 | A predictive model | Outputs show what assumptions imply at a given year, not what will happen |
 
-The design principle: **every coefficient has a source citation, every benchmark has a derivation
-methodology, every output is in real units (gCO₂/RPK, $/seat, %, TRL)**.
+The design principle: **every coefficient has a source citation, every reference point has a derivation
+methodology, and every displayed output is in real units (gCO₂/RPK, $/seat, %, TRL)**.
 
 ---
 
@@ -56,13 +56,37 @@ These are the same physical constants used throughout [CAEP12], [CORSIA], and al
 Changing them would require a fundamental revision of the international accounting framework.
 
 ---
-
 ## 5. Inputs
 
 All inputs are scenario parameters set by the user. They represent assumptions about a specific
 development path, not measurements of an existing aircraft or operation.
 
-### 5.1 Aircraft concept
+### 5.1 Inputs currently exposed in the aviation demo
+
+The current aviation dashboard exposes five user-controlled inputs:
+
+- **Aircraft concept**
+- **Target year**
+- **SAF share (%)**
+- **SAF type / pathway**
+- **Technology efficiency scenario**
+
+These are the inputs that most directly and visibly affect the climate, compliance, cost, and
+readiness outputs shown in the dashboard.
+
+### 5.2 Inputs currently fixed in the backend
+
+Two additional assumptions remain in the backend but are not currently exposed in the aviation UI:
+
+- **Demand growth scenario** — fixed to a mid-case value for now
+- **Carbon price** — fixed to an EU ETS-style reference value for now
+
+Reason:
+these variables are still analytically relevant, but in the current aviation demo they do not yet
+drive enough visible dashboard behavior to justify being shown as user-controlled levers.
+They may be reintroduced later in a dedicated market / policy layer.
+
+### 5.3 Aircraft concept
 
 | Concept | Label | 2019 CO₂ intensity | Fuel intensity | Reference flight |
 |---|---|---|---|---|
@@ -77,39 +101,56 @@ cruise phases and lower seat density; widebody aircraft are ~18% more efficient 
 
 Fuel intensity (L/RPK) is derived directly: fuel_L_per_RPK = CO₂_g_per_RPK ÷ CO₂_g_per_L_Jet-A.
 
-### 5.2 Target year
+### 5.4 Target year
 
 `2030`, `2035`, or `2050`.
-Determines the technology improvement compounding period, the SAF mandate target, and the
-CO₂ intensity benchmark. All major roadmaps use these as key milestone years.
 
-### 5.3 SAF share (%)
+Determines:
+- the compounding period for the technology improvement factor
+- the policy reference year
+- the climate reference trajectory
+- the pathway-specific SAF cost assumption
+- the horizon-adjusted readiness proxy
+
+### 5.5 SAF share (%)
 
 Percentage of the total fuel mix assumed to be SAF. Range: 0–100%.
 
 This is an assumption, not a forecast. The user decides what penetration level is relevant for
 their scenario. The computation applies the SAF lifecycle saving proportionally to the fuel mix.
 
-### 5.4 SAF type / pathway
+This input affects:
+- CO₂ intensity
+- CO₂ reduction
+- policy gap
+- scenario-level incremental SAF cost per seat
+- EU ETS equivalent carbon cost per seat
 
-| SAF type | Label | WTW CO₂ saving | TRL | Source |
-|---|---|---|---|---|
-| `hefa` | Bio-SAF — HEFA (Hydroprocessed Esters and Fatty Acids) | **75%** | 9 (commercial) | [CORSIA] 2022 |
-| `mix` | Mixed blend — Bio-SAF + Power-to-Liquid (50/50) | **82%** | 8 (near commercial) | [IATA-CR] 2024 Table 4 |
-| `ptl` | Power-to-Liquid — e-fuel / Fischer-Tropsch | **90%** | 6 (pilot plants) | [CORSIA] 2022; [IATA-CR] 2024 |
+### 5.6 SAF type / pathway
+
+| SAF type | Label | WTW CO₂ saving | Base TRL | Price assumption ($/t) |
+|---|---|---:|---:|---|
+| `hefa` | Bio-SAF — HEFA | **75%** | 9 | 2030: 1100 · 2035: 900 · 2050: 750 |
+| `mix` | Mixed blend — Bio-SAF + PtL | **82%** | 8 | 2030: 1700 · 2035: 1300 · 2050: 950 |
+| `ptl` | Power-to-Liquid — e-fuel / Fischer-Tropsch | **90%** | 6 | 2030: 2500 · 2035: 1800 · 2050: 1100 |
 
 **HEFA**: Average WTW saving of 75% vs Jet-A baseline (range: 55–85% depending on feedstock).
 Commercially available, ASTM D7566 Annex 2 certified. Dominant SAF pathway today.
 
 **PtL**: Produced from renewable-electricity hydrogen + captured CO₂. Near-zero lifecycle emissions
 (85–95% saving; central estimate 90%). Commercial-scale deployment not yet achieved —
-first plants expected 2027–2030. TRL 6–7 as of 2024.
+first plants expected 2027–2030.
 
 **Mix**: Weighted average = 0.50 × 0.75 + 0.50 × 0.90 = 0.825 ≈ 0.82 lifecycle saving.
 Represents the 2030–2040 transition period where HEFA remains dominant near-term but PtL
-grows steadily [IATA-CR 2024, Table 4].
+grows steadily.
 
-### 5.5 Technology efficiency scenario
+In the current model, SAF pathway affects:
+- lifecycle CO₂ reduction
+- cost assumption
+- technology readiness proxy
+
+### 5.7 Technology efficiency scenario
 
 | Scenario | Annual improvement | Source |
 |---|---|---|
@@ -125,7 +166,9 @@ The `advanced` scenario requires step-change aircraft concepts (open rotor, hybr
 boundary-layer ingestion) that are not yet certified for commercial service. Most roadmaps
 assume these enter service no earlier than 2035.
 
-### 5.6 Demand growth scenario
+### 5.8 Deferred inputs not currently exposed in the aviation UI
+
+#### Demand growth scenario
 
 | Scenario | CAGR (2019–2050) | Source |
 |---|---|---|
@@ -133,21 +176,20 @@ assume these enter service no earlier than 2035.
 | `mid` | **2.9%/yr** | [IATA-CR] 2024, Table 3 — IATA Net-Zero Roadmap S2 (2023) |
 | `high` | **3.8%/yr** | [IATA-CR] 2024, Table 3 — ICAO LTAG S2/S3 (2022) |
 
-**Important**: Demand growth (CAGR) does **not** affect per-RPK CO₂ intensity or cost metrics
-in this model. It is included for market context only — it determines how total sector RPK
-grows, which affects absolute sector CO₂ (not computed here) and market size framing.
+**Important**: Demand growth does **not** affect the current per-RPK aviation dashboard metrics.
+It remains in the backend as a contextual assumption and may be used later in a market-sizing
+or sector-scale layer.
 
-### 5.7 Carbon price ($/tCO₂)
+#### Carbon price ($/tCO₂)
 
 Policy carbon price assumption. Used to compute:
-- Carbon cost per seat (on the fossil fuel fraction of the fuel mix)
-- SAF cost-competitiveness vs EU ETS carbon price equivalent
+- carbon cost per seat (on the fossil fuel fraction of the fuel mix)
+- cost parity comparisons against EU ETS-style carbon pricing
 
-Does **not** affect CO₂ intensity.
+Does **not** affect CO₂ intensity directly.
 
-Reference points: EU ETS aviation ~$80/tCO₂ (2024 average); CORSIA Phase 1 ~$25/tCO₂.
-
----
+In the current aviation demo, this assumption remains fixed in the backend and is not exposed
+as a visible input.
 
 ## 6. Computation methodology
 
@@ -190,42 +232,103 @@ Ambitious 2050 = consistent with ATAG S3 / MPP ORE: ~8 gCO₂/RPK
 
 Sources: [IATA-CR] 2024; [ICAO-LTAG] 2022; [ATAG-WP] 2021.
 
-### 6.2 SAF cost premium per seat (USD)
+### 6.2 Incremental SAF cost per seat (USD)
 
-**Methodology:**
+This metric represents the **scenario-level extra cost per seat** associated with using SAF
+instead of Jet-A on the selected reference flight.
 
-```
-fuel_per_seat_L  = fuel_l_per_rpk × reference_range_km
-fuel_per_seat_kg = fuel_per_seat_L × jet_a_density_kg_per_L
-fuel_per_seat_t  = fuel_per_seat_kg / 1000
-saf_per_seat_t   = fuel_per_seat_t × (saf_share_pct / 100)
-saf_premium_USD_t = max(0, SAF_price_target_year − jet_a_reference_price)
-saf_cost_premium_per_seat = saf_per_seat_t × saf_premium_USD_t
-```
+It is not a pure fuel-unit premium. It is a **deployment-level economic impact**, meaning it
+depends on how much SAF is used in the scenario.
 
-**SAF price projections** [IATA-CR] 2024, Table 4 (median across 9 roadmaps):
+### Methodology
 
-| Year | SAF price ($/tonne) | Range across roadmaps |
-|---|---|---|
-| 2030 | $1,300/t | $1,000–$2,686/t |
-| 2035 | $1,100/t | Interpolated between 2030 and 2050 medians |
-| 2050 | $900/t | $592–$1,949/t (ATAG median: $878; MPP PRU: $1,096) |
+The computation proceeds in four steps:
 
-**Fossil Jet-A reference price**: $700/tonne (IATA fuel monitor long-run average).
+1. Compute total fuel per seat for the reference flight:
 
-**Breakeven carbon price:**
-The carbon price at which avoided fossil-fuel carbon cost equals the SAF premium:
-```
-co2_saved_per_seat_t = saf_per_seat_t × CO2_kg_per_kg_fuel × lca_saving
-breakeven = saf_cost_premium_per_seat / co2_saved_per_seat_t
-```
+   fuel_per_seat_L = fuel_l_per_rpk × reference_range_km  
+   fuel_per_seat_kg = fuel_per_seat_L × jet_a_density_kg_per_L  
+   fuel_per_seat_t = fuel_per_seat_kg / 1000  
 
-**EU ETS equivalent carbon cost per seat:**
-```
-fossil_per_seat_t = fuel_per_seat_t × (1 − saf_share_pct / 100)
-eu_ets_cost = fossil_per_seat_t × CO2_kg_per_kg_fuel × EU_ETS_price
-```
-EU ETS reference: $80/tCO₂ (2024 EU aviation ETS average).
+2. Compute SAF consumption per seat:
+
+   saf_per_seat_t = fuel_per_seat_t × (saf_share_pct / 100)
+
+3. Compute the fuel price premium:
+
+   premium_per_tonne = max(0, SAF_price_pathway_year − jet_a_reference_price)
+
+4. Compute incremental SAF cost per seat:
+
+   incremental_saf_cost_per_seat = saf_per_seat_t × premium_per_tonne
+
+### Interpretation
+
+This metric depends on:
+- aircraft fuel burn (via fuel_per_seat)
+- reference flight length
+- SAF share
+- SAF pathway
+- target year
+
+It should be interpreted as:
+
+> “How much additional cost per seat is introduced by using SAF at the assumed share in this scenario?”
+
+### Pathway-specific SAF price assumptions
+
+| Pathway | 2030 | 2035 | 2050 |
+|---|---:|---:|---:|
+| HEFA | $1,100/t | $900/t | $750/t |
+| Mixed blend | $1,700/t | $1,300/t | $950/t |
+| PtL | $2,500/t | $1,800/t | $1,100/t |
+
+These values are simplified pathway anchors consistent with the direction of published IATA
+roadmap ranges.
+
+### Fossil fuel reference
+
+Jet-A reference price: $700/tonne.
+
+### Breakeven carbon price
+
+The **breakeven carbon price** answers the question:
+
+> At what carbon price does SAF become cost-neutral relative to fossil Jet-A?
+
+This is a **marginal comparison**, not a scenario-level metric.
+
+It is computed as:
+
+breakeven = incremental_saf_cost_per_seat / co2_saved_per_seat
+
+where:
+
+co2_saved_per_seat = saf_per_seat_t × CO2_kg_per_kg_fuel × lca_saving
+
+Because both cost and CO₂ savings scale with SAF share, the breakeven carbon price is primarily
+driven by:
+- SAF pathway
+- target year
+- fuel emissions factor
+
+and does **not materially depend on SAF share**.
+
+### EU ETS equivalent carbon cost per seat
+
+This metric estimates the carbon cost per seat on the fossil fuel fraction of the scenario:
+
+fossil_per_seat_t = fuel_per_seat_t × (1 − saf_share_pct / 100)  
+eu_ets_cost = fossil_per_seat_t × CO2_kg_per_kg_fuel × EU_ETS_price  
+
+This is used as an **economic parity reference** in the dashboard.
+
+It should be interpreted as:
+
+> “What carbon cost per seat would apply under EU ETS-style pricing for the remaining fossil fuel?”
+
+Unlike climate or policy references, this is a **scenario-dependent comparison point**, not a
+fixed external benchmark.
 
 ### 6.3 Policy compliance — SAF mandate
 
@@ -249,95 +352,121 @@ had no binding SAF mandates as of 2024, although voluntary commitments exist.
 
 ### 6.4 Technology readiness (TRL)
 
-TRL (Technology Readiness Level) for the selected SAF pathway, on the standard 1–9 scale.
-Sourced directly from [CORSIA] 2022 and [IATA-CR] 2024:
+The dashboard displays a **horizon-adjusted readiness proxy** based on:
 
-| TRL | Meaning |
-|---|---|
-| 9 | Commercially deployed at scale (HEFA) |
-| 8 | System proven in operational environment, approaching commercialisation (Mixed blend) |
-| 7 | Prototype demonstrated in operational environment |
-| 6 | System prototype demonstrated (PtL — pilot plants operational) |
+- the selected SAF pathway
 
-The technology deployment risk for the efficiency scenario is assessed qualitatively:
+- the selected target year
 
-| Scenario | Horizon ≤ 2035 | Horizon = 2050 |
-|---|---|---|
-| `conservative` | Low | Low |
-| `moderate` | Low–Medium | Low–Medium |
-| `advanced` | **High** | Medium |
+Base pathway TRLs:
 
-Advanced scenario for ≤2035 is flagged High risk because step-change aircraft types are
-not yet certified for commercial service [IATA-CR 2024, Table 4].
+| Pathway | Base TRL |
 
+|---|---:|
+
+| HEFA | 9 |
+
+| Mixed blend | 8 |
+
+| PtL | 6 |
+
+Horizon adjustment applied in the current prototype:
+
+| Target year | Adjustment |
+
+|---|---:|
+
+| 2030 | +0 |
+
+| 2035 | +1 |
+
+| 2050 | +2 |
+
+Final displayed readiness is capped at TRL 9.
+
+Examples:
+
+- HEFA: 9 → 9 → 9
+
+- Mix: 8 → 9 → 9
+
+- PtL: 6 → 7 → 8
+
+This should be interpreted as a **readiness proxy for decision support**, not as a literal
+
+certification statement or deployment guarantee.
+
+It is intended to reflect the idea that some pathways may plausibly mature over time even if
+
+they are not fully commercial today.
 ---
 
 ## 7. Outputs and their units
 
-All outputs are **real physical quantities or policy gaps** — not synthetic index values.
+All outputs are **real physical quantities, economic quantities, policy gaps, or readiness proxies** —
+not synthetic index values.
 
 | Output | Unit | What it measures |
 |---|---|---|
 | `co2_intensity_gco2_rpk` | gCO₂/RPK | Lifecycle-adjusted emissions intensity, Tank-to-Wake |
 | `co2_reduction_from_2019_pct` | % | Percentage reduction vs 2019 fleet-average baseline |
-| `saf_cost_premium_usd_per_seat` | USD/seat | Additional fuel cost from SAF premium on reference flight |
+| `saf_cost_premium_usd_per_seat` | USD/seat | Incremental SAF deployment cost per seat on the reference flight |
 | `carbon_cost_per_seat_usd` | USD/seat | Carbon policy cost on the fossil fuel fraction |
-| `total_cost_premium_per_seat_usd` | USD/seat | SAF premium + carbon cost combined |
-| `saf_breakeven_carbon_price_usd_tco2` | $/tCO₂ | Carbon price at which SAF becomes cost-neutral |
-| `eu_ets_carbon_cost_per_seat` | USD/seat | Carbon cost at EU ETS ~$80/tCO₂ reference |
-| `saf_trl` | 1–9 (integer) | SAF pathway technology readiness level |
+| `total_cost_premium_per_seat_usd` | USD/seat | Incremental SAF cost + carbon cost combined |
+| `saf_breakeven_carbon_price_usd_tco2` | $/tCO₂ | Carbon price at which the selected SAF pathway becomes cost-neutral on a marginal basis |
+| `eu_ets_carbon_cost_per_seat` | USD/seat | Fossil-fuel carbon cost at EU ETS-style carbon pricing |
+| `saf_trl` | 1–9 (integer) | Horizon-adjusted SAF pathway readiness proxy |
 | `gap_vs_refueleu_pp` | percentage points | SAF share minus ReFuelEU mandate target |
 | `gap_vs_icao_ltag_s2_pp` | percentage points | SAF share minus ICAO LTAG S2 target |
-| `tech_deployment_risk` | Low / Low–Medium / Medium / High | Qualitative risk label for tech scenario |
-
+| `tech_deployment_risk` | Low / Low–Medium / Medium / High | Qualitative risk label for the aircraft technology pathway |
 ---
 
-## 8. Benchmarks
+## 8. Key reference points
 
-| Metric | Benchmark | Derivation |
+The dashboard compares scenario outputs against several different kinds of reference points:
+
+- **Climate trajectory references**
+- **Policy references**
+- **Readiness references**
+- **Economic parity references**
+
+These are not all “benchmarks” in the same strict sense.
+Some are external trajectory targets, some are mandates, and some are scenario-relative
+economic comparison anchors.
+
+| Metric | Reference | Type |
 |---|---|---|
-| CO₂ intensity — moderate | 74 / 55 / 22 gCO₂/RPK (2030/35/50) | Derived from IATA S2 + ATAG Waypoint S2 trajectories [IATA-CR 2024] |
-| CO₂ intensity — ambitious | 65 / 42 / 8 gCO₂/RPK (2030/35/50) | Derived from ICAO LTAG S3 + ICCT Breakthrough trajectories [IATA-CR 2024] |
-| SAF mandate — primary | 6% / 20% / 70% (2030/35/50) | ReFuelEU Aviation EU Regulation 2023/2405 [REFUELEU] |
-| SAF mandate — secondary | 13% / 32% / 72% (2030/35/50) | ICAO LTAG S2 [ICAO-LTAG 2022] |
-| SAF cost benchmark | EU ETS carbon cost per seat | EU aviation ETS ~$80/tCO₂, 2024 average |
-| TRL benchmark | TRL 9 | Commercially deployed and proven at scale |
+| CO₂ intensity — moderate | 74 / 55 / 22 gCO₂/RPK (2030/35/50) | Climate trajectory reference |
+| CO₂ intensity — ambitious | 65 / 42 / 8 gCO₂/RPK (2030/35/50) | Climate trajectory reference |
+| SAF mandate — primary | 6% / 20% / 70% (2030/35/50) | Policy reference |
+| SAF mandate — secondary | 13% / 32% / 72% (2030/35/50) | Policy reference |
+| SAF cost vs EU ETS | EU ETS equivalent carbon cost per seat | Economic parity reference |
+| SAF TRL | TRL 9 | Readiness reference |
 
-The benchmark gap is `(scenario − benchmark) / benchmark × 100`.
-Negative gap on lower-is-better metrics = favorable. Positive gap on higher-is-better = favorable.
+Gap convention:
+- on **lower-is-better** metrics, negative gap is favorable
+- on **higher-is-better** metrics, positive gap is favorable
 
 ---
 
-## 9. Benchmark bar chart normalization
+## 9. Reference chart normalization
 
 To enable visual comparison of metrics with different units on a single chart, each metric is
-normalized to **% of benchmark** (100% = at benchmark):
+normalized to **% of its reference point** (100% = at reference).
 
-| Metric | Normalization formula |
-|---|---|
-| CO₂ intensity | `(co2_intensity / moderate_benchmark) × 100` — bar left of 100% = better |
-| SAF compliance | `(saf_share / refueleu_target) × 100` — bar right of 100% = better |
-| SAF cost vs ETS | `(saf_premium / eu_ets_cost) × 100` — bar left of 100% = cost-competitive |
-| SAF TRL | `(saf_trl / 9) × 100` — bar right of 100% = deployment-ready |
+| Metric | Normalization formula | Interpretation |
+|---|---|---|
+| CO₂ intensity | `(co2_intensity / moderate_reference) × 100` | Left of 100% = better |
+| SAF compliance | `(saf_share / refueleu_target) × 100` | Right of 100% = better |
+| SAF cost vs EU ETS | `(incremental_saf_cost / eu_ets_cost) × 100` | Left of 100% = cost-competitive |
+| SAF TRL | `(saf_trl / 9) × 100` | Right of 100% = closer to full commercial readiness |
 
-X-axis domain: 0–200%. Reference line at 100%.
-
----
-
-## 10. Radar chart normalization
-
-Four axes, all normalized 0–100, outward = better:
-
-| Axis | Normalization |
-|---|---|
-| CO₂ reduction | `co2_reduction_from_2019_pct`, clamped 0–100 |
-| Policy compliance | `(saf_share / refueleu_target) × 100`, clamped 0–100 |
-| Cost position | `(eu_ets_cost / max(saf_premium, 0.01)) × 100`, clamped 0–100 |
-| SAF readiness (TRL) | `(saf_trl / 9) × 100` |
+The dashed line at 100% should be interpreted as a **reference / parity line**, not always as a
+homogeneous benchmark threshold.
 
 ---
 
-## 11. Known limitations
+## 10. Known limitations
 
 | Limitation | Severity | What to do about it |
 |---|---|---|
@@ -345,14 +474,16 @@ Four axes, all normalized 0–100, outward = better:
 | Fleet-level average baselines | High | Individual new-entry aircraft (A321XLR: ~20% better than A321ceo) will differ significantly from fleet averages. Add per-aircraft option |
 | SAF price range not shown | Medium | Single median projection shown. Add scenario range ($1,000–$2,686 at 2030) as a sensitivity band |
 | ReFuelEU scope limited to EU | Medium | Applies to EU-departing flights only. US/Asian market compliance gap not shown separately |
-| Demand scenario doesn't feed per-RPK metrics | Medium | Demand growth affects absolute sector emissions but is decoupled from per-RPK metrics. Clarify in UI that these are independent |
+| Demand scenario currently hidden in the aviation UI | Medium | Demand remains in the backend as a fixed contextual assumption but does not currently drive visible aviation dashboard outputs |
 | SAF lifecycle values are averages | Medium | HEFA from palm oil vs used cooking oil: 55–85% savings. The default (75%) is conservative waste-feedstock estimate |
 | 2019 baseline is fleet-average | Low | Applies to new-entry concept aircraft that may start from a lower baseline. Add option to override baseline |
 | No certification timeline | Low | TRL alone doesn't capture regulatory lead time. HEFA to ASTM certification took 5–7 years. Add flag |
+| Readiness is a horizon-adjusted proxy | Medium | Displayed TRL evolves with target year for decision-support purposes; this is not a literal certification timeline |
+| Economic parity reference is not a universal benchmark | Low | SAF cost vs EU ETS is a scenario-relative comparison anchor, not a fixed external benchmark in the same sense as policy or climate references |
 
 ---
 
-## 12. Roadmap — what to develop next
+## 11. Roadmap — what to develop next
 
 **Step 3 (immediate value):** Add a sensitivity sweep.
 Show how CO₂ intensity and SAF cost change as one input is varied ±20% while others are held constant.
@@ -373,19 +504,20 @@ next-generation aircraft) so the tool works for concept evaluation, not just fle
 
 ---
 
-## 13. What to say when challenged
+## 12. What to say when challenged
 
 > "This model doesn't produce true answers — it shows what your assumptions imply
 > against published reference points from IATA, ICAO, and CORSIA.
-> Every coefficient has a source. Every benchmark has a derivation.
+> Every coefficient has a source. Every reference point has a derivation.
 > If you disagree with a specific number, we can trace it back to the source document
 > and discuss whether a different published value would be more appropriate."
 
-The model's credibility comes from **traceability**, not precision.
+The model's credibility comes from **traceability and structured comparison**, not from pretending
+to predict the future exactly.
 
 ---
 
-## 14. Formula derivation worked example
+## 13. Formula derivation worked example
 
 **Scenario:** Narrowbody, 2035 target, 30% HEFA SAF, moderate technology, $80/tCO₂ carbon price.
 
@@ -405,18 +537,21 @@ Fuel per seat (ref flight: 165 seats × 800 km):
   SAF fraction: 0.30 × 0.02232 = 0.006696 t SAF/seat
   Fossil:       0.70 × 0.02232 = 0.015624 t fossil/seat
 
-SAF price 2035:        $1,100/tonne (IATA CR 2024 median)
-Premium:               $1,100 − $700 = $400/tonne
-SAF cost premium/seat: 0.006696 × $400 = $2.68/seat
+SAF price 2035 (HEFA): $900/tonne
+Premium:               $900 − $700 = $200/tonne
+Incremental SAF cost/seat:
+  SAF fraction = 0.30 × 0.02232 = 0.006696 t SAF/seat
+  Incremental cost = 0.006696 × $200 = $1.34/seat
 
 Fossil CO₂/seat:       0.015624 × 3.16 = 0.0494 tCO₂/seat
 Carbon cost/seat ($80): 0.0494 × $80 = $3.95/seat
 
 Breakeven carbon price:
   CO₂ saved = 0.006696 × 3.16 × 0.75 = 0.01587 tCO₂/seat
-  Breakeven = $2.68 / 0.01587 ≈ $169/tCO₂
+  Breakeven = $1.34 / 0.01587 ≈ $84/tCO₂
 
 ReFuelEU target 2035: 20% → scenario at 30% → gap: +10pp (compliant)
+Readiness proxy 2035: base TRL 9 + horizon adjustment capped at 9 → TRL 9
 ```
 
 ---
