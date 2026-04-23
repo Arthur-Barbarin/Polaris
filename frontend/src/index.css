@@ -54,6 +54,11 @@ body {
   margin: 0;
 }
 
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 #root {
   width: 1126px;
   max-width: 100%;

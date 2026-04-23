@@ -22,10 +22,14 @@ Primary sources
 [ATAG-WP]   ATAG, "Waypoint 2050 (2nd edition)", 2021.
 """
 
+import json
+import os
+
+import groq
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 
 app = FastAPI(title="Polaris API v3")
 
@@ -839,3 +843,254 @@ def run_scenario(data: ScenarioInput):
             "Baseline gCO₂/RPK is the 2019 international aviation fleet average — individual new-entry aircraft may start from a 10–40% lower baseline depending on generation.",
         ],
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# AI LAYER — LLM narrative generation and scenario Q&A
+# ═══════════════════════════════════════════════════════════════════════════
+# The deterministic computation above is the source of truth.
+# These endpoints use Claude to synthesise the structured outputs into
+# natural language — they never invent numbers, only interpret them.
+#
+# Requires: GROQ_API_KEY environment variable (free at console.groq.com).
+# Graceful fallback: if the key is absent or the API call fails, the
+# template-generated text from run-scenario is returned unchanged.
+
+def _get_client() -> Optional[groq.Groq]:
+    key = os.getenv("GROQ_API_KEY")
+    if not key:
+        return None
+    return groq.Groq(api_key=key)
+
+
+# ── Pydantic schemas ──────────────────────────────────────────────────────────
+
+class NarrativeRequest(BaseModel):
+    scenario_result: dict   # Full response from /run-scenario
+
+
+class ChatMessage(BaseModel):
+    role: str        # "user" | "assistant"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    scenario_context: dict          # Full response from /run-scenario
+    history: list[ChatMessage] = [] # Previous turns (last N kept)
+
+
+# ── Prompts ───────────────────────────────────────────────────────────────────
+
+_NARRATIVE_SYSTEM = """You are an expert aviation decarbonisation analyst helping startup founders \
+and investors understand the implications of scenario model outputs.
+
+The model is grounded in published data: IATA Comparative Review 2024, ICAO CAEP/12 2022, \
+ICAO CORSIA 2022, and ReFuelEU Aviation (EU Reg. 2023/2405).
+
+Your job is to synthesise quantitative outputs into decision-oriented insight — not to restate them.
+
+CRITICAL RULE — never write a bullet that is just a number restated. Every point must answer \
+"so what?": explain what the number implies for a decision-maker, investor, or regulator.
+
+BAD (restating): "SAF cost premium is $3.52/seat"
+GOOD (interpreting): "At $3.52/seat, the SAF premium is modest enough that a voluntary \
+sustainability surcharge or EU ETS pass-through could absorb it without meaningful ticket impact."
+
+BAD (restating): "Technology deployment risk rated Low–Medium"
+GOOD (interpreting): "Moderate tech assumptions rely on in-production aircraft programs already \
+committed — this is the least speculative efficiency lever available."
+
+For strengths: explain WHY the metric matters and what it enables operationally or commercially.
+For watchouts: explain WHAT the gap means in practice and what it would take to close it.
+Keep the tone professional but direct. Reference specific values only when they add context.
+
+Return ONLY a raw JSON object — no markdown fences, no explanation, no text before or after."""
+
+
+def _build_narrative_prompt(r: dict) -> str:
+    o   = r.get("outputs", {})
+    bm  = r.get("benchmarks", {})
+    ic  = r.get("input_context", {})
+    inp = r.get("inputs", {})
+    yr  = r.get("target_year", "")
+    ct  = {row["key"]: row["reading"] for row in r.get("comparison_table", [])}
+
+    return f"""Generate a narrative analysis for the following Polaris aviation scenario.
+
+SCENARIO
+  Aircraft: {r.get("scenario_label", "")}
+  Target year: {yr}
+  SAF share: {inp.get("saf_share_pct", "")}%
+  SAF pathway: {ic.get("saf", {}).get("label", "")} — {ic.get("saf", {}).get("lca_saving_pct", "")}% WTW CO₂ saving, TRL {ic.get("saf", {}).get("trl", "")}
+  Technology: {ic.get("technology", {}).get("label", "")} — cumulative improvement by {yr}: {ic.get("technology", {}).get("cumulative_improvement_pct", "")}%
+
+KEY COMPUTED OUTPUTS
+  CO₂ intensity: {o.get("co2_intensity_gco2_rpk", "")} gCO₂/RPK  (2019 baseline: {bm.get("co2_2019_baseline", "")} gCO₂/RPK)
+  CO₂ reduction from 2019: {o.get("co2_reduction_from_2019_pct", "")}%
+  Moderate {yr} benchmark: {bm.get("co2_moderate_gco2_rpk", "")} gCO₂/RPK  |  Ambitious: {bm.get("co2_ambitious_gco2_rpk", "")} gCO₂/RPK
+  CO₂ reading: {ct.get("co2_intensity", "")}
+
+  SAF cost premium: ${o.get("saf_cost_premium_usd_per_seat", "")}/seat on {ic.get("aircraft", {}).get("reference_flight", "")} reference flight
+  SAF price ({yr}): ${ic.get("saf_price", {}).get("saf_price_usd_t", "")}/tonne  |  Jet-A ref: ${ic.get("saf_price", {}).get("jet_a_reference_usd_t", "")}/tonne
+  EU ETS equivalent cost: ${o.get("eu_ets_carbon_cost_per_seat", "")}/seat
+  SAF breakeven carbon price: ~${o.get("saf_breakeven_carbon_price_usd_tco2", "")}/tCO₂  (EU ETS today: ~$80/tCO₂)
+  Cost reading: {ct.get("saf_cost_premium", "")}
+
+  Policy gap vs ReFuelEU {yr} ({bm.get("refueleu_saf_target_pct", "")}%): {o.get("gap_vs_refueleu_pp", ""):+}pp
+  Policy reading: {ct.get("saf_policy_alignment", "")}
+
+  SAF TRL: {o.get("saf_trl", "")}/9  |  TRL reading: {ct.get("saf_trl", "")}
+  Technology deployment risk: {o.get("tech_deployment_risk", "")}
+
+Return this exact JSON structure:
+{{
+  "headline": "<one sharp sentence, max 20 words — lead with the key decision signal, not a summary>",
+  "interpretation": "<two sentences: first, what the combination of CO₂ and cost results means for this operator; second, what the single most important lever is to improve the scenario>",
+  "strengths": [
+    "<strength 1: name the metric + explain what it enables commercially or operationally — not just the number>",
+    "<strength 2: same pattern>",
+    "<strength 3: same pattern — omit if there are genuinely only two meaningful strengths>"
+  ],
+  "watchouts": [
+    "<watchout 1: name the gap + explain what it means in practice and what it would take to close it>",
+    "<watchout 2: same pattern>",
+    "<watchout 3: same pattern — omit if there are genuinely only two meaningful watchouts>"
+  ]
+}}"""
+
+
+_CHAT_SYSTEM = """You are an expert aviation decarbonisation analyst answering follow-up questions \
+about a specific scenario run in the Polaris model — a quantitative tool grounded in published \
+IATA, ICAO, and CORSIA data.
+
+Rules:
+- Answer only from the scenario context provided. Do not invent numbers.
+- Always interpret, never just restate. If a number comes up, explain what it means — \
+  compare it to a policy threshold, an industry norm, or a real-world equivalent \
+  (e.g. ticket price impact, EU ETS level, ICAO mandate gap).
+- If asked about a timeline or projection the model doesn't compute (e.g. "what year will X happen"), \
+  explain what the model does show (e.g. the breakeven condition) and what additional assumption \
+  would be needed to answer the question fully. Do not just say "the model doesn't provide this."
+- Keep answers tight: 2–4 sentences. Lead with the insight, not with caveats.
+- If the question is genuinely outside the scenario scope, say so in one sentence then redirect \
+  to the most relevant thing the model does show."""
+
+
+def _build_context_block(ctx: dict) -> str:
+    o   = ctx.get("outputs", {})
+    bm  = ctx.get("benchmarks", {})
+    ic  = ctx.get("input_context", {})
+    inp = ctx.get("inputs", {})
+    yr  = ctx.get("target_year", "")
+    return (
+        f"SCENARIO CONTEXT — {ctx.get('scenario_label', '')} | {yr}\n"
+        f"SAF: {inp.get('saf_share_pct', '')}% {ic.get('saf', {}).get('label', '')} "
+        f"({ic.get('saf', {}).get('lca_saving_pct', '')}% WTW saving, TRL {ic.get('saf', {}).get('trl', '')})\n"
+        f"Tech: {ic.get('technology', {}).get('label', '')} | "
+        f"Cumulative improvement by {yr}: {ic.get('technology', {}).get('cumulative_improvement_pct', '')}%\n"
+        f"CO₂ intensity: {o.get('co2_intensity_gco2_rpk', '')} gCO₂/RPK "
+        f"(−{o.get('co2_reduction_from_2019_pct', '')}% from 2019 | "
+        f"moderate benchmark: {bm.get('co2_moderate_gco2_rpk', '')} | ambitious: {bm.get('co2_ambitious_gco2_rpk', '')})\n"
+        f"SAF cost premium: ${o.get('saf_cost_premium_usd_per_seat', '')}/seat | "
+        f"EU ETS equiv: ${o.get('eu_ets_carbon_cost_per_seat', '')}/seat | "
+        f"breakeven: ~${o.get('saf_breakeven_carbon_price_usd_tco2', '')}/tCO₂\n"
+        f"Policy gap vs ReFuelEU {yr} ({bm.get('refueleu_saf_target_pct', '')}%): "
+        f"{float(o.get('gap_vs_refueleu_pp', 0)):+.1f}pp | "
+        f"ICAO LTAG S2 ({bm.get('icao_ltag_s2_saf_target_pct', '')}%): "
+        f"{float(o.get('gap_vs_icao_ltag_s2_pp', 0)):+.1f}pp\n"
+        f"SAF price ({yr}): ${ic.get('saf_price', {}).get('saf_price_usd_t', '')}/tonne | "
+        f"Jet-A ref: ${ic.get('saf_price', {}).get('jet_a_reference_usd_t', '')}/tonne"
+    )
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@app.post("/generate-narrative")
+def generate_narrative(req: NarrativeRequest):
+    """
+    Generate LLM-authored headline, interpretation, strengths, and watchouts
+    for a completed scenario result. Falls back to the template strings if
+    the Anthropic client is unavailable.
+    """
+    client = _get_client()
+
+    if not client:
+        return {
+            "ai_available": False,
+            "headline": req.scenario_result.get("headline", ""),
+            "interpretation": req.scenario_result.get("interpretation", ""),
+            "strengths": req.scenario_result.get("strengths", []),
+            "watchouts": req.scenario_result.get("watchouts", []),
+        }
+
+    try:
+        msg = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=1024,
+            messages=[
+                {"role": "system", "content": _NARRATIVE_SYSTEM},
+                {"role": "user", "content": _build_narrative_prompt(req.scenario_result)},
+            ],
+        )
+        parsed = json.loads(msg.choices[0].message.content.strip())
+        return {
+            "ai_available": True,
+            "headline":      parsed.get("headline", ""),
+            "interpretation": parsed.get("interpretation", ""),
+            "strengths":     parsed.get("strengths", []),
+            "watchouts":     parsed.get("watchouts", []),
+        }
+    except Exception as exc:
+        # Graceful fallback — never break the UI
+        return {
+            "ai_available": False,
+            "headline":      req.scenario_result.get("headline", ""),
+            "interpretation": req.scenario_result.get("interpretation", ""),
+            "strengths":     req.scenario_result.get("strengths", []),
+            "watchouts":     req.scenario_result.get("watchouts", []),
+            "error":         str(exc),
+        }
+
+
+@app.post("/chat")
+def chat(req: ChatRequest):
+    """
+    Answer a natural-language question about a scenario result.
+    The full scenario context is embedded in the prompt — no database needed.
+    """
+    client = _get_client()
+
+    if not client:
+        return {
+            "ai_available": False,
+            "reply": "AI chat is not available. Set the GROQ_API_KEY environment variable to enable it.",
+        }
+
+    context_block = _build_context_block(req.scenario_context)
+
+    # System prompt first, then history, then new question with context injected
+    messages = [{"role": "system", "content": _CHAT_SYSTEM}]
+    for turn in req.history[-6:]:  # keep last 3 exchanges
+        messages.append({"role": turn.role, "content": turn.content})
+    messages.append({
+        "role": "user",
+        "content": f"{context_block}\n\nQUESTION: {req.question}",
+    })
+
+    try:
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=512,
+            messages=messages,
+        )
+        return {
+            "ai_available": True,
+            "reply": resp.choices[0].message.content.strip(),
+        }
+    except Exception as exc:
+        return {
+            "ai_available": False,
+            "reply": "Sorry, I couldn't generate a response. Please try again.",
+            "error": str(exc),
+        }

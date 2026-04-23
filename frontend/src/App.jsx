@@ -188,11 +188,20 @@ export default function App() {
   const [activeInsightTab, setActiveInsightTab] = useState('strengths')
   const [activeMainTab, setActiveMainTab] = useState('overview')
 
+  // AI narrative state — loaded asynchronously after the deterministic computation
+  const [aiNarrative, setAiNarrative] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+
   async function runScenario() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('http://127.0.0.1:8000/run-scenario', {
+      const response = await fetch('http://127.0.0.1:8001/run-scenario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -213,6 +222,23 @@ export default function App() {
 
       const data = await response.json()
       setResult(data)
+
+      // Fire AI narrative generation immediately after — non-blocking
+      setAiNarrative(null)
+      setAiLoading(true)
+      setChatMessages([])
+      fetch('http://127.0.0.1:8001/generate-narrative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario_result: data }),
+      })
+        .then(r => r.json())
+        .then(narrative => {
+          setAiNarrative(narrative)
+          setAiLoading(false)
+        })
+        .catch(() => setAiLoading(false))
+
     } catch {
       setError('Unable to reach the backend. Make sure FastAPI is running on port 8000.')
     } finally {
@@ -220,11 +246,48 @@ export default function App() {
     }
   }
 
+  async function sendChat(e) {
+    e?.preventDefault()
+    const q = chatInput.trim()
+    if (!q || !result || chatLoading) return
+    const userMsg = { role: 'user', content: q }
+    const nextHistory = [...chatMessages, userMsg]
+    setChatMessages(nextHistory)
+    setChatInput('')
+    setChatLoading(true)
+    try {
+      const resp = await fetch('http://127.0.0.1:8001/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: q,
+          scenario_context: result,
+          history: chatMessages,
+        }),
+      })
+      const data = await resp.json()
+      // Show the actual error detail if available (helps diagnose API issues)
+      const reply = data.error
+        ? `${data.reply}\n\nDebug: ${data.error}`
+        : data.reply
+      setChatMessages([...nextHistory, { role: 'assistant', content: reply }])
+    } catch (e) {
+      setChatMessages([...nextHistory, {
+        role: 'assistant',
+        content: `Network error: ${e.message}`,
+      }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  // Use AI-generated insights when available, fall back to template
+  const insightSource = aiNarrative ?? result
   const insightItems =
-    result && activeInsightTab === 'strengths'
-      ? result.strengths
-      : result && activeInsightTab === 'watchouts'
-      ? result.watchouts
+    insightSource && activeInsightTab === 'strengths'
+      ? insightSource.strengths
+      : insightSource && activeInsightTab === 'watchouts'
+      ? insightSource.watchouts
       : []
 
 const benchmarkBarData = useMemo(() => {
@@ -394,15 +457,30 @@ const benchmarkBarData = useMemo(() => {
 
           <div style={styles.rightColumn}>
             <div style={styles.heroResultCard}>
-              <div style={styles.sectionEyebrow}>Scenario implication</div>
-              <h2 style={styles.resultHeadline}>
-                {result ? result.headline : 'Run a scenario to see the key decision signal'}
-              </h2>
-              <p style={styles.resultSubtext}>
-                {result
-                  ? result.interpretation
-                  : 'This demo is designed to show what a set of assumptions implies relative to published climate, policy, and cost benchmarks.'}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <div style={styles.sectionEyebrow}>Scenario implication</div>
+                {aiNarrative?.ai_available && (
+                  <span style={styles.aiBadge}>✦ AI</span>
+                )}
+              </div>
+              {aiLoading ? (
+                <>
+                  <div style={styles.shimmerLine} />
+                  <div style={{ ...styles.shimmerLine, width: '75%', marginTop: '8px' }} />
+                  <div style={{ ...styles.shimmerLine, width: '90%', marginTop: '6px', height: '14px' }} />
+                </>
+              ) : (
+                <>
+                  <h2 style={styles.resultHeadline}>
+                    {aiNarrative?.headline || (result ? result.headline : 'Run a scenario to see the key decision signal')}
+                  </h2>
+                  <p style={styles.resultSubtext}>
+                    {aiNarrative?.interpretation || (result
+                      ? result.interpretation
+                      : 'This demo is designed to show what a set of assumptions implies relative to published climate, policy, and cost benchmarks.')}
+                  </p>
+                </>
+              )}
             </div>
 
             <div style={styles.tabHeaderMain}>
@@ -593,7 +671,12 @@ const benchmarkBarData = useMemo(() => {
               </div>
             )}
             <div style={styles.card}>
-              <div style={styles.sectionEyebrow}>Insights</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                <div style={styles.sectionEyebrow}>Insights</div>
+                {aiNarrative?.ai_available && (
+                  <span style={styles.aiBadge}>✦ AI</span>
+                )}
+              </div>
               <div style={styles.tabHeader}>
                 <button
                   style={{
@@ -617,16 +700,73 @@ const benchmarkBarData = useMemo(() => {
 
               {!result ? (
                 <div style={styles.placeholder}>Run a scenario to see the key decision insights.</div>
+              ) : aiLoading ? (
+                <>
+                  <div style={{ ...styles.shimmerLine, marginTop: '8px' }} />
+                  <div style={{ ...styles.shimmerLine, width: '85%', marginTop: '8px', height: '14px' }} />
+                  <div style={{ ...styles.shimmerLine, width: '70%', marginTop: '8px', height: '14px' }} />
+                </>
               ) : (
                 <ul style={styles.insightList}>
                   {insightItems.map((item, i) => (
-                    <li key={i} style={styles.insightListItem}>
-                      {item}
-                    </li>
+                    <li key={i} style={styles.insightListItem}>{item}</li>
                   ))}
                 </ul>
               )}
             </div>
+
+            {/* ── Chat component ─────────────────────────────────── */}
+            {result && (
+              <div style={styles.card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <div style={styles.sectionEyebrow}>Ask about this scenario</div>
+                  <span style={styles.aiBadge}>✦ AI</span>
+                </div>
+
+                {chatMessages.length > 0 && (
+                  <div style={styles.chatHistory}>
+                    {chatMessages.map((msg, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          ...styles.chatBubble,
+                          ...(msg.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAI),
+                        }}
+                      >
+                        {msg.content}
+                      </div>
+                    ))}
+                    {chatLoading && (
+                      <div style={{ ...styles.chatBubble, ...styles.chatBubbleAI }}>
+                        <span style={styles.chatTyping}>●●●</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <form onSubmit={sendChat} style={styles.chatForm}>
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    placeholder="e.g. What would it take to meet the ambitious benchmark?"
+                    style={styles.chatInput}
+                    disabled={chatLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || chatLoading}
+                    style={{
+                      ...styles.chatSendButton,
+                      opacity: (!chatInput.trim() || chatLoading) ? 0.5 : 1,
+                    }}
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -1045,5 +1185,86 @@ const styles = {
     lineHeight: '1.6',
     fontSize: '14px',
     textAlign: 'left',
+  },
+  // ── AI layer styles ───────────────────────────────────────────────────────
+  aiBadge: {
+    display: 'inline-block',
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    color: 'white',
+    fontSize: '10px',
+    fontWeight: '700',
+    padding: '2px 7px',
+    borderRadius: '6px',
+    letterSpacing: '0.05em',
+    marginBottom: '6px',
+  },
+  shimmerLine: {
+    height: '18px',
+    width: '100%',
+    borderRadius: '6px',
+    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.4s infinite',
+  },
+  // Chat
+  chatHistory: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginBottom: '14px',
+    maxHeight: '320px',
+    overflowY: 'auto',
+    padding: '4px 0',
+  },
+  chatBubble: {
+    padding: '10px 14px',
+    borderRadius: '14px',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    maxWidth: '90%',
+  },
+  chatBubbleUser: {
+    background: '#0b1736',
+    color: 'white',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: '4px',
+  },
+  chatBubbleAI: {
+    background: '#f1f5f9',
+    color: '#0f172a',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: '4px',
+  },
+  chatTyping: {
+    color: '#94a3b8',
+    letterSpacing: '3px',
+    fontSize: '16px',
+  },
+  chatForm: {
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+  },
+  chatInput: {
+    flex: 1,
+    padding: '10px 14px',
+    borderRadius: '12px',
+    border: '1px solid #cbd5e1',
+    fontSize: '14px',
+    background: '#ffffff',
+    color: '#0f172a',
+    outline: 'none',
+  },
+  chatSendButton: {
+    padding: '10px 18px',
+    borderRadius: '12px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'opacity 0.15s',
   },
 }
