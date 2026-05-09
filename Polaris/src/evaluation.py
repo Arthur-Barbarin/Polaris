@@ -74,6 +74,7 @@ def plot_actual_vs_predicted(
     target_name: str = "SOH",
     discharge_nums: np.ndarray | None = None,
     save_path: str | Path | None = None,
+    use_percent_formatter: bool = True,
 ) -> None:
     """
     Two-panel plot:
@@ -83,6 +84,12 @@ def plot_actual_vs_predicted(
     The time-series view reveals whether errors are systematic at certain
     stages of degradation (e.g. the model might be accurate early but drift
     near end-of-life — important to know before deploying).
+
+    Parameters
+    ----------
+    use_percent_formatter : bool
+        Set True for SOH targets (values in [0, 1] → displayed as %).
+        Set False for RUL targets (values in cycles — raw integers).
     """
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
@@ -100,7 +107,8 @@ def plot_actual_vs_predicted(
     ax.set_xlabel("Discharge cycle", fontsize=10)
     ax.set_ylabel(target_name, fontsize=10)
     ax.set_title(f"{model_name} — {target_name} over cycles (test battery)", fontsize=11)
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
+    if use_percent_formatter:
+        ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
@@ -113,8 +121,9 @@ def plot_actual_vs_predicted(
     ax.set_xlabel(f"Actual {target_name}", fontsize=10)
     ax.set_ylabel(f"Predicted {target_name}", fontsize=10)
     ax.set_title(f"{model_name} — Actual vs Predicted scatter", fontsize=11)
-    ax.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
+    if use_percent_formatter:
+        ax.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
+        ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 

@@ -1,0 +1,19 @@
+{
+  "soh_features": [
+    "discharge_num",
+    "mean_discharge_voltage",
+    "min_discharge_voltage",
+    "mean_temperature",
+    "max_temperature",
+    "discharge_duration"
+  ],
+  "rul_features": [
+    "mean_discharge_voltage",
+    "min_discharge_voltage",
+    "mean_temperature",
+    "max_temperature",
+    "discharge_duration"
+  ],
+  "soh_target": "soh",
+  "rul_target": "rul_warning"
+}
