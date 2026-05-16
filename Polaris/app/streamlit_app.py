@@ -5,7 +5,7 @@ Streamlit dashboard — 3 tabs
 
   Tab 1 — Route Energy Risk     ← physics-informed energy simulation
   Tab 2 — Battery Risk          ← live ML predictions + SHAP
-  Tab 3 — Operating Regime      (coming soon — PCA / GMM clustering)
+  Tab 3 — Operating Regime      ← PCA + GMM unsupervised clustering
 
 Run locally:
     streamlit run app/streamlit_app.py
@@ -33,6 +33,9 @@ from explainability import compute_shap, top_drivers
 from route_simulation import (
     VehicleParams, MissionParams, FlightResult,
     simulate_mission, power_curve, CELL_ENERGY_WH,
+)
+from regime_analysis import (
+    fit_regimes, regime_summary, DEFAULT_FEATURES, FEATURE_LABELS,
 )
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -490,18 +493,246 @@ which slightly underestimates power at high cruise speeds).
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Tab 3 — Operating Regime Explorer (stub)
+# Tab 3 — Operating Regime Explorer
 # ══════════════════════════════════════════════════════════════════════════════
 
-def tab_regime() -> None:
-    st.subheader("Operating Regime Explorer")
-    st.info(
-        "**Coming soon.** This tab will apply PCA + Gaussian Mixture Models "
-        "to cluster discharge cycles into operating regimes "
-        "(e.g. high-load/hot, normal, cold-start) and show which regime "
-        "each battery spends most of its life in.",
-        icon="🗺️",
+# Regime colour palette — ordered from healthy (green) to degraded (red)
+REGIME_COLOURS = ["#2ECC71", "#3498DB", "#F39C12", "#E67E22", "#E74C3C", "#8E44AD"]
+BATTERY_MARKERS = {"B0005": "o", "B0006": "s", "B0007": "^", "B0018": "D"}
+
+
+@st.cache_data
+def _run_regime_analysis(feature_tuple: tuple, n_clusters: int | None) -> dict:
+    """Cached wrapper so PCA+GMM doesn't refit on every slider move."""
+    df = pd.read_csv(
+        Path(__file__).resolve().parent.parent / "data" / "processed" / "battery_features.csv"
     )
+    result = fit_regimes(df, feature_cols=list(feature_tuple), n_clusters=n_clusters)
+    return result
+
+
+def tab_regime(df: pd.DataFrame) -> None:
+    st.subheader("Operating Regime Explorer")
+    st.caption(
+        "PCA reduces 8 cycle features to 2 axes of maximum variance. "
+        "GMM clusters those axes into operating regimes. "
+        "Regimes are ordered left → right from healthiest to most degraded."
+    )
+
+    # ── Controls ──────────────────────────────────────────────────────────────
+    col_ctrl, col_main = st.columns([1, 2.2])
+
+    with col_ctrl:
+        st.markdown("##### Features")
+        available = [f for f in DEFAULT_FEATURES if f in df.columns]
+        selected  = st.multiselect(
+            "Include in clustering",
+            options=available,
+            default=available,
+            format_func=lambda f: FEATURE_LABELS.get(f, f),
+        )
+        if len(selected) < 2:
+            st.warning("Select at least 2 features.")
+            return
+
+        st.markdown("##### Regimes")
+        auto_k = st.checkbox("Auto-select K via BIC", value=True)
+        n_clusters = None
+        if not auto_k:
+            n_clusters = st.slider("Number of regimes (K)", 2, 6, 4)
+
+        st.markdown("##### Overlay")
+        highlight_bat = st.selectbox(
+            "Show trajectory for battery",
+            ["None"] + sorted(df["battery_id"].unique().tolist()),
+        )
+        show_ellipses = st.checkbox("Show cluster ellipses", value=True)
+
+    # ── Fit model (cached) ────────────────────────────────────────────────────
+    with st.spinner("Fitting PCA + GMM…"):
+        result = _run_regime_analysis(tuple(sorted(selected)), n_clusters)
+
+    dfo = result.df_out
+    K   = result.n_clusters
+
+    # ── Main PCA scatter ──────────────────────────────────────────────────────
+    with col_main:
+        st.markdown(f"#### PCA space — {K} operating regimes")
+
+        fig, ax = plt.subplots(figsize=(7.5, 5))
+
+        # Cluster ellipses (1-sigma confidence)
+        if show_ellipses:
+            import matplotlib.patches as mpatches
+            from matplotlib.patches import Ellipse
+            import matplotlib.transforms as transforms
+
+            for r in range(K):
+                sub = dfo[dfo["regime"] == r]
+                if len(sub) < 3:
+                    continue
+                cov  = np.cov(sub["pc1"], sub["pc2"])
+                vals, vecs = np.linalg.eigh(cov)
+                order_v    = vals.argsort()[::-1]
+                vals, vecs = vals[order_v], vecs[:, order_v]
+                angle = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
+                w, h  = 2 * np.sqrt(vals)
+                ellipse = Ellipse(
+                    xy=(sub["pc1"].mean(), sub["pc2"].mean()),
+                    width=w, height=h, angle=angle,
+                    edgecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                    facecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                    alpha=0.08, linewidth=1.5, linestyle="--",
+                )
+                ax.add_patch(ellipse)
+
+        # Scatter — one series per battery per regime for legend clarity
+        for bat, marker in BATTERY_MARKERS.items():
+            sub_bat = dfo[dfo["battery_id"] == bat]
+            if sub_bat.empty:
+                continue
+            for r in range(K):
+                sub = sub_bat[sub_bat["regime"] == r]
+                if sub.empty:
+                    continue
+                ax.scatter(
+                    sub["pc1"], sub["pc2"],
+                    c=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                    marker=marker, s=28, alpha=0.75, linewidths=0,
+                )
+
+        # Trajectory overlay for selected battery
+        if highlight_bat != "None":
+            traj = dfo[dfo["battery_id"] == highlight_bat].sort_values("discharge_num")
+            ax.plot(traj["pc1"], traj["pc2"],
+                    color="black", linewidth=1.0, alpha=0.4, zorder=3)
+            ax.scatter(traj["pc1"].iloc[0],  traj["pc2"].iloc[0],
+                       color="black", s=60, marker="*", zorder=5, label="First cycle")
+            ax.scatter(traj["pc1"].iloc[-1], traj["pc2"].iloc[-1],
+                       color="black", s=60, marker="X", zorder=5, label="Last cycle")
+
+        # Regime centroid labels
+        for r in range(K):
+            sub = dfo[dfo["regime"] == r]
+            ax.text(sub["pc1"].mean(), sub["pc2"].mean(),
+                    f"R{r}", fontsize=9, fontweight="bold",
+                    color=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                    ha="center", va="center",
+                    bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
+
+        # Regime legend patches
+        patches = [
+            plt.Line2D([0], [0], marker="o", color="w",
+                       markerfacecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                       markersize=8, label=f"Regime {r}")
+            for r in range(K)
+        ]
+        bat_patches = [
+            plt.Line2D([0], [0], marker=m, color="grey",
+                       markersize=7, linestyle="None", label=bat)
+            for bat, m in BATTERY_MARKERS.items() if bat in dfo["battery_id"].values
+        ]
+        leg1 = ax.legend(handles=patches, loc="upper left", fontsize=8,
+                         title="Regimes", title_fontsize=8)
+        ax.add_artist(leg1)
+        if highlight_bat != "None":
+            ax.legend(loc="lower right", fontsize=8)
+
+        ev = result.explained_variance
+        ax.set_xlabel(
+            f"PC1 — degradation axis  ({ev[0]:.0%} variance)\n"
+            "← healthier · more degraded →", fontsize=9)
+        ax.set_ylabel(
+            f"PC2 — thermal/voltage axis  ({ev[1]:.0%} variance)", fontsize=9)
+        ax.grid(True, alpha=0.2)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
+
+    # ── Bottom row: BIC + explained variance + regime table ───────────────────
+    st.markdown("---")
+    c1, c2, c3 = st.columns([1, 1, 1.4])
+
+    # BIC curve
+    with c1:
+        st.markdown("#### BIC — model selection")
+        st.caption("Lower = better fit for the complexity used.")
+        fig_bic, ax_bic = plt.subplots(figsize=(3.5, 2.4))
+        ks   = list(result.bic_scores.keys())
+        bics = list(result.bic_scores.values())
+        best = min(result.bic_scores, key=result.bic_scores.get)
+        ax_bic.plot(ks, bics, "o-", color=BLUE, linewidth=1.8, markersize=5)
+        ax_bic.scatter([best], [result.bic_scores[best]],
+                       color=GREEN, s=80, zorder=5, label=f"Best K={best}")
+        ax_bic.axvline(result.n_clusters, color="darkorange",
+                       linewidth=1.2, linestyle="--",
+                       label=f"Used K={result.n_clusters}")
+        ax_bic.set_xlabel("K (regimes)", fontsize=8)
+        ax_bic.set_ylabel("BIC", fontsize=8)
+        ax_bic.legend(fontsize=7)
+        ax_bic.grid(True, alpha=0.25)
+        plt.tight_layout()
+        st.pyplot(fig_bic)
+        plt.close()
+
+    # Explained variance bar
+    with c2:
+        st.markdown("#### PCA — explained variance")
+        st.caption("How much information each component captures.")
+        fig_ev, ax_ev = plt.subplots(figsize=(3.5, 2.4))
+        pcs = [f"PC{i+1}" for i in range(len(result.explained_variance))]
+        ax_ev.bar(pcs, result.explained_variance * 100,
+                  color=[BLUE, GREEN], alpha=0.85)
+        for i, v in enumerate(result.explained_variance):
+            ax_ev.text(i, v * 100 + 0.5, f"{v:.0%}", ha="center",
+                       fontsize=8, fontweight="bold")
+        ax_ev.set_ylabel("Variance explained (%)", fontsize=8)
+        ax_ev.set_ylim(0, max(result.explained_variance) * 130)
+        ax_ev.grid(True, axis="y", alpha=0.25)
+        plt.tight_layout()
+        st.pyplot(fig_ev)
+        plt.close()
+
+    # Regime summary table
+    with c3:
+        st.markdown("#### Regime summary")
+        summary = regime_summary(result)
+        st.dataframe(
+            summary.style.apply(
+                lambda col: [
+                    f"background-color: {REGIME_COLOURS[i % len(REGIME_COLOURS)]}22"
+                    for i in range(len(col))
+                ], axis=0
+            ),
+            hide_index=True, use_container_width=True,
+        )
+
+    # ── PCA loadings heatmap ──────────────────────────────────────────────────
+    with st.expander("PCA loadings — what each axis means physically"):
+        st.caption(
+            "Each value shows how strongly a feature contributes to that PC. "
+            "PC1 loads heavily on cycle number (+), voltage (−) and duration (−): "
+            "it is the **degradation axis**. High PC1 = older, more degraded cell."
+        )
+        loadings_display = result.loadings.copy()
+        loadings_display.index = [FEATURE_LABELS.get(f, f) for f in loadings_display.index]
+        st.dataframe(
+            loadings_display.style.background_gradient(
+                cmap="RdBu_r", vmin=-1, vmax=1, axis=None),
+            use_container_width=True,
+        )
+
+    with st.expander("Cluster profiles — mean feature values per regime"):
+        st.caption(
+            "Standardised (z-score) mean feature value per regime. "
+            "Red = above average, blue = below average."
+        )
+        cp = result.cluster_profiles.copy()
+        cp.columns = [FEATURE_LABELS.get(f, f) for f in cp.columns]
+        st.dataframe(
+            cp.style.background_gradient(cmap="RdBu_r", axis=None),
+            use_container_width=True,
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -540,7 +771,7 @@ def main() -> None:
         tab_battery(df, rf_soh, rf_rul, meta)
 
     with tab3:
-        tab_regime()
+        tab_regime(df)
 
 
 if __name__ == "__main__":
