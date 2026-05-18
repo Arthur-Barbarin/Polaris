@@ -1,37 +1,25 @@
 # Polaris
-Systems modeling, techno-economic analysis, and decision-support tools for aerospace and climate transport.
 
-Polaris Systems is an independent systems modeling and techno-economic analysis studio focused on aerospace and advanced transport systems.
+Decision-support tools for aerospace and advanced transport systems — built to translate engineering assumptions into structured, benchmark-referenced outputs.
 
-We develop decision-support models, trade studies, and scenario-based analyses to help teams evaluate complex engineering concepts under uncertainty.
+Each sprint is a self-contained tool targeting a different domain and stack. All models use sourced physical constants and published industry references; no synthetic scores.
 
-## Who We Work With
+---
 
-We work with early-stage aerospace startups, climate-tech teams, and R&D groups who need to make critical decisions before the full picture is clear.
+## Sprints
 
-## What We Do
+### [Sprint 1 — Aviation Scenario Explorer](./sprint1_scenario_explorer/)
+**Stack:** FastAPI · React  
+Techno-economic scenario tool for aviation and SAF. Translates user-defined assumptions (SAF share, technology efficiency, target year) into CO₂ intensity, policy compliance gaps, and cost-per-seat outputs, benchmarked against IATA, ICAO, and ReFuelEU roadmap data.
 
-- Techno-economic scenario analysis  
-- Systems-level trade studies  
-- Engineering decision modeling  
-- Transport and aviation concept evaluation  
-- Data-driven dashboards and visualization tools  
+### [Sprint 2 — Drone Deployment Decision Engine](./sprint2_drone_decision_engine/)
+**Stack:** FastAPI · React  
+Go/No-Go deployment tool for commercial drone operations. Evaluates inspection, delivery, and agriculture scenarios against FAA regulatory constraints, platform physics, and benchmark operating costs — returning a single binding constraint label and a traceable resolution path.
 
-Our work bridges engineering rigor and strategic insight, translating technical assumptions into structured decision frameworks.
-
-## Core Focus Areas
-
-- Hydrogen and sustainable aviation systems  
-- SAF adoption and energy-transition impacts  
-- eVTOL and advanced air mobility concepts  
-- Cost-performance-policy trade spaces  
-- Market-informed engineering evaluation  
-
-## Approach
-
-We combine systems engineering principles with quantitative modeling and clear visualization to support early-stage design decisions and strategic planning.
-
-All tools and models in this repository are developed for analytical exploration, educational use, and structured decision support.
+### [Sprint 3 — Fleet Energy & Battery Risk Studio](./sprint3_battery_risk_studio/)
+**Stack:** Python · Streamlit · scikit-learn · SHAP  
+ML-powered battery prognostics platform built on the NASA PCoE lithium-ion dataset. Predicts State of Health and Remaining Useful Life via Random Forest models with SHAP explainability, physics-informed route energy simulation, and unsupervised operating regime clustering (PCA + GMM).  
+🔗 **[Live demo →](https://arthur-barbarin-polaris.streamlit.app)**
 
 ---
 
