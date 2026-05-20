@@ -36,9 +36,9 @@ const USE_CASE_OPTIONS: { value: UseCase; label: string; hint: string; icon: str
 ];
 
 const PLATFORM_OPTIONS: { value: Platform; label: string; spec: string; price: string }[] = [
-  { value: "light", label: "Light", spec: "≤0.9 kg payload · 5 km VLOS / 10 km BVLOS", price: "$6.5k" },
-  { value: "professional", label: "Professional", spec: "≤2.7 kg payload · 8 km VLOS / 20 km BVLOS", price: "$20k" },
-  { value: "heavy", label: "Heavy", spec: "≤5.0 kg payload · 12 km VLOS / 40 km BVLOS", price: "$50k" },
+  { value: "light", label: "Light", spec: "≤0.9 kg · 5/10 km", price: "$6.5k" },
+  { value: "professional", label: "Pro", spec: "≤2.7 kg · 8/20 km", price: "$20k" },
+  { value: "heavy", label: "Heavy", spec: "≤5.0 kg · 12/40 km", price: "$50k" },
 ];
 
 const BVLOS_OPTIONS: { value: BVLOSStatus; label: string; sub: string }[] = [
@@ -275,15 +275,13 @@ export default function Page() {
 
       {/* Nav */}
       <nav className="bg-white border-b border-slate-200 px-6 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center">
-            <span className="text-white text-xs font-bold">P</span>
-          </div>
-          <span className="font-semibold text-slate-900 text-sm">Polaris</span>
-          <span className="text-slate-300 mx-1">·</span>
-          <span className="text-slate-500 text-sm">Drone Deployment Intelligence</span>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/polaris-logo.png" alt="Polaris Systems" className="h-7 w-auto" />
+          <span className="text-slate-300 hidden sm:inline">·</span>
+          <span className="text-slate-500 text-sm hidden sm:inline">Drone Deployment Intelligence</span>
         </div>
-        <span className="text-xs text-slate-400">Commercial UAS · FAA-sourced benchmarks</span>
+        <span className="text-xs text-slate-400 hidden sm:inline">Commercial UAS · FAA-sourced benchmarks</span>
       </nav>
 
       {/* Hero */}
@@ -343,25 +341,28 @@ export default function Page() {
 
           {/* 3 — Platform */}
           <StepLabel n={3} label="Platform tier" />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {PLATFORM_OPTIONS.map((o) => {
               const sel = inputs.platform === o.value;
               return (
                 <button
                   key={o.value}
                   onClick={() => set("platform", o.value)}
-                  className={`px-3 py-4 rounded-xl border-2 text-left transition-all ${
+                  className={`px-2 sm:px-3 py-3 sm:py-4 rounded-xl border-2 text-left transition-all ${
                     sel
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <p className="text-sm font-bold">{o.label}</p>
-                  <p className={`text-sm font-semibold mt-0.5 ${sel ? "text-slate-300" : "text-slate-500"}`}>
+                  <p className="text-xs sm:text-sm font-bold leading-tight">{o.label}</p>
+                  <p className={`text-xs sm:text-sm font-semibold mt-0.5 ${sel ? "text-slate-300" : "text-slate-500"}`}>
                     {o.price}
                   </p>
-                  <p className={`text-[11px] mt-1.5 leading-relaxed ${sel ? "text-slate-400" : "text-slate-400"}`}>
+                  <p className={`text-[10px] sm:text-[11px] mt-1.5 leading-relaxed ${sel ? "text-slate-400" : "text-slate-400"}`}>
                     {o.spec}
+                  </p>
+                  <p className={`text-[9px] sm:text-[10px] mt-0.5 ${sel ? "text-slate-500" : "text-slate-300"}`}>
+                    VLOS / BVLOS
                   </p>
                 </button>
               );
