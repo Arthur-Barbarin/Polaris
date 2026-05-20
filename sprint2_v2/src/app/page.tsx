@@ -280,24 +280,14 @@ export default function Page() {
             <span className="text-white text-xs font-bold">P</span>
           </div>
           <span className="font-semibold text-slate-900 text-sm">Polaris</span>
-          <span className="text-slate-300 mx-1">/</span>
-          <span className="text-slate-500 text-sm">Drone Decision Engine</span>
+          <span className="text-slate-300 mx-1">·</span>
+          <span className="text-slate-500 text-sm">Drone Deployment Intelligence</span>
         </div>
-        <a
-          href="https://arthur-barbarin-polaris.streamlit.app"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-slate-400 hover:text-slate-900 transition-colors"
-        >
-          Battery & Fleet Studio →
-        </a>
+        <span className="text-xs text-slate-400">Commercial UAS · FAA-sourced benchmarks</span>
       </nav>
 
       {/* Hero */}
       <div className="bg-slate-900 px-6 py-12 text-center">
-        <p className="text-slate-500 text-xs font-semibold uppercase tracking-widest mb-3">
-          Sprint 2 · Commercial UAS
-        </p>
         <h1 className="text-4xl font-black text-white mb-3 tracking-tight">
           Should you deploy drones here?
         </h1>
@@ -622,15 +612,7 @@ export default function Page() {
           {/* Footer */}
           <p className="text-[11px] text-slate-400 text-center px-4 leading-relaxed">
             All cost coefficients derived from FAA regulations, PwC research, and university studies.
-            Every constraint is traceable.{" "}
-            <a
-              href="https://arthur-barbarin-polaris.streamlit.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-slate-700"
-            >
-              See Sprint 3 →
-            </a>
+            Every constraint is traceable to a public source.
           </p>
         </div>
       </div>
