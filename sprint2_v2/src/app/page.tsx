@@ -36,9 +36,9 @@ const USE_CASE_OPTIONS: { value: UseCase; label: string; hint: string; icon: str
 ];
 
 const PLATFORM_OPTIONS: { value: Platform; label: string; spec: string; price: string }[] = [
-  { value: "light", label: "Light", spec: "0.9 kg · 42 min · 5 km", price: "$6.5k" },
-  { value: "professional", label: "Professional", spec: "2.7 kg · 55 min · 8 km", price: "$20k" },
-  { value: "heavy", label: "Heavy", spec: "5.0 kg · 57 min · 12 km", price: "$50k" },
+  { value: "light", label: "Light", spec: "≤0.9 kg payload · 5 km VLOS / 10 km BVLOS", price: "$6.5k" },
+  { value: "professional", label: "Professional", spec: "≤2.7 kg payload · 8 km VLOS / 20 km BVLOS", price: "$20k" },
+  { value: "heavy", label: "Heavy", spec: "≤5.0 kg payload · 12 km VLOS / 40 km BVLOS", price: "$50k" },
 ];
 
 const BVLOS_OPTIONS: { value: BVLOSStatus; label: string; sub: string }[] = [
@@ -319,11 +319,25 @@ export default function Page() {
 
           {/* 2 — Human alternative */}
           <StepLabel n={2} label="What does it replace?" />
-          <SelectCard
-            options={humanAltOpts}
-            value={inputs.humanAlternative}
-            onChange={(v) => set("humanAlternative", v)}
-          />
+          {inputs.useCase === "delivery" ? (
+            // Delivery has only one meaningful baseline — show as info, not a fake picker
+            <div className="px-4 py-4 rounded-xl border-2 border-slate-200 bg-slate-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">🚐</span>
+                  <span className="font-semibold text-sm text-slate-800">Van / courier</span>
+                </div>
+                <span className="text-xs text-slate-400 tabular-nums">Varies by geography</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 ml-8">Standalone trip cost — not amortized dense-route rate</p>
+            </div>
+          ) : (
+            <SelectCard
+              options={humanAltOpts}
+              value={inputs.humanAlternative}
+              onChange={(v) => set("humanAlternative", v)}
+            />
+          )}
 
           <SectionDivider />
 
@@ -381,14 +395,8 @@ export default function Page() {
                 alert={inputs.missionRange > 1.5}
               />
             )}
-            {inputs.useCase !== "agriculture" && (
-              <Slider
-                label="Payload weight"
-                value={inputs.payload}
-                min={0.1} max={10} step={0.1} unit="kg"
-                onChange={(v) => set("payload", v)}
-              />
-            )}
+{/* Payload slider removed — below the platform max it has zero effect on any calculation.
+     Platform cards already display max payload capacity so users can self-select. */}
             <Slider
               label="Missions per year"
               hint="More missions = fixed costs spread further = lower cost per flight"
@@ -416,21 +424,23 @@ export default function Page() {
 
           {/* 6 — Context */}
           <StepLabel n={6} label="Operating context" />
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Geography</p>
-              <div className="flex flex-wrap gap-2">
-                {GEOGRAPHY_OPTIONS.map((o) => (
-                  <Chip
-                    key={o.value}
-                    selected={inputs.geography === o.value}
-                    onClick={() => set("geography", o.value)}
-                  >
-                    {o.label}
-                  </Chip>
-                ))}
+          <div className={inputs.useCase === "delivery" ? "grid grid-cols-2 gap-8" : "grid grid-cols-1 gap-8"}>
+            {inputs.useCase === "delivery" && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Geography</p>
+                <div className="flex flex-wrap gap-2">
+                  {GEOGRAPHY_OPTIONS.map((o) => (
+                    <Chip
+                      key={o.value}
+                      selected={inputs.geography === o.value}
+                      onClick={() => set("geography", o.value)}
+                    >
+                      {o.label}
+                    </Chip>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Labor market</p>
               <div className="flex flex-col gap-2">
