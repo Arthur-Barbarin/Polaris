@@ -276,8 +276,10 @@ export default function Page() {
       {/* Nav */}
       <nav className="bg-white border-b border-slate-200 px-6 h-12 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/polaris-logo.png" alt="Polaris Systems" className="h-7 w-auto" />
+          <span className="text-sm tracking-tight">
+            <span className="font-bold text-slate-900">Polaris</span>
+            <span className="font-light text-slate-500"> Systems</span>
+          </span>
           <span className="text-slate-300 hidden sm:inline">·</span>
           <span className="text-slate-500 text-sm hidden sm:inline">Drone Deployment Intelligence</span>
         </div>
