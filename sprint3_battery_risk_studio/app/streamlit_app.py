@@ -25,6 +25,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import shap
 import streamlit as st
 
@@ -54,6 +55,28 @@ GREEN   = "#2ECC71"
 YELLOW  = "#F39C12"
 RED     = "#E74C3C"
 BLUE    = "#2980B9"
+ORANGE  = "#E67E22"
+
+# ── Plotly layout defaults (dark theme) ───────────────────────────────────────
+_PLOTLY_LAYOUT = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(26,29,46,0.6)",
+    font=dict(color="#FAFAFA", size=12),
+    margin=dict(l=50, r=20, t=40, b=50),
+    legend=dict(
+        bgcolor="rgba(0,0,0,0.3)",
+        bordercolor="rgba(255,255,255,0.1)",
+        borderwidth=1,
+    ),
+    xaxis=dict(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.1)"),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.1)"),
+)
+
+
+def _apply_layout(fig: go.Figure, **kwargs) -> go.Figure:
+    layout = {**_PLOTLY_LAYOUT, **kwargs}
+    fig.update_layout(**layout)
+    return fig
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -97,7 +120,6 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
     SOH_COLS = meta["soh_features"]
     RUL_COLS = meta["rul_features"]
 
-    # ── Sidebar-style controls (rendered inline, top of tab) ──────────────────
     st.subheader("Battery selector")
     col_sel1, col_sel2 = st.columns([1, 3])
 
@@ -121,15 +143,13 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
 
     row = bdf[bdf["discharge_num"] == cycle_idx].iloc[0]
 
-    # ── Build feature vectors ─────────────────────────────────────────────────
     X_soh = pd.DataFrame([row[SOH_COLS]])
     X_rul = pd.DataFrame([row[RUL_COLS]])
 
-    pred_soh = float(rf_soh.predict(X_soh)[0])
-    pred_rul = float(rf_rul.predict(X_rul)[0])
+    pred_soh   = float(rf_soh.predict(X_soh)[0])
+    pred_rul   = float(rf_rul.predict(X_rul)[0])
     actual_soh = float(row["soh"])
 
-    # ── Top metric row ────────────────────────────────────────────────────────
     st.markdown("---")
     m1, m2, m3, m4 = st.columns(4)
 
@@ -146,91 +166,102 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
 
     st.markdown("---")
 
-    # ── Two-column layout: SOH history + SHAP waterfall ───────────────────────
     col_left, col_right = st.columns([1.2, 1])
 
-    # Left: SOH degradation curve with current position marker
+    # Left: SOH degradation — Plotly
     with col_left:
         st.markdown("#### SOH degradation — full history")
-        fig, ax = plt.subplots(figsize=(7, 3.5))
 
-        ax.plot(bdf["discharge_num"], bdf["soh"],
-                color=BLUE, linewidth=1.8, label="Actual SOH")
-
-        # Predicted SOH for every cycle (for the trajectory overlay)
         X_all_soh = bdf[SOH_COLS]
-        pred_all   = rf_soh.predict(X_all_soh)
-        ax.plot(bdf["discharge_num"], pred_all,
-                color="darkorange", linewidth=1.5,
-                linestyle="--", label="Predicted SOH")
+        pred_all  = rf_soh.predict(X_all_soh)
 
-        # Threshold lines
-        ax.axhline(SOH_WARNING_THRESHOLD, color=YELLOW, linewidth=1,
-                   linestyle=":", label="80% warning")
-        ax.axhline(SOH_EOL_THRESHOLD, color=RED, linewidth=1,
-                   linestyle=":", label="70% EOL")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=bdf["discharge_num"], y=bdf["soh"],
+            mode="lines", name="Actual SOH",
+            line=dict(color=BLUE, width=2),
+        ))
+        fig.add_trace(go.Scatter(
+            x=bdf["discharge_num"], y=pred_all,
+            mode="lines", name="Predicted SOH",
+            line=dict(color=ORANGE, width=2, dash="dash"),
+        ))
+        fig.add_hline(y=SOH_WARNING_THRESHOLD,
+                      line=dict(color=YELLOW, width=1, dash="dot"),
+                      annotation_text="80% warning",
+                      annotation_position="right",
+                      annotation_font_color=YELLOW)
+        fig.add_hline(y=SOH_EOL_THRESHOLD,
+                      line=dict(color=RED, width=1, dash="dot"),
+                      annotation_text="70% EOL",
+                      annotation_position="right",
+                      annotation_font_color=RED)
+        fig.add_vline(x=cycle_idx,
+                      line=dict(color="rgba(255,255,255,0.3)", width=1, dash="dash"))
+        fig.add_trace(go.Scatter(
+            x=[cycle_idx], y=[pred_soh],
+            mode="markers", name=f"Cycle {cycle_idx}",
+            marker=dict(color=ORANGE, size=10, symbol="circle",
+                        line=dict(color="white", width=1.5)),
+            hovertemplate=f"Cycle {cycle_idx}<br>Pred SOH: {pred_soh:.1%}<extra></extra>",
+        ))
+        _apply_layout(fig,
+            xaxis_title="Discharge cycle",
+            yaxis_title="State of Health",
+            yaxis_tickformat=".0%",
+            height=340,
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-        # Current cycle marker
-        ax.axvline(cycle_idx, color="grey", linewidth=1, linestyle="--", alpha=0.7)
-        ax.scatter([cycle_idx], [pred_soh], color="darkorange",
-                   s=60, zorder=5, label=f"Selected cycle ({cycle_idx})")
-
-        ax.set_xlabel("Discharge cycle", fontsize=9)
-        ax.set_ylabel("State of Health", fontsize=9)
-        ax.yaxis.set_major_formatter(
-            plt.matplotlib.ticker.PercentFormatter(xmax=1.0))
-        ax.legend(fontsize=8, loc="upper right")
-        ax.grid(True, alpha=0.25)
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
-
-    # Right: SHAP waterfall for the selected cycle
+    # Right: SHAP waterfall — stays matplotlib (SHAP lib generates natively)
     with col_right:
         st.markdown("#### Why this prediction? (SHAP waterfall)")
 
-        # We need a background set for the explainer — use the training batteries
-        train_df = df[df["battery_id"] != "B0018"]
+        train_df    = df[df["battery_id"] != "B0018"]
         X_train_soh = train_df[SOH_COLS]
-
-        shap_vals = compute_shap(rf_soh, X_train_soh, X_soh)
+        shap_vals   = compute_shap(rf_soh, X_train_soh, X_soh)
 
         fig2, ax2 = plt.subplots(figsize=(6, 3.8))
+        fig2.patch.set_facecolor("#1A1D2E")
+        ax2.set_facecolor("#1A1D2E")
         shap.waterfall_plot(shap_vals[0], show=False)
         plt.title(f"SHAP — cycle {cycle_idx}", fontsize=10,
-                  fontweight="bold", pad=8)
+                  fontweight="bold", pad=8, color="#FAFAFA")
         plt.tight_layout()
         st.pyplot(fig2)
         plt.close()
 
-    # ── Explanation text ──────────────────────────────────────────────────────
     explanation = top_drivers(shap_vals, idx=0, n=3)
     st.info(f"**Model explanation:** {explanation}", icon="🔍")
 
-    # ── RUL trajectory ────────────────────────────────────────────────────────
+    # RUL trajectory — Plotly
     st.markdown("---")
     st.markdown("#### RUL trajectory — cycles remaining to 80% warning")
 
-    fig3, ax3 = plt.subplots(figsize=(10, 3))
-    actual_rul = bdf["rul_warning"].fillna(0)
+    actual_rul   = bdf["rul_warning"].fillna(0)
     pred_rul_all = rf_rul.predict(bdf[RUL_COLS])
 
-    ax3.plot(bdf["discharge_num"], actual_rul,
-             color=BLUE, linewidth=1.5, label="Actual RUL")
-    ax3.plot(bdf["discharge_num"], pred_rul_all,
-             color="darkorange", linestyle="--", linewidth=1.5,
-             label="Predicted RUL")
-    ax3.axvline(cycle_idx, color="grey", linewidth=1,
-                linestyle="--", alpha=0.7)
-    ax3.set_xlabel("Discharge cycle", fontsize=9)
-    ax3.set_ylabel("Cycles remaining", fontsize=9)
-    ax3.legend(fontsize=8)
-    ax3.grid(True, alpha=0.25)
-    plt.tight_layout()
-    st.pyplot(fig3)
-    plt.close()
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(
+        x=bdf["discharge_num"], y=actual_rul,
+        mode="lines", name="Actual RUL",
+        line=dict(color=BLUE, width=2),
+        fill="tozeroy", fillcolor="rgba(41,128,185,0.08)",
+    ))
+    fig3.add_trace(go.Scatter(
+        x=bdf["discharge_num"], y=pred_rul_all,
+        mode="lines", name="Predicted RUL",
+        line=dict(color=ORANGE, width=2, dash="dash"),
+    ))
+    fig3.add_vline(x=cycle_idx,
+                   line=dict(color="rgba(255,255,255,0.3)", width=1, dash="dash"))
+    _apply_layout(fig3,
+        xaxis_title="Discharge cycle",
+        yaxis_title="Cycles remaining",
+        height=280,
+    )
+    st.plotly_chart(fig3, use_container_width=True)
 
-    # ── Raw feature table for selected cycle ─────────────────────────────────
     with st.expander("Raw features for selected cycle"):
         feature_display = row[SOH_COLS].to_frame(name="value").T
         st.dataframe(feature_display.style.format("{:.4f}"))
@@ -241,92 +272,96 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _energy_bar(result: FlightResult) -> None:
-    """Horizontal stacked bar: energy by flight phase + safety margin."""
-    phases = ["Hover", "Climb", "Cruise", "Descent"]
-    values = [result.e_hover_wh, result.e_climb_wh,
-              result.e_cruise_wh, result.e_descent_wh]
-    colours = ["#5B9BD5", "#70AD47", "#ED7D31", "#FFC000"]
+    """Horizontal stacked bar — Plotly."""
+    phases  = ["Hover", "Climb", "Cruise", "Descent", "Safety margin"]
+    values  = [
+        result.e_hover_wh, result.e_climb_wh,
+        result.e_cruise_wh, result.e_descent_wh,
+        result.e_with_margin_wh - result.e_total_wh,
+    ]
+    colours = ["#5B9BD5", "#70AD47", "#ED7D31", "#FFC000", "rgba(192,0,0,0.45)"]
 
-    fig, ax = plt.subplots(figsize=(9, 1.6))
-    left = 0.0
+    fig = go.Figure()
     for phase, val, col in zip(phases, values, colours):
-        ax.barh(0, val, left=left, color=col, label=f"{phase} ({val:.0f} Wh)", height=0.5)
-        if val > 5:
-            ax.text(left + val / 2, 0, f"{val:.0f}", ha="center", va="center",
-                    fontsize=8, color="white", fontweight="bold")
-        left += val
+        fig.add_trace(go.Bar(
+            x=[val], y=["Energy"],
+            orientation="h",
+            name=f"{phase} ({val:.0f} Wh)",
+            marker_color=col,
+            text=f"{val:.0f}" if val > 5 else "",
+            textposition="inside",
+            insidetextanchor="middle",
+            hovertemplate=f"{phase}: {val:.0f} Wh<extra></extra>",
+        ))
 
-    # Safety margin band
-    margin_val = result.e_with_margin_wh - result.e_total_wh
-    ax.barh(0, margin_val, left=left, color="#C00000", alpha=0.4,
-            label=f"Safety margin ({margin_val:.0f} Wh)", height=0.5)
-    left += margin_val
+    avail_color = GREEN if result.go else RED
+    fig.add_vline(
+        x=result.e_available_wh,
+        line=dict(color=avail_color, width=2.5, dash="dash"),
+        annotation_text=f"Available ({result.e_available_wh:.0f} Wh)",
+        annotation_font_color=avail_color,
+        annotation_position="top right",
+    )
 
-    # Available capacity line
-    ax.axvline(result.e_available_wh, color="#2ECC71" if result.go else "#E74C3C",
-               linewidth=2.5, linestyle="--",
-               label=f"Available ({result.e_available_wh:.0f} Wh)")
-
-    ax.set_xlim(0, max(result.e_available_wh, result.e_with_margin_wh) * 1.08)
-    ax.set_yticks([])
-    ax.set_xlabel("Energy [Wh]", fontsize=9)
-    ax.legend(loc="upper right", fontsize=7.5, ncol=3)
-    ax.grid(True, axis="x", alpha=0.3)
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close()
+    _apply_layout(fig,
+        barmode="stack",
+        xaxis_title="Energy [Wh]",
+        showlegend=True,
+        height=140,
+        margin=dict(l=10, r=20, t=30, b=40),
+        yaxis=dict(showticklabels=False, gridcolor="rgba(0,0,0,0)"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _power_curve_plot(vehicle: VehicleParams, mission: MissionParams,
                       result: FlightResult) -> None:
-    """U-shaped power vs speed curve with operating point and optimal speeds marked."""
+    """U-shaped power vs speed — Plotly."""
     speeds, powers = power_curve(vehicle, mission.cruise_alt_m, v_max_ms=35.0)
-    power_kw = powers / 1000.0
+    speeds_kmh = speeds * 3.6
+    power_kw   = powers / 1000.0
 
-    fig, ax = plt.subplots(figsize=(7, 3.2))
-    ax.plot(speeds * 3.6, power_kw, color=BLUE, linewidth=2.0)
+    idx_endurance = int(np.argmin(powers))
+    idx_range     = int(np.argmin(powers / speeds))
+    cruise_kw     = result.p_cruise_w / 1000.0
 
-    # Best endurance speed (min power)
-    idx_endurance = np.argmin(powers)
-    ax.axvline(speeds[idx_endurance] * 3.6, color=GREEN, linewidth=1.2,
-               linestyle=":", alpha=0.9,
-               label=f"Best endurance {speeds[idx_endurance]*3.6:.0f} km/h")
-
-    # Best range speed (min P/V)
-    idx_range = np.argmin(powers / speeds)
-    ax.axvline(speeds[idx_range] * 3.6, color=YELLOW, linewidth=1.2,
-               linestyle=":", alpha=0.9,
-               label=f"Best range {speeds[idx_range]*3.6:.0f} km/h")
-
-    # Current cruise point
-    cruise_kw = result.p_cruise_w / 1000.0
-    ax.scatter([mission.cruise_speed_ms * 3.6], [cruise_kw],
-               color="darkorange", s=70, zorder=5,
-               label=f"Your cruise {mission.cruise_speed_ms*3.6:.0f} km/h · {cruise_kw:.2f} kW")
-
-    ax.set_xlabel("Speed [km/h]", fontsize=9)
-    ax.set_ylabel("Power [kW]", fontsize=9)
-    ax.set_title("Power vs speed — momentum theory", fontsize=10)
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.25)
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=speeds_kmh, y=power_kw,
+        mode="lines", name="Power curve",
+        line=dict(color=BLUE, width=2.5),
+        fill="tozeroy", fillcolor="rgba(41,128,185,0.06)",
+    ))
+    fig.add_vline(x=speeds_kmh[idx_endurance],
+                  line=dict(color=GREEN, width=1.5, dash="dot"),
+                  annotation_text=f"Best endurance {speeds_kmh[idx_endurance]:.0f} km/h",
+                  annotation_font_color=GREEN,
+                  annotation_position="top left")
+    fig.add_vline(x=speeds_kmh[idx_range],
+                  line=dict(color=YELLOW, width=1.5, dash="dot"),
+                  annotation_text=f"Best range {speeds_kmh[idx_range]:.0f} km/h",
+                  annotation_font_color=YELLOW,
+                  annotation_position="top right")
+    fig.add_trace(go.Scatter(
+        x=[mission.cruise_speed_ms * 3.6], y=[cruise_kw],
+        mode="markers",
+        name=f"Cruise {mission.cruise_speed_ms*3.6:.0f} km/h · {cruise_kw:.2f} kW",
+        marker=dict(color=ORANGE, size=12, symbol="circle",
+                    line=dict(color="white", width=1.5)),
+        hovertemplate=(f"Cruise: {mission.cruise_speed_ms*3.6:.0f} km/h"
+                       f"<br>Power: {cruise_kw:.2f} kW<extra></extra>"),
+    ))
+    _apply_layout(fig,
+        title=dict(text="Power vs speed — momentum theory", font=dict(size=13)),
+        xaxis_title="Speed [km/h]",
+        yaxis_title="Power [kW]",
+        height=320,
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = None) -> None:
-    """
-    Route Energy Risk tab.
-
-    Architecture
-    ------------
-    Left column  : mission + vehicle inputs (sliders / number inputs)
-    Right column : simulation outputs (GO/NO-GO, energy chart, power curve)
-
-    The battery SOH can be linked to a real battery from the dataset
-    (uses the trained RF model from Tab 2) or entered manually.
-    """
-
     st.subheader("Route Energy Risk — Physics Simulation")
     st.caption(
         "Momentum-theory power model · Glauert forward-flight inflow · "
@@ -335,9 +370,7 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
 
     col_inputs, col_outputs = st.columns([1, 1.6])
 
-    # ── LEFT: inputs ──────────────────────────────────────────────────────────
     with col_inputs:
-
         st.markdown("##### 🚁 Vehicle")
         vehicle_mass = st.number_input(
             "Vehicle mass [kg]", min_value=1.0, max_value=500.0,
@@ -356,14 +389,12 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
             help="Equivalent flat-plate area (Cd × frontal area). Typical: 0.01–0.05 m²")
 
         st.markdown("##### 🗺️ Mission")
-        distance = st.slider("Route distance [km]", 1.0, 30.0, 5.0, 0.5)
-        altitude  = st.slider("Cruise altitude AGL [m]", 20.0, 500.0, 100.0, 10.0)
-        speed_ms  = st.slider(
-            "Cruise speed [m/s]", 3.0, 30.0, 15.0, 0.5,
-            help="10 m/s ≈ 36 km/h  ·  20 m/s ≈ 72 km/h")
-        safety_margin = st.slider(
-            "Safety margin [%]", 5, 40, 15, 1,
-            help="% of battery capacity reserved — not counted toward usable energy.")
+        distance      = st.slider("Route distance [km]", 1.0, 30.0, 5.0, 0.5)
+        altitude      = st.slider("Cruise altitude AGL [m]", 20.0, 500.0, 100.0, 10.0)
+        speed_ms      = st.slider("Cruise speed [m/s]", 3.0, 30.0, 15.0, 0.5,
+                                  help="10 m/s ≈ 36 km/h  ·  20 m/s ≈ 72 km/h")
+        safety_margin = st.slider("Safety margin [%]", 5, 40, 15, 1,
+                                  help="% of battery capacity reserved.")
 
         st.markdown("##### 🔋 Battery pack")
         n_cells = st.number_input(
@@ -371,19 +402,15 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
             value=40, step=1,
             help=f"Each NASA cell = {CELL_ENERGY_WH:.1f} Wh nominal (2 Ah @ 3.6 V).")
 
-        # SOH source
-        soh_mode = st.radio(
-            "SOH source",
-            ["Manual entry", "Link to battery data"],
-            horizontal=True,
-        )
+        soh_mode = st.radio("SOH source", ["Manual entry", "Link to battery data"],
+                            horizontal=True)
         if soh_mode == "Manual entry":
             battery_soh = st.slider("State of Health [%]", 60, 100, 100, 1) / 100.0
         else:
             if df is not None and rf_soh is not None and meta is not None:
-                soh_bat = st.selectbox(
-                    "Battery", sorted(df["battery_id"].unique()), key="route_bat")
-                bdf_r = df[df["battery_id"] == soh_bat]
+                soh_bat = st.selectbox("Battery", sorted(df["battery_id"].unique()),
+                                       key="route_bat")
+                bdf_r   = df[df["battery_id"] == soh_bat]
                 soh_cycle = st.slider(
                     "Discharge cycle",
                     int(bdf_r["discharge_num"].min()),
@@ -391,8 +418,8 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
                     int(bdf_r["discharge_num"].median()),
                     key="route_cycle",
                 )
-                row_r = bdf_r[bdf_r["discharge_num"] == soh_cycle].iloc[0]
-                X_r = pd.DataFrame([row_r[meta["soh_features"]]])
+                row_r       = bdf_r[bdf_r["discharge_num"] == soh_cycle].iloc[0]
+                X_r         = pd.DataFrame([row_r[meta["soh_features"]]])
                 battery_soh = float(rf_soh.predict(X_r)[0])
                 st.caption(
                     f"ML-predicted SOH for {soh_bat} cycle {soh_cycle}: "
@@ -402,10 +429,7 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
                 st.warning("Battery model not loaded — using manual SOH.")
                 battery_soh = st.slider("State of Health [%]", 60, 100, 100, 1) / 100.0
 
-    # ── RIGHT: outputs ────────────────────────────────────────────────────────
     with col_outputs:
-
-        # Build parameter objects and run simulation
         vehicle = VehicleParams(
             vehicle_mass_kg=vehicle_mass,
             payload_kg=payload,
@@ -421,8 +445,6 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
         )
         result = simulate_mission(vehicle, mission, battery_soh)
 
-        # ── GO / NO-GO banner ─────────────────────────────────────────────────
-        total_mass = vehicle_mass + payload
         if result.go:
             st.success(
                 f"### 🟢  GO — margin {result.margin_pct:.1%}\n"
@@ -437,7 +459,6 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
                 f"Required **{result.e_with_margin_wh:.0f} Wh**"
             )
 
-        # ── Key metrics ───────────────────────────────────────────────────────
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Total energy needed", f"{result.e_total_wh:.0f} Wh")
         m2.metric("Pack available", f"{result.e_available_wh:.0f} Wh",
@@ -446,23 +467,20 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
         m4.metric("Est. max range", f"{result.max_range_km:.1f} km",
                   help="At best-range speed with current battery SOH.")
 
-        # ── Energy budget bar ─────────────────────────────────────────────────
         st.markdown("#### Energy budget by flight phase")
         _energy_bar(result)
 
-        # ── Phase breakdown table ─────────────────────────────────────────────
         phase_df = pd.DataFrame({
-            "Phase":     ["Hover", "Climb", "Cruise", "Descent"],
-            "Time [s]":  [f"{result.t_hover_s:.0f}", f"{result.t_climb_s:.0f}",
-                          f"{result.t_cruise_s:.0f}", f"{result.t_descent_s:.0f}"],
-            "Power [W]": [f"{result.p_hover_w:.0f}", f"{result.p_climb_w:.0f}",
-                          f"{result.p_cruise_w:.0f}", f"{result.p_descent_w:.0f}"],
+            "Phase":       ["Hover", "Climb", "Cruise", "Descent"],
+            "Time [s]":    [f"{result.t_hover_s:.0f}", f"{result.t_climb_s:.0f}",
+                            f"{result.t_cruise_s:.0f}", f"{result.t_descent_s:.0f}"],
+            "Power [W]":   [f"{result.p_hover_w:.0f}", f"{result.p_climb_w:.0f}",
+                            f"{result.p_cruise_w:.0f}", f"{result.p_descent_w:.0f}"],
             "Energy [Wh]": [f"{result.e_hover_wh:.1f}", f"{result.e_climb_wh:.1f}",
                             f"{result.e_cruise_wh:.1f}", f"{result.e_descent_wh:.1f}"],
         })
         st.dataframe(phase_df, hide_index=True, use_container_width=True)
 
-        # ── Power vs speed curve ──────────────────────────────────────────────
         st.markdown("#### Power vs speed — the U-shaped curve")
         st.caption(
             "Induced power decreases with speed (larger air mass swept); "
@@ -471,7 +489,6 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
         )
         _power_curve_plot(vehicle, mission, result)
 
-        # ── Physics note ──────────────────────────────────────────────────────
         with st.expander("Model assumptions & limitations"):
             st.markdown("""
 **Momentum theory** (Glauert, 1935) gives induced power in forward flight by solving
@@ -486,24 +503,25 @@ the inflow equation `v_i⁴ + V² v_i² − v_h⁴ = 0`, where `v_h` is the hove
 are ~87% efficient vs. ideal momentum theory).
 
 **Not modelled:** wind, ground effect, battery discharge curve, motor/ESC losses,
-rotor tilt angle in forward flight (this model assumes the rotor disk stays horizontal,
-which slightly underestimates power at high cruise speeds).
+rotor tilt angle in forward flight.
             """)
-
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab 3 — Operating Regime Explorer
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Regime colour palette — ordered from healthy (green) to degraded (red)
-REGIME_COLOURS = ["#2ECC71", "#3498DB", "#F39C12", "#E67E22", "#E74C3C", "#8E44AD"]
-BATTERY_MARKERS = {"B0005": "o", "B0006": "s", "B0007": "^", "B0018": "D"}
+REGIME_COLOURS  = ["#2ECC71", "#3498DB", "#F39C12", "#E67E22", "#E74C3C", "#8E44AD"]
+BATTERY_MARKERS = {
+    "B0005": "circle",
+    "B0006": "square",
+    "B0007": "triangle-up",
+    "B0018": "diamond",
+}
 
 
 @st.cache_data
 def _run_regime_analysis(feature_tuple: tuple, n_clusters: int | None) -> dict:
-    """Cached wrapper so PCA+GMM doesn't refit on every slider move."""
     df = pd.read_csv(
         Path(__file__).resolve().parent.parent / "data" / "processed" / "battery_features.csv"
     )
@@ -519,7 +537,6 @@ def tab_regime(df: pd.DataFrame) -> None:
         "Regimes are ordered left → right from healthiest to most degraded."
     )
 
-    # ── Controls ──────────────────────────────────────────────────────────────
     col_ctrl, col_main = st.columns([1, 2.2])
 
     with col_ctrl:
@@ -536,7 +553,7 @@ def tab_regime(df: pd.DataFrame) -> None:
             return
 
         st.markdown("##### Regimes")
-        auto_k = st.checkbox("Auto-select K via BIC", value=True)
+        auto_k     = st.checkbox("Auto-select K via BIC", value=True)
         n_clusters = None
         if not auto_k:
             n_clusters = st.slider("Number of regimes (K)", 2, 6, 4)
@@ -548,45 +565,48 @@ def tab_regime(df: pd.DataFrame) -> None:
         )
         show_ellipses = st.checkbox("Show cluster ellipses", value=True)
 
-    # ── Fit model (cached) ────────────────────────────────────────────────────
     with st.spinner("Fitting PCA + GMM…"):
         result = _run_regime_analysis(tuple(sorted(selected)), n_clusters)
 
     dfo = result.df_out
     K   = result.n_clusters
 
-    # ── Main PCA scatter ──────────────────────────────────────────────────────
+    # ── Main PCA scatter — Plotly ─────────────────────────────────────────────
     with col_main:
         st.markdown(f"#### PCA space — {K} operating regimes")
 
-        fig, ax = plt.subplots(figsize=(7.5, 5))
+        fig = go.Figure()
 
-        # Cluster ellipses (1-sigma confidence)
+        # Cluster ellipses
         if show_ellipses:
-            import matplotlib.patches as mpatches
-            from matplotlib.patches import Ellipse
-            import matplotlib.transforms as transforms
-
             for r in range(K):
                 sub = dfo[dfo["regime"] == r]
                 if len(sub) < 3:
                     continue
-                cov  = np.cov(sub["pc1"], sub["pc2"])
+                cov        = np.cov(sub["pc1"], sub["pc2"])
                 vals, vecs = np.linalg.eigh(cov)
                 order_v    = vals.argsort()[::-1]
                 vals, vecs = vals[order_v], vecs[:, order_v]
-                angle = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-                w, h  = 2 * np.sqrt(vals)
-                ellipse = Ellipse(
-                    xy=(sub["pc1"].mean(), sub["pc2"].mean()),
-                    width=w, height=h, angle=angle,
-                    edgecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
-                    facecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
-                    alpha=0.08, linewidth=1.5, linestyle="--",
-                )
-                ax.add_patch(ellipse)
+                angle_rad  = np.arctan2(*vecs[:, 0][::-1])
+                w, h       = np.sqrt(vals)
+                theta      = np.linspace(0, 2 * np.pi, 80)
+                ex = w * np.cos(theta)
+                ey = h * np.sin(theta)
+                cos_a, sin_a = np.cos(angle_rad), np.sin(angle_rad)
+                cx = sub["pc1"].mean() + cos_a * ex - sin_a * ey
+                cy = sub["pc2"].mean() + sin_a * ex + cos_a * ey
+                hex_c   = REGIME_COLOURS[r % len(REGIME_COLOURS)].lstrip("#")
+                rr, gg, bb = int(hex_c[0:2], 16), int(hex_c[2:4], 16), int(hex_c[4:6], 16)
+                fig.add_trace(go.Scatter(
+                    x=cx, y=cy, mode="lines", showlegend=False,
+                    line=dict(color=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                              width=1.5, dash="dash"),
+                    fill="toself",
+                    fillcolor=f"rgba({rr},{gg},{bb},0.08)",
+                    hoverinfo="skip",
+                ))
 
-        # Scatter — one series per battery per regime for legend clarity
+        # Scatter points
         for bat, marker in BATTERY_MARKERS.items():
             sub_bat = dfo[dfo["battery_id"] == bat]
             if sub_bat.empty:
@@ -595,105 +615,112 @@ def tab_regime(df: pd.DataFrame) -> None:
                 sub = sub_bat[sub_bat["regime"] == r]
                 if sub.empty:
                     continue
-                ax.scatter(
-                    sub["pc1"], sub["pc2"],
-                    c=REGIME_COLOURS[r % len(REGIME_COLOURS)],
-                    marker=marker, s=28, alpha=0.75, linewidths=0,
-                )
+                fig.add_trace(go.Scatter(
+                    x=sub["pc1"], y=sub["pc2"],
+                    mode="markers",
+                    name=f"{bat} – R{r}",
+                    legendgroup=f"regime_{r}",
+                    showlegend=(bat == list(BATTERY_MARKERS.keys())[0]),
+                    marker=dict(
+                        color=REGIME_COLOURS[r % len(REGIME_COLOURS)],
+                        symbol=marker, size=7, opacity=0.75,
+                        line=dict(width=0),
+                    ),
+                    hovertemplate=(f"{bat} · R{r}<br>"
+                                   f"PC1: %{{x:.2f}}<br>PC2: %{{y:.2f}}<extra></extra>"),
+                ))
 
-        # Trajectory overlay for selected battery
+        # Trajectory overlay
         if highlight_bat != "None":
             traj = dfo[dfo["battery_id"] == highlight_bat].sort_values("discharge_num")
-            ax.plot(traj["pc1"], traj["pc2"],
-                    color="black", linewidth=1.0, alpha=0.4, zorder=3)
-            ax.scatter(traj["pc1"].iloc[0],  traj["pc2"].iloc[0],
-                       color="black", s=60, marker="*", zorder=5, label="First cycle")
-            ax.scatter(traj["pc1"].iloc[-1], traj["pc2"].iloc[-1],
-                       color="black", s=60, marker="X", zorder=5, label="Last cycle")
+            fig.add_trace(go.Scatter(
+                x=traj["pc1"], y=traj["pc2"],
+                mode="lines", name=f"{highlight_bat} trajectory",
+                line=dict(color="rgba(255,255,255,0.4)", width=1),
+            ))
+            fig.add_trace(go.Scatter(
+                x=[traj["pc1"].iloc[0]], y=[traj["pc2"].iloc[0]],
+                mode="markers", name="First cycle",
+                marker=dict(color="white", size=10, symbol="star"),
+            ))
+            fig.add_trace(go.Scatter(
+                x=[traj["pc1"].iloc[-1]], y=[traj["pc2"].iloc[-1]],
+                mode="markers", name="Last cycle",
+                marker=dict(color="white", size=10, symbol="x"),
+            ))
 
         # Regime centroid labels
+        annotations = []
         for r in range(K):
             sub = dfo[dfo["regime"] == r]
-            ax.text(sub["pc1"].mean(), sub["pc2"].mean(),
-                    f"R{r}", fontsize=9, fontweight="bold",
-                    color=REGIME_COLOURS[r % len(REGIME_COLOURS)],
-                    ha="center", va="center",
-                    bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"))
-
-        # Regime legend patches
-        patches = [
-            plt.Line2D([0], [0], marker="o", color="w",
-                       markerfacecolor=REGIME_COLOURS[r % len(REGIME_COLOURS)],
-                       markersize=8, label=f"Regime {r}")
-            for r in range(K)
-        ]
-        bat_patches = [
-            plt.Line2D([0], [0], marker=m, color="grey",
-                       markersize=7, linestyle="None", label=bat)
-            for bat, m in BATTERY_MARKERS.items() if bat in dfo["battery_id"].values
-        ]
-        leg1 = ax.legend(handles=patches, loc="upper left", fontsize=8,
-                         title="Regimes", title_fontsize=8)
-        ax.add_artist(leg1)
-        if highlight_bat != "None":
-            ax.legend(loc="lower right", fontsize=8)
+            annotations.append(dict(
+                x=sub["pc1"].mean(), y=sub["pc2"].mean(),
+                text=f"<b>R{r}</b>",
+                showarrow=False,
+                font=dict(color=REGIME_COLOURS[r % len(REGIME_COLOURS)], size=13),
+                bgcolor="rgba(15,17,23,0.7)",
+                borderpad=3,
+            ))
 
         ev = result.explained_variance
-        ax.set_xlabel(
-            f"PC1 — degradation axis  ({ev[0]:.0%} variance)\n"
-            "← healthier · more degraded →", fontsize=9)
-        ax.set_ylabel(
-            f"PC2 — thermal/voltage axis  ({ev[1]:.0%} variance)", fontsize=9)
-        ax.grid(True, alpha=0.2)
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        _apply_layout(fig,
+            xaxis_title=(f"PC1 — degradation axis  ({ev[0]:.0%} variance)"
+                         "  ← healthier · more degraded →"),
+            yaxis_title=f"PC2 — thermal/voltage axis  ({ev[1]:.0%} variance)",
+            annotations=annotations,
+            height=480,
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     # ── Bottom row: BIC + explained variance + regime table ───────────────────
     st.markdown("---")
     c1, c2, c3 = st.columns([1, 1, 1.4])
 
-    # BIC curve
     with c1:
         st.markdown("#### BIC — model selection")
         st.caption("Lower = better fit for the complexity used.")
-        fig_bic, ax_bic = plt.subplots(figsize=(3.5, 2.4))
         ks   = list(result.bic_scores.keys())
         bics = list(result.bic_scores.values())
         best = min(result.bic_scores, key=result.bic_scores.get)
-        ax_bic.plot(ks, bics, "o-", color=BLUE, linewidth=1.8, markersize=5)
-        ax_bic.scatter([best], [result.bic_scores[best]],
-                       color=GREEN, s=80, zorder=5, label=f"Best K={best}")
-        ax_bic.axvline(result.n_clusters, color="darkorange",
-                       linewidth=1.2, linestyle="--",
-                       label=f"Used K={result.n_clusters}")
-        ax_bic.set_xlabel("K (regimes)", fontsize=8)
-        ax_bic.set_ylabel("BIC", fontsize=8)
-        ax_bic.legend(fontsize=7)
-        ax_bic.grid(True, alpha=0.25)
-        plt.tight_layout()
-        st.pyplot(fig_bic)
-        plt.close()
 
-    # Explained variance bar
+        fig_bic = go.Figure()
+        fig_bic.add_trace(go.Scatter(
+            x=ks, y=bics, mode="lines+markers",
+            line=dict(color=BLUE, width=2),
+            marker=dict(size=7, color=BLUE),
+            name="BIC",
+        ))
+        fig_bic.add_trace(go.Scatter(
+            x=[best], y=[result.bic_scores[best]],
+            mode="markers", name=f"Best K={best}",
+            marker=dict(color=GREEN, size=12, symbol="circle"),
+        ))
+        _apply_layout(fig_bic,
+            xaxis_title="K (regimes)", yaxis_title="BIC",
+            height=240, margin=dict(l=50, r=20, t=20, b=50),
+        )
+        st.plotly_chart(fig_bic, use_container_width=True)
+
     with c2:
         st.markdown("#### PCA — explained variance")
         st.caption("How much information each component captures.")
-        fig_ev, ax_ev = plt.subplots(figsize=(3.5, 2.4))
-        pcs = [f"PC{i+1}" for i in range(len(result.explained_variance))]
-        ax_ev.bar(pcs, result.explained_variance * 100,
-                  color=[BLUE, GREEN], alpha=0.85)
-        for i, v in enumerate(result.explained_variance):
-            ax_ev.text(i, v * 100 + 0.5, f"{v:.0%}", ha="center",
-                       fontsize=8, fontweight="bold")
-        ax_ev.set_ylabel("Variance explained (%)", fontsize=8)
-        ax_ev.set_ylim(0, max(result.explained_variance) * 130)
-        ax_ev.grid(True, axis="y", alpha=0.25)
-        plt.tight_layout()
-        st.pyplot(fig_ev)
-        plt.close()
+        pcs    = [f"PC{i+1}" for i in range(len(result.explained_variance))]
+        ev_pct = result.explained_variance * 100
 
-    # Regime summary table
+        fig_ev = go.Figure(go.Bar(
+            x=pcs, y=ev_pct,
+            marker_color=[BLUE, GREEN],
+            text=[f"{v:.0f}%" for v in ev_pct],
+            textposition="outside",
+        ))
+        _apply_layout(fig_ev,
+            yaxis_title="Variance explained (%)",
+            yaxis_range=[0, max(ev_pct) * 1.3],
+            height=240, margin=dict(l=50, r=20, t=20, b=50),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_ev, use_container_width=True)
+
     with c3:
         st.markdown("#### Regime summary")
         summary = regime_summary(result)
@@ -707,7 +734,6 @@ def tab_regime(df: pd.DataFrame) -> None:
             hide_index=True, use_container_width=True,
         )
 
-    # ── PCA loadings heatmap ──────────────────────────────────────────────────
     with st.expander("PCA loadings — what each axis means physically"):
         st.caption(
             "Each value shows how strongly a feature contributes to that PC. "
@@ -746,7 +772,6 @@ def main() -> None:
         "Research preview — not for operational use"
     )
 
-    # Load assets
     try:
         rf_soh, rf_rul, meta = load_models()
         df = load_data()
