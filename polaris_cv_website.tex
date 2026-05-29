@@ -1,0 +1,122 @@
+%-----------------------------------------------------------------------------------------------------------------------------------------------%
+%	The MIT License (MIT)
+%	Copyright (c) 2021 Jitin Nair
+%-----------------------------------------------------------------------------------------------------------------------------------------------%
+\documentclass[a4paper,10pt]{article}
+\usepackage{url}
+\usepackage{parskip}
+\usepackage{booktabs}
+\RequirePackage{color}
+\RequirePackage{graphicx}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[top=1.2cm, bottom=1.2cm, left=1.4cm, right=1.4cm]{geometry}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\usepackage{supertabular}
+\usepackage{tabularx}
+\newlength{\fullcollw}
+\setlength{\fullcollw}{0.47\textwidth}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{multirow}
+\titleformat{\section}{\Large\scshape\raggedright}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{10pt}{10pt}
+\usepackage[unicode, draft=false]{hyperref}
+\definecolor{linkcolour}{rgb}{0,0.2,0.6}
+\hypersetup{colorlinks,breaklinks,urlcolor=linkcolour,linkcolor=linkcolour}
+\usepackage{fontawesome5}
+
+%----------------------------------------------------------------------------------------
+\begin{document}
+\pagestyle{empty}
+
+%----------------------------------------------------------------------------------------
+%	TITLE
+%----------------------------------------------------------------------------------------
+\begin{tabularx}{\linewidth}{@{} C @{}}
+\huge{Arthur Barbarin} \\[7.5pt]
+\href{https://www.linkedin.com/in/arthur-barbarin}{\raisebox{-0.05\height}\faLinkedin\ arthur-barbarin} \ $|$ \
+\href{mailto:arthurbarbarin@yahoo.fr}{\raisebox{-0.05\height}\faEnvelope\ arthurbarbarin@yahoo.fr} \ $|$ \
+{\raisebox{-0.05\height}\faPhone\ +1 (425)-475-0328} \ $|$ \
+{\raisebox{-0.05\height}\faMapMarker\ Seattle, WA} \\
+\end{tabularx}
+
+%----------------------------------------------------------------------------------------
+%	SUMMARY
+%----------------------------------------------------------------------------------------
+\section*{Summary}
+Aerospace engineer and independent consultant specializing in aviation decarbonization, global energy-climate scenario analysis, and advanced air mobility. Eighteen months of NASA-sponsored research at Georgia Tech's Aerospace Systems Design Laboratory, including work with Integrated Assessment Models (WITNESS4CLIMATE, GCAM) to analyze aviation-energy-climate interactions to 2050. Building decision-support tools for aerospace clients, investors, and strategy teams through Polaris.
+
+%----------------------------------------------------------------------------------------
+%	EXPERIENCE
+%----------------------------------------------------------------------------------------
+\section*{Professional Experience}
+
+\textbf{Polaris — Decision Modeling Studio} \hfill \textit{February 2026–Present} \\
+\textit{Independent Consultant} \hfill \textit{Seattle, WA} \\[3.75pt]
+\begin{minipage}[t]{\linewidth}
+\begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=3pt,label=--]
+    \item Built an aviation decarbonization scenario tool benchmarked against IATA, ICAO, and ReFuelEU roadmaps — translating SAF, technology efficiency, and policy assumptions into CO\textsubscript{2} intensity, compliance gap, and cost-per-seat outputs.
+    \item Developed a Go/No-Go deployment decision framework for commercial drone operations, evaluating FAA regulatory constraints, platform physics, and benchmark operating economics across inspection, delivery, and agriculture use cases.
+    \item Built an ML-powered battery prognostics platform (NASA PCoE dataset) combining Random Forest models with SHAP explainability and physics-informed route energy simulation for UAV fleet health monitoring.
+\end{itemize}
+\end{minipage}
+
+\vspace{6pt}
+
+\textbf{Graduate Research Associate — Aerospace Systems Design Laboratory (ASDL)}, Atlanta, GA \\
+\textit{Georgia Institute of Technology — Sponsored by NASA} \hfill \textit{August 2024–December 2025} \\[3.75pt]
+\begin{minipage}[t]{\linewidth}
+\begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=3pt,label=--]
+    \item Developed scenario models analyzing interactions between aviation demand, energy systems, and decarbonization pathways to 2050 for NASA's Aeronautics Research Mission Directorate — drawing on Integrated Assessment Models (WITNESS4CLIMATE, GCAM) across a \$150B aviation sector.
+    \item Conducted technology assessments and TRL evaluations across 150+ emerging technologies, contributing to NASA's long-term aviation technology investment roadmap.
+    \item Built surrogate models (PCA + RNN) reducing simulation runtime from 4–20 hours to seconds at 94–97\% accuracy, enabling rapid trade studies and scenario iteration.
+    \item Translated complex model outputs into structured dashboards and scenario reports for senior NASA and Capgemini stakeholders.
+\end{itemize}
+\end{minipage}
+
+\vspace{6pt}
+
+\textbf{Business Analyst Intern — Kxiop Consulting}, Paris, France \hfill \textit{Summer 2024} \\[3.75pt]
+\begin{minipage}[t]{\linewidth}
+\begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=3pt,label=--]
+    \item Conducted market segmentation, revenue forecasting, and financial analysis for a \$200M industrial client.
+    \item Built analytical tools in Excel and Python; developed Power BI dashboards to support executive strategy and budgeting decisions.
+    \item Delivered data-driven recommendations and coordinated directly with client stakeholders throughout the engagement.
+\end{itemize}
+\end{minipage}
+
+%----------------------------------------------------------------------------------------
+%	EDUCATION
+%----------------------------------------------------------------------------------------
+\section*{Education}
+
+\textbf{Georgia Institute of Technology}, Atlanta, GA \hfill \textit{December 2025}
+\begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=2pt,label=--]
+    \item Master of Science in Aerospace Engineering (GPA: 4.0/4.0)
+    \item Graduate Certificate in International Security and Aerospace Systems
+    \item Aerospace Systems Design Laboratory (ASDL) — NASA-sponsored research
+\end{itemize}
+
+\vspace{2pt}
+
+\textbf{Centrale Lyon}, Lyon, France \hfill \textit{July 2024}
+\begin{itemize}[nosep,after=\strut, leftmargin=1em, itemsep=2pt,label=--]
+    \item Top 5 French Engineering School — 5-year integrated Master's in Mechanical \& Industrial Engineering
+\end{itemize}
+
+%----------------------------------------------------------------------------------------
+%	SKILLS
+%----------------------------------------------------------------------------------------
+\section*{Skills}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\textbf{Modeling \& Analysis}  & IAMs (WITNESS4CLIMATE, GCAM), scenario modeling, surrogate modeling (PCA, RNN), trade studies, OpenMDAO \\
+\textbf{Data \& ML}            & Python, SQL, scikit-learn, SHAP, Power BI, Streamlit \\
+\textbf{Aerospace Tools}       & OpenVSP, FLOPS, Aviary, CATIA, MBSE (Cameo), Ansys Fluent \\
+\textbf{Frameworks}            & IATA/ICAO/ReFuelEU roadmaps, FAA Part 107, NASA TRL scale \\
+\textbf{Languages}             & English (fluent), French (native), Spanish (working proficiency) \\
+\textbf{Certifications}        & FAA Part 107 Remote Pilot Certificate (2026) \\
+\end{tabularx}
+
+\end{document}
