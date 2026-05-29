@@ -221,15 +221,25 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
         X_train_soh = train_df[SOH_COLS]
         shap_vals   = compute_shap(rf_soh, X_train_soh, X_soh)
 
-        fig2, ax2 = plt.subplots(figsize=(6, 3.8))
-        fig2.patch.set_facecolor("#1A1D2E")
-        ax2.set_facecolor("#1A1D2E")
-        shap.waterfall_plot(shap_vals[0], show=False)
-        plt.title(f"SHAP — cycle {cycle_idx}", fontsize=10,
-                  fontweight="bold", pad=8, color="#FAFAFA")
-        plt.tight_layout()
-        st.pyplot(fig2)
-        plt.close()
+        # Force white text globally before SHAP draws
+        with plt.rc_context({
+            "text.color": "#FAFAFA",
+            "axes.labelcolor": "#FAFAFA",
+            "xtick.color": "#FAFAFA",
+            "ytick.color": "#FAFAFA",
+            "axes.facecolor": "#1A1D2E",
+            "figure.facecolor": "#1A1D2E",
+        }):
+            fig2, ax2 = plt.subplots(figsize=(6, 4.2))
+            shap.waterfall_plot(shap_vals[0], show=False, max_display=8)
+            plt.title(f"SHAP — cycle {cycle_idx}", fontsize=10,
+                      fontweight="bold", pad=8, color="#FAFAFA")
+            # Patch any remaining dark text elements
+            for obj in fig2.findobj(plt.Text):
+                obj.set_color("#FAFAFA")
+            plt.tight_layout()
+            st.pyplot(fig2)
+            plt.close()
 
     explanation = top_drivers(shap_vals, idx=0, n=3)
     st.info(f"**Model explanation:** {explanation}", icon="🔍")
@@ -279,7 +289,7 @@ def _energy_bar(result: FlightResult) -> None:
         result.e_cruise_wh, result.e_descent_wh,
         result.e_with_margin_wh - result.e_total_wh,
     ]
-    colours = ["#5B9BD5", "#70AD47", "#ED7D31", "#FFC000", "rgba(192,0,0,0.45)"]
+    colours = ["#5B9BD5", "#70AD47", "#ED7D31", "#FFC000", "#C0392B"]
 
     fig = go.Figure()
     for phase, val, col in zip(phases, values, colours):
