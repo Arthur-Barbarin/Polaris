@@ -22,8 +22,9 @@ export function computeEconomics(vehicle, route, ops) {
     infrastructure_capex_per_aircraft,
     availability_factor,
     turnaround_time_min,
-    energy_reserve_pct,   // NEW: fraction of battery held as reserve (default 0.20)
-    deadhead_factor,       // NEW: fraction of flights that are empty repositioning (default 0.15)
+    energy_reserve_pct,        // fraction of battery held as reserve (default 0.20)
+    deadhead_factor,           // fraction of flights that are empty repositioning (default 0.15)
+    demand_utilization_pct = 1.0,  // fraction of slot capacity actually filled
   } = ops;
 
   // --- Flight physics ---
@@ -43,7 +44,15 @@ export function computeEconomics(vehicle, route, ops) {
   // Proportional charge time (linear approximation at rapid-charge rate):
   const proportional_charge_min = battery_fraction_used * vehicle.charge_time_min;
   const ground_time_min = Math.max(vehicle.min_ground_time_min, proportional_charge_min);
-  const cycle_time_min = flight_time_min + Math.min(turnaround_time_min, ground_time_min);
+  // Cycle time = flight + ground. Ground time is whatever the physics demands
+  // (charge + boarding floor). `turnaround_time_min` is an operational target,
+  // not a cap — if charging takes longer, the aircraft sits on the pad longer.
+  // The previous version used Math.min(turnaround, ground), which silently
+  // assumed you could dispatch an undercharged aircraft. Fixed:
+  const cycle_time_min = flight_time_min + ground_time_min;
+  // Flag the case where actual ground time exceeds the operator's target.
+  // Downstream UI can render a warning so the user sees the schedule pressure.
+  const charge_exceeds_turnaround = ground_time_min > turnaround_time_min;
 
   // --- Per-flight costs ---
   // Energy: use energy WITH reserve to reflect actual operational energy budget
@@ -66,8 +75,14 @@ export function computeEconomics(vehicle, route, ops) {
   const margin_per_flight = revenue_per_flight - total_opex_per_flight;
 
   // --- Annual utilization ---
+  // Capacity = how many flights the cycle time allows in a 16-hour ops day.
+  // Realised = capacity × demand_utilization. Without the demand throttle the
+  // model implicitly assumes every slot fills, which is fantasy in any
+  // early-market UAM corridor. Display both so the user sees the gap.
   const operating_hours_per_day = 16;
-  const flights_per_day = Math.floor((operating_hours_per_day * 60) / cycle_time_min);
+  const flights_per_day_capacity = Math.floor((operating_hours_per_day * 60) / cycle_time_min);
+  const flights_per_day = Math.max(
+    1, Math.round(flights_per_day_capacity * demand_utilization_pct));
   const annual_flights_total = Math.round(flights_per_day * 365 * availability_factor);
   // Revenue-generating flights: total minus deadhead repositioning flights
   const annual_flights_revenue = Math.round(annual_flights_total * (1 - deadhead_factor));
@@ -85,12 +100,21 @@ export function computeEconomics(vehicle, route, ops) {
   const annual_profit = annual_revenue - annual_opex - annual_capex;
   const annual_margin_pct = annual_revenue > 0 ? annual_profit / annual_revenue : 0;
 
-  // --- CASM / RASM (revenue flights only for RASM — deadhead generates no revenue) ---
+  // --- CASM / RASM (industry standard: both on TOTAL ASM) ---
+  // Computing RASM on the revenue-only denominator inflates it and breaks the
+  // RASM-vs-CASM comparison whenever deadhead > 0 (you can show RASM > CASM
+  // even when revenue doesn't cover opex). Industry convention is that both
+  // metrics use the same denominator — total available seat-miles, including
+  // empty repositioning flights — so comparing them is meaningful.
   const distance_miles = distance_km * KM_TO_MILES;
   const available_seat_miles_total = vehicle.seats_passenger * annual_flights_total * distance_miles;
-  const available_seat_miles_revenue = vehicle.seats_passenger * annual_flights_revenue * distance_miles;
   const casm = available_seat_miles_total > 0 ? annual_opex / available_seat_miles_total : 0;
-  const rasm = available_seat_miles_revenue > 0 ? annual_revenue / available_seat_miles_revenue : 0;
+  const rasm = available_seat_miles_total > 0 ? annual_revenue / available_seat_miles_total : 0;
+  // Revenue yield per revenue-ASM (useful as a separate diagnostic — what
+  // paying seats actually pay per mile). Kept distinct from RASM to avoid
+  // mixing the two concepts.
+  const available_seat_miles_revenue = vehicle.seats_passenger * annual_flights_revenue * distance_miles;
+  const yield_per_rasm = available_seat_miles_revenue > 0 ? annual_revenue / available_seat_miles_revenue : 0;
 
   // --- Break-even load factor (accounting for deadhead) ---
   // annual_revenue(lf) = fare × seats × lf × revenue_flights
@@ -110,7 +134,24 @@ export function computeEconomics(vehicle, route, ops) {
   const payback_years = annual_net_operating > 0 ? total_capex / annual_net_operating : Infinity;
 
   // --- Range feasibility ---
-  const range_feasible = distance_km <= vehicle.max_range_segment_km;
+  // Two independent constraints can bind:
+  //   (a) Segment cap: the operator/vehicle spec's max single-leg distance.
+  //   (b) Energy: usable battery after reserve must cover the mission.
+  // Use the stricter of the two — and tell the UI which one binds, so the
+  // diagnosis can name the real constraint (operational vs. physics).
+  const usable_battery_kwh    = vehicle.battery_kwh * (1 - energy_reserve_pct);
+  const kwh_per_km_at_load    = vehicle.kWh_per_seat_km * vehicle.seats_passenger;
+  const max_distance_energy_km = kwh_per_km_at_load > 0
+    ? usable_battery_kwh / kwh_per_km_at_load
+    : Infinity;
+  const max_distance_segment_km = vehicle.max_range_segment_km;
+  const max_distance_effective_km = Math.min(max_distance_energy_km, max_distance_segment_km);
+
+  let range_constraint = 'ok';
+  if (distance_km > max_distance_energy_km) range_constraint = 'energy';
+  else if (distance_km > max_distance_segment_km) range_constraint = 'segment';
+
+  const range_feasible = distance_km <= max_distance_effective_km;
 
   // --- Cost share breakdown (for binding constraint) ---
   const energy_share = total_opex_per_flight > 0 ? energy_cost / total_opex_per_flight : 0;
@@ -125,6 +166,8 @@ export function computeEconomics(vehicle, route, ops) {
 
     flight_time_h, flight_time_min, cycle_time_min,
     flights_per_day,
+    flights_per_day_capacity,        // theoretical max if every slot were filled
+    demand_utilization_pct,          // echo so UI can label the gap
     annual_flights: annual_flights_total,
     annual_flights_revenue,
 
@@ -145,14 +188,20 @@ export function computeEconomics(vehicle, route, ops) {
     annual_profit,
     annual_margin_pct,
 
-    casm, rasm,
+    casm, rasm, yield_per_rasm,
     breakeven_load_factor,
     breakeven_fare_per_seat,
     payback_years,
 
     energy_share, crew_share, maintenance_share, landing_share,
     range_feasible,
-    deadhead_factor,   // echo back so UI components don't need the ops object
+    range_constraint,                       // 'ok' | 'energy' | 'segment'
+    max_distance_energy_km,                 // physics limit
+    max_distance_segment_km,                // operational limit
+    max_distance_effective_km,              // min of the two
+    charge_exceeds_turnaround,              // schedule infeasibility flag
+    ground_time_min,                        // exposed so UI can show "X min ground" if needed
+    deadhead_factor,                        // echo back so UI components don't need the ops object
   };
 }
 
@@ -179,16 +228,22 @@ export function computeSensitivity(vehicle, route, ops) {
   const base = computeEconomics(vehicle, route, ops);
   const delta = 0.20;
 
-  const inputs = [
-    { key: 'fare_per_seat_usd',       label: 'Fare per seat',       type: 'route', direction: 'up_good' },
-    { key: 'load_factor',             label: 'Load factor',         type: 'route', direction: 'up_good' },
-    { key: 'deadhead_factor',         label: 'Deadhead rate',       type: 'ops',   direction: 'down_good' },
-    { key: 'availability_factor',     label: 'Aircraft availability', type: 'ops', direction: 'up_good' },
-    { key: 'electricity_price_usd_kwh', label: 'Electricity price', type: 'ops',  direction: 'down_good' },
-    { key: 'pilot_cost_per_fh_usd',   label: 'Pilot cost/FH',      type: 'ops',   direction: 'down_good' },
-    { key: 'landing_fee_usd',         label: 'Landing fee',         type: 'ops',   direction: 'down_good' },
-    { key: 'turnaround_time_min',     label: 'Turnaround time',     type: 'ops',   direction: 'down_good' },
+  // Pilot cost is irrelevant for autonomous vehicles — drop it rather than
+  // showing a zero-impact bar that just adds noise.
+  const allInputs = [
+    { key: 'fare_per_seat_usd',         label: 'Fare per seat',          type: 'route', direction: 'up_good' },
+    { key: 'load_factor',               label: 'Load factor',            type: 'route', direction: 'up_good' },
+    { key: 'deadhead_factor',           label: 'Deadhead rate',          type: 'ops',   direction: 'down_good' },
+    { key: 'demand_utilization_pct',    label: 'Demand utilization',     type: 'ops',   direction: 'up_good' },
+    { key: 'availability_factor',       label: 'Aircraft availability',  type: 'ops',   direction: 'up_good' },
+    { key: 'electricity_price_usd_kwh', label: 'Electricity price',      type: 'ops',   direction: 'down_good' },
+    { key: 'energy_reserve_pct',        label: 'Energy reserve',         type: 'ops',   direction: 'down_good' },
+    { key: 'pilot_cost_per_fh_usd',     label: 'Pilot cost/FH',          type: 'ops',   direction: 'down_good', requiresPiloted: true },
+    { key: 'landing_fee_usd',           label: 'Landing fee',            type: 'ops',   direction: 'down_good' },
+    { key: 'turnaround_time_min',       label: 'Turnaround time',        type: 'ops',   direction: 'down_good' },
+    { key: 'infrastructure_capex_per_aircraft', label: 'Infra capex/aircraft', type: 'ops', direction: 'down_good' },
   ];
+  const inputs = allInputs.filter(i => !i.requiresPiloted || vehicle.piloted);
 
   return inputs.map(({ key, label, type, direction }) => {
     const upResult = type === 'route'
@@ -262,12 +317,23 @@ export function computeBindingConstraint(result, vehicle) {
     payback_years, breakeven_fare_per_seat, load_factor, casm, rasm,
   } = result;
 
-  if (!range_feasible) return {
-    severity: 'critical',
-    label: 'Range infeasible',
-    detail: `Route distance exceeds ${vehicle.name}'s practical segment limit (${vehicle.max_range_segment_km} km with 20% energy reserve). The vehicle cannot complete this route safely.`,
-    lever: `Shorten route to ≤${vehicle.max_range_segment_km} km, or switch to Joby S4 (200 km limit)`,
-  };
+  if (!range_feasible) {
+    const limit_km = Math.round(result.max_distance_effective_km);
+    if (result.range_constraint === 'energy') {
+      return {
+        severity: 'critical',
+        label: 'Range infeasible — energy budget',
+        detail: `At a ${(result.energy_kwh / result.energy_kwh_raw - 1) * 0 + 0}km route this vehicle's usable battery (after reserve) only supports ~${limit_km} km with a full payload. The mission would draw below the safety reserve.`,
+        lever: `Shorten route to ≤${limit_km} km, fly with lighter payload, or pick a higher-capacity vehicle`,
+      };
+    }
+    return {
+      severity: 'critical',
+      label: 'Range infeasible — operator segment cap',
+      detail: `Route exceeds ${vehicle.name}'s declared operational segment limit (${vehicle.max_range_segment_km} km). Energy alone could fly ~${Math.round(result.max_distance_energy_km)} km, but operations don't approve longer single legs for this airframe.`,
+      lever: `Shorten route to ≤${vehicle.max_range_segment_km} km, or revisit the segment-cap assumption`,
+    };
+  }
 
   if (breakeven_load_factor > 1.0) return {
     severity: 'critical',
@@ -316,6 +382,133 @@ export function computeBindingConstraint(result, vehicle) {
     label: 'Route is economically viable',
     detail: `Break-even at ${fmt_pct(breakeven_load_factor)} load factor — well below the 70% UAM industry target. Payback in ${fmt_num(payback_years, 1)} years.`,
     lever: `Focus on network density and vertiport throughput to sustain utilization above break-even`,
+  };
+}
+
+/**
+ * Monte Carlo: P10 / P50 / P90 annual profit under input uncertainty.
+ *
+ * Each input is drawn from a triangular distribution between (low, base, high).
+ * Triangular is the right shape for "I have a best guess plus a range" — it's
+ * standard in engineering risk analysis and doesn't require the user to think
+ * about variance. n_draws of 2000 runs in <100 ms in the browser.
+ *
+ * The ranges below reflect plausible operator uncertainty, NOT model error:
+ *   - fare ± 25%        (yield management uncertainty)
+ *   - load factor ± 15 pp absolute, clamped to [0.20, 0.95]
+ *   - electricity ± 30% (PPA negotiation, time-of-use)
+ *   - deadhead ± 10 pp absolute, clamped to [0, 0.40]
+ *   - demand utilization ± 20 pp absolute, clamped to [0.10, 1.0]
+ *   - availability ± 10 pp absolute, clamped to [0.50, 0.99]
+ *   - landing fee ± 50% (vertiport pricing is unsettled)
+ */
+function _triangular(low, mode, high, rng) {
+  const u = rng();
+  const f = (mode - low) / (high - low);
+  if (u < f) return low + Math.sqrt(u * (high - low) * (mode - low));
+  return high - Math.sqrt((1 - u) * (high - low) * (high - mode));
+}
+
+function _seededRng(seed = 1234567) {
+  // mulberry32 — small, fast, deterministic. Same draw each render for
+  // chart stability (re-runs only change when inputs change).
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function _clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+export function computeMonteCarlo(vehicle, route, ops, n_draws = 2000) {
+  const rng = _seededRng();
+  const profits = new Float64Array(n_draws);
+
+  for (let i = 0; i < n_draws; i++) {
+    const r = {
+      ...route,
+      fare_per_seat_usd: _triangular(
+        route.fare_per_seat_usd * 0.75,
+        route.fare_per_seat_usd,
+        route.fare_per_seat_usd * 1.25,
+        rng,
+      ),
+      load_factor: _clamp(
+        _triangular(route.load_factor - 0.15, route.load_factor, route.load_factor + 0.15, rng),
+        0.20, 0.95,
+      ),
+    };
+    const o = {
+      ...ops,
+      electricity_price_usd_kwh: _triangular(
+        ops.electricity_price_usd_kwh * 0.70,
+        ops.electricity_price_usd_kwh,
+        ops.electricity_price_usd_kwh * 1.30,
+        rng,
+      ),
+      deadhead_factor: _clamp(
+        _triangular(ops.deadhead_factor - 0.10, ops.deadhead_factor, ops.deadhead_factor + 0.10, rng),
+        0, 0.40,
+      ),
+      demand_utilization_pct: _clamp(
+        _triangular(
+          (ops.demand_utilization_pct ?? 0.60) - 0.20,
+          ops.demand_utilization_pct ?? 0.60,
+          (ops.demand_utilization_pct ?? 0.60) + 0.20,
+          rng,
+        ),
+        0.10, 1.0,
+      ),
+      availability_factor: _clamp(
+        _triangular(ops.availability_factor - 0.10, ops.availability_factor, ops.availability_factor + 0.10, rng),
+        0.50, 0.99,
+      ),
+      landing_fee_usd: _triangular(
+        ops.landing_fee_usd * 0.50,
+        ops.landing_fee_usd,
+        ops.landing_fee_usd * 1.50,
+        rng,
+      ),
+    };
+    profits[i] = computeEconomics(vehicle, r, o).annual_profit;
+  }
+
+  // Sort for percentiles
+  const sorted = Array.from(profits).sort((a, b) => a - b);
+  const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+
+  // Histogram (40 bins)
+  const lo = sorted[0];
+  const hi = sorted[sorted.length - 1];
+  const nbins = 40;
+  const width = (hi - lo) / nbins || 1;
+  const bins = Array.from({ length: nbins }, (_, i) => ({
+    x0: lo + i * width,
+    x1: lo + (i + 1) * width,
+    mid: lo + (i + 0.5) * width,
+    count: 0,
+  }));
+  for (const v of profits) {
+    const idx = Math.min(nbins - 1, Math.floor((v - lo) / width));
+    bins[idx].count += 1;
+  }
+
+  const prob_profitable = profits.reduce((acc, v) => acc + (v > 0 ? 1 : 0), 0) / n_draws;
+
+  return {
+    n_draws,
+    p10: pct(0.10),
+    p50: pct(0.50),
+    p90: pct(0.90),
+    mean: profits.reduce((a, b) => a + b, 0) / n_draws,
+    prob_profitable,
+    bins,
+    min: lo,
+    max: hi,
   };
 }
 

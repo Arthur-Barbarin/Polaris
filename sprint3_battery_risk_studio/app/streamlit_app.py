@@ -115,11 +115,68 @@ def soh_badge(soh: float) -> tuple[str, str]:
 # Tab 2 — Battery Risk
 # ══════════════════════════════════════════════════════════════════════════════
 
+@st.cache_data
+def _per_cell_metrics(df: pd.DataFrame, _rf_soh, _rf_rul,
+                      soh_cols: tuple, rul_cols: tuple) -> pd.DataFrame:
+    """
+    For each cell, compute MAE of SOH and RUL predictions against actuals.
+    This makes the train/test split visible: B0005–B0007 will show near-zero
+    MAE (memorisation), B0018 shows realistic out-of-sample error.
+
+    The model is loaded once and reused — we do not retrain inside the app.
+    """
+    rows = []
+    for cell in sorted(df["battery_id"].unique()):
+        cdf = df[df["battery_id"] == cell]
+        soh_pred = _rf_soh.predict(cdf[list(soh_cols)])
+        rul_pred = _rf_rul.predict(cdf[list(rul_cols)])
+        soh_mae  = float(np.mean(np.abs(soh_pred - cdf["soh"].values)))
+        # rul_warning is NaN after the 80% threshold is crossed; skip those.
+        rul_mask = cdf["rul_warning"].notna().values
+        if rul_mask.any():
+            rul_mae = float(np.mean(np.abs(
+                rul_pred[rul_mask] - cdf["rul_warning"].values[rul_mask])))
+        else:
+            rul_mae = float("nan")
+        rows.append({
+            "Cell":              cell,
+            "Role":              "Held-out test" if cell == "B0018" else "Training",
+            "Cycles":            len(cdf),
+            "SOH MAE":           soh_mae,
+            "RUL MAE (cycles)":  rul_mae,
+        })
+    return pd.DataFrame(rows)
+
+
 def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
 
     SOH_COLS = meta["soh_features"]
     RUL_COLS = meta["rul_features"]
 
+    # ── Per-cell accuracy table — honesty about train/test split ────────────
+    st.markdown("##### Model accuracy by cell")
+    st.caption(
+        "MAE per cell. Training cells (B0005–B0007) will show near-zero "
+        "error because the model was fit on these rows. Only B0018 reflects "
+        "realistic out-of-sample accuracy."
+    )
+    metrics_df = _per_cell_metrics(
+        df, rf_soh, rf_rul, tuple(SOH_COLS), tuple(RUL_COLS))
+
+    def _highlight_holdout(row):
+        if row["Role"] == "Held-out test":
+            return ["background-color: rgba(46, 204, 113, 0.12)"] * len(row)
+        return [""] * len(row)
+
+    st.dataframe(
+        metrics_df.style.apply(_highlight_holdout, axis=1).format({
+            "SOH MAE":          "{:.3%}",
+            "RUL MAE (cycles)": "{:.1f}",
+        }),
+        hide_index=True, use_container_width=True,
+    )
+
+    st.markdown("---")
     st.subheader("Battery selector")
     col_sel1, col_sel2 = st.columns([1, 3])
 
@@ -131,6 +188,27 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
         )
 
     bdf = df[df["battery_id"] == battery_id].reset_index(drop=True)
+
+    # ── Train/test provenance banner ────────────────────────────────────────
+    # B0005–B0007 are in the training set. The model has seen these exact
+    # rows during fitting, so the "predicted vs actual" overlay below will
+    # look near-perfect for these cells — that is memorisation, not
+    # generalisation. Only B0018 reflects realistic out-of-sample accuracy.
+    if battery_id == "B0018":
+        st.info(
+            "**B0018 — held-out test cell.** The model never saw these "
+            "rows during training. Prediction error here reflects realistic "
+            "out-of-sample accuracy.",
+            icon="🧪",
+        )
+    else:
+        st.warning(
+            f"**{battery_id} is a TRAINING cell.** The model was fit on "
+            "these exact discharge cycles, so the predicted vs. actual "
+            "overlay is essentially memorisation — not a measure of "
+            "generalisation. Switch to **B0018** to see held-out accuracy.",
+            icon="⚠️",
+        )
 
     with col_sel2:
         cycle_idx = st.slider(
@@ -406,6 +484,23 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
         safety_margin = st.slider("Safety margin [%]", 5, 40, 15, 1,
                                   help="% of battery capacity reserved.")
 
+        with st.expander("Advanced flight profile", expanded=False):
+            climb_rate_ms = st.slider(
+                "Climb rate [m/s]", 0.5, 10.0, 2.0, 0.5,
+                help="Vertical rate during climb to cruise altitude.")
+            descent_rate_ms = st.slider(
+                "Descent rate [m/s]", 0.5, 10.0, 3.0, 0.5,
+                help="Vertical rate during descent to landing.")
+            hover_time_s = st.slider(
+                "Total hover time [s]", 0.0, 300.0, 60.0, 5.0,
+                help="Combined takeoff + landing hover time. Default 60 s "
+                     "covers preflight checks + landing approach.")
+            headwind_ms = st.slider(
+                "Headwind component [m/s]", -10.0, 15.0, 0.0, 0.5,
+                help="Positive = headwind (slows ground progress, raises "
+                     "energy per km). Negative = tailwind. The cruise speed "
+                     "set above is treated as AIRSPEED.")
+
         st.markdown("##### 🔋 Battery pack")
         n_cells = st.number_input(
             "Number of cells in pack", min_value=1, max_value=2000,
@@ -451,7 +546,11 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
             distance_km=distance,
             cruise_alt_m=altitude,
             cruise_speed_ms=speed_ms,
+            climb_rate_ms=climb_rate_ms,
+            descent_rate_ms=descent_rate_ms,
+            hover_time_s=hover_time_s,
             safety_margin=safety_margin / 100.0,
+            headwind_ms=headwind_ms,
         )
         result = simulate_mission(vehicle, mission, battery_soh)
 
@@ -475,7 +574,9 @@ def tab_route(df: pd.DataFrame | None = None, rf_soh=None, meta: dict | None = N
                   delta=f"SOH {battery_soh:.0%}")
         m3.metric("Hover power", f"{result.p_hover_w/1000:.2f} kW")
         m4.metric("Est. max range", f"{result.max_range_km:.1f} km",
-                  help="At best-range speed with current battery SOH.")
+                  help=("At best-range speed, with current SOH AND the configured "
+                        "safety margin held in reserve. Drop margin to 0% to see "
+                        "the absolute drain-to-empty range."))
 
         st.markdown("#### Energy budget by flight phase")
         _energy_bar(result)
@@ -673,10 +774,24 @@ def tab_regime(df: pd.DataFrame) -> None:
             ))
 
         ev = result.explained_variance
+
+        # ── Dynamic PC2 label from loadings ─────────────────────────────────
+        # Hard-coding "thermal/voltage axis" is only true for the default
+        # feature set. Derive the label from PC2's top-magnitude loading so
+        # the axis title always matches what the model actually learned.
+        pc2_loadings = result.loadings["PC2"]
+        top_feat = pc2_loadings.abs().idxmax()
+        top_val  = pc2_loadings.loc[top_feat]
+        top_label = FEATURE_LABELS.get(top_feat, top_feat)
+        pc2_axis_title = (
+            f"PC2 — driven by {top_label} "
+            f"(loading {top_val:+.2f})  ·  {ev[1]:.0%} variance"
+        )
+
         _apply_layout(fig,
             xaxis_title=(f"PC1 — degradation axis  ({ev[0]:.0%} variance)"
                          "  ← healthier · more degraded →"),
-            yaxis_title=f"PC2 — thermal/voltage axis  ({ev[1]:.0%} variance)",
+            yaxis_title=pc2_axis_title,
             annotations=annotations,
             height=480,
         )

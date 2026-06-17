@@ -39,7 +39,8 @@ export default function CasmChart({ result, vehicle }) {
       <div className="chart-title">CASM vs aviation benchmarks</div>
       <div className="chart-sub">
         Cost per available seat-mile — positioned against comparable aviation modes.
-        Green line = RASM (revenue/ASM): below this line means the route covers its operating costs.
+        Green line = RASM (revenue per total ASM). CASM &lt; RASM ⇒ opex is covered.
+        Both metrics use total ASM (including deadhead), per industry convention.
       </div>
 
       <ResponsiveContainer width="100%" height={200}>

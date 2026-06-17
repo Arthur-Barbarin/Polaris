@@ -94,7 +94,7 @@ export default function SensitivityChart({ sensitivity }) {
         </BarChart>
       </ResponsiveContainer>
 
-      <div className="source-line">±20% single-variable perturbation. All other inputs held constant. Pilot cost excluded for autonomous vehicles.</div>
+      <div className="source-line">±20% single-variable perturbation. All other inputs held constant. Pilot cost shown only for piloted vehicles.</div>
     </div>
   );
 }

@@ -58,9 +58,9 @@ export default function MetricsBar({ result }) {
       <Metric
         label="Payback period"
         value={isFinite(payback_years) ? `${fmt_num(payback_years, 1)} yr` : '∞'}
-        sub={`${flights_per_day} flights/day · ${Math.round((result.deadhead_factor ?? 0.15) * 100)}% deadhead`}
+        sub={`${flights_per_day}/day realised · ${result.flights_per_day_capacity ?? flights_per_day}/day capacity`}
         color={paybackColor}
-        context="Recovering aircraft + infra capex from net operating margin"
+        context={`Slot capacity filled at ${Math.round((result.demand_utilization_pct ?? 1) * 100)}% demand. Recovering capex from net operating margin.`}
       />
     </div>
   )

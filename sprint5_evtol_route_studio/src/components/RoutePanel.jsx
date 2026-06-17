@@ -50,7 +50,7 @@ export default function RoutePanel({ route, setRoute, result }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         {[
           ['Flight time', `${Math.round(result.flight_time_min)} min`],
-          ['Rev / flight', `$${result.revenue_per_flight.toFixed(0)}`],
+          ['Rev / rev. flight', `$${result.revenue_per_flight.toFixed(0)}`],
           ['Cost / flight', `$${result.total_opex_per_flight.toFixed(0)}`],
         ].map(([k, v]) => (
           <div key={k} style={{ background: '#0f1420', borderRadius: 6, padding: '8px 10px' }}>
@@ -59,6 +59,18 @@ export default function RoutePanel({ route, setRoute, result }) {
           </div>
         ))}
       </div>
+      <div className="note" style={{ marginTop: 6, fontSize: 10 }}>
+        Revenue per <em>revenue</em> flight (excludes empty deadhead). Cost is
+        per any flight — denominators differ because deadhead generates cost
+        without revenue.
+      </div>
+      {result.charge_exceeds_turnaround && (
+        <div className="alert-banner" style={{ marginTop: 10 }}>
+          ⚠ Charge time ({Math.round(result.ground_time_min)} min) exceeds
+          turnaround target. Cycle time uses actual charge time; schedule
+          density may be infeasible.
+        </div>
+      )}
     </div>
   )
 }

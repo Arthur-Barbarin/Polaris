@@ -92,11 +92,12 @@ class MissionParams:
     """
     distance_km:     float = 5.0
     cruise_alt_m:    float = 100.0
-    cruise_speed_ms: float = 15.0
+    cruise_speed_ms: float = 15.0     # airspeed (what the rotor sees)
     climb_rate_ms:   float = 2.0
     descent_rate_ms: float = 3.0
     hover_time_s:    float = 60.0
     safety_margin:   float = 0.15
+    headwind_ms:     float = 0.0      # positive = headwind, negative = tailwind
 
 
 @dataclass
@@ -277,20 +278,39 @@ def simulate_mission(
     total_mass = vehicle.vehicle_mass_kg + vehicle.payload_kg
 
     # ── Hover ─────────────────────────────────────────────────────────────────
+    # Takeoff + landing hover happen at ground level — use altitude 0.
     P_hover, _ = hover_power_w(
         total_mass, vehicle.rotor_disk_area_m2, altitude_m=0.0)
     t_hover    = mission.hover_time_s
     e_hover    = P_hover * t_hover / 3600.0   # Wh
 
+    # ── Climb & descent share a "mean altitude" reference ─────────────────────
+    # Climb traverses 0 → cruise_alt; descent traverses cruise_alt → 0. The
+    # appropriate hover-power reference for both is the mean altitude. Using
+    # different altitudes for climb (0) and descent (cruise_alt) was an
+    # arbitrary asymmetry — fixed here so both phases use the same density.
+    mean_alt_m = mission.cruise_alt_m / 2.0
+    P_hover_mean, _ = hover_power_w(
+        total_mass, vehicle.rotor_disk_area_m2, altitude_m=mean_alt_m)
+
     # ── Climb ─────────────────────────────────────────────────────────────────
     t_climb  = mission.cruise_alt_m / mission.climb_rate_ms
-    P_climb  = P_hover + total_mass * G * mission.climb_rate_ms
+    P_climb  = P_hover_mean + total_mass * G * mission.climb_rate_ms
     e_climb  = P_climb * t_climb / 3600.0
 
     # ── Cruise ────────────────────────────────────────────────────────────────
-    t_cruise = (mission.distance_km * 1000.0) / mission.cruise_speed_ms
+    # Power depends on AIRSPEED (relative wind over the rotor); cruise time
+    # depends on GROUND SPEED (progress over the ground). A headwind increases
+    # power per metre flown; a tailwind reduces it. If headwind ≥ airspeed the
+    # vehicle cannot make ground — flag it via near-infinite cruise time so
+    # the GO/NO-GO logic naturally returns NO-GO.
+    airspeed_ms    = mission.cruise_speed_ms
+    ground_speed_ms = airspeed_ms - mission.headwind_ms
+    if ground_speed_ms <= 0.1:
+        ground_speed_ms = 0.1   # cap so t_cruise is huge but finite
+    t_cruise = (mission.distance_km * 1000.0) / ground_speed_ms
     P_cruise = cruise_power_w(
-        mission.cruise_speed_ms, total_mass,
+        airspeed_ms, total_mass,
         vehicle.rotor_disk_area_m2, mission.cruise_alt_m,
         vehicle.fuselage_drag_area_m2,
     )
@@ -298,9 +318,7 @@ def simulate_mission(
 
     # ── Descent ───────────────────────────────────────────────────────────────
     t_descent = mission.cruise_alt_m / mission.descent_rate_ms
-    P_hover_cruise, _ = hover_power_w(
-        total_mass, vehicle.rotor_disk_area_m2, mission.cruise_alt_m)
-    P_descent  = 0.65 * P_hover_cruise
+    P_descent  = 0.65 * P_hover_mean
     e_descent  = P_descent * t_descent / 3600.0
 
     # ── Totals ────────────────────────────────────────────────────────────────
@@ -313,13 +331,17 @@ def simulate_mission(
     go          = e_available >= e_needed
 
     # ── Best range / max range ────────────────────────────────────────────────
+    # Max range = how far you could fly while still respecting the safety
+    # margin. Without this, the displayed range pretends the operator drains
+    # the pack to 0% — inconsistent with the GO/NO-GO criterion above.
     v_best = best_range_speed(vehicle, mission.cruise_alt_m)
     P_best = cruise_power_w(
         v_best, total_mass, vehicle.rotor_disk_area_m2,
         mission.cruise_alt_m, vehicle.fuselage_drag_area_m2,
     )
-    # Available energy after hover + climb + descent overhead
-    e_for_cruise = e_available - e_hover - e_climb - e_descent
+    # Usable energy = available / (1 + margin), matching the GO/NO-GO rule.
+    e_usable     = e_available / (1.0 + mission.safety_margin)
+    e_for_cruise = e_usable - e_hover - e_climb - e_descent
     if P_best > 0 and e_for_cruise > 0:
         t_max_cruise = e_for_cruise * 3600.0 / P_best   # seconds
         max_range_km = v_best * t_max_cruise / 1000.0

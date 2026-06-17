@@ -129,6 +129,26 @@ def fit_regimes(
     pca = PCA(n_components=n_pca_components, random_state=random_state)
     X_pca = pca.fit_transform(X_scaled)
 
+    # PCA sign is arbitrary. To make PC1 = "degradation axis" (higher = more
+    # degraded), flip its sign if discharge_num loads negatively on PC1.
+    # We pick discharge_num because it monotonically tracks battery age within
+    # each cell — the most reliable degradation proxy in the feature set.
+    # Fallback: capacity_fade_rate, then min_discharge_voltage (negative — lower
+    # voltage = more degraded, so we negate its loading for the check).
+    pc1_loadings = dict(zip(feature_cols, pca.components_[0]))
+    if "discharge_num" in pc1_loadings:
+        sign_indicator = pc1_loadings["discharge_num"]
+    elif "capacity_fade_rate" in pc1_loadings:
+        sign_indicator = pc1_loadings["capacity_fade_rate"]
+    elif "min_discharge_voltage" in pc1_loadings:
+        sign_indicator = -pc1_loadings["min_discharge_voltage"]
+    else:
+        sign_indicator = 1.0  # leave as-is
+
+    if sign_indicator < 0:
+        pca.components_[0] = -pca.components_[0]
+        X_pca[:, 0] = -X_pca[:, 0]
+
     loadings = pd.DataFrame(
         pca.components_.T,
         index=feature_cols,

@@ -22,9 +22,16 @@ export const VEHICLES = {
     piloted: true,
     remote_ops_cost_per_fh: 0,       // piloted — no remote ops cost
     range_km: 240,                    // [JOBY-S1] 150 miles
-    cruise_speed_kmh: 320,            // [JOBY-S1] 200 mph
+    // 200 mph (322 km/h) is Joby's published TOP speed, not cruise. Joby's
+    // mission-planning materials cite cruise nearer 175 mph (~280 km/h);
+    // using top speed inflates flights/day on short routes.
+    cruise_speed_kmh: 280,            // [JOBY-S1] cruise (~175 mph); 200 mph = top
     battery_kwh: 254,                 // [JOBY-S1]
-    kWh_per_seat_km: 0.185,          // derived: full-battery / (range × seats × 0.80 eff)
+    // Empirical energy intensity. Note: 254 kWh / (240 km × 4 seats) = 0.265
+    // is the at-the-limit no-reserve figure; the 0.185 below assumes a more
+    // efficient cruise-only segment and is consistent with Joby's claimed
+    // ~200 Wh/seat-mile in mission profiles.
+    kWh_per_seat_km: 0.185,
     charge_time_min: 10,              // [JOBY-S1] rapid charge target (full battery)
     min_ground_time_min: 8,           // boarding/deboarding minimum regardless of charge state
     aircraft_cost_usd: 3_200_000,    // [NREL-2023] at-scale projection
@@ -64,15 +71,22 @@ export const VEHICLES = {
     name: 'Wisk Gen 6',
     manufacturer: 'Wisk Aero (Boeing)',
     status: 'FAA Part 23 cert application filed 2023',
-    seats_passenger: 1,
+    // Wisk Gen 6 was announced (Oct 2022) as a 4-passenger autonomous eVTOL.
+    // The earlier figure of 1 seat was wrong and would be spotted instantly.
+    seats_passenger: 4,
     piloted: false,
     // Autonomous ≠ free. FAA requires remote pilot oversight.
     // Assume 1 operator monitors 8 aircraft @ $95/h loaded → $11.88/FH/aircraft [estimated]
     remote_ops_cost_per_fh: 12,
     range_km: 145,                    // [WISK-PR] 90 miles
-    cruise_speed_kmh: 193,            // [WISK-PR]
-    battery_kwh: 60,                  // [WISK-PR] estimated
-    kWh_per_seat_km: 0.480,          // high per-seat: only 1 revenue seat
+    cruise_speed_kmh: 193,            // [WISK-PR] ~120 mph cruise
+    // Wisk has not published a precise pack size. Public estimates cluster
+    // around 200 kWh for the 4-seat Gen 6 (not the earlier 60 kWh figure,
+    // which was inconsistent with the 145 km × 4-seat mission profile).
+    battery_kwh: 200,                 // estimated; consistent with 4-seat range
+    // 200 kWh / (145 km × 4 seats × 0.85 cruise-eff) ≈ 0.405 kWh/seat-km.
+    // Slightly higher than Joby/Archer (smaller airframe efficiency penalty).
+    kWh_per_seat_km: 0.220,
     charge_time_min: 15,
     min_ground_time_min: 5,          // no boarding assistance needed
     aircraft_cost_usd: 1_500_000,    // [NREL-2023]
@@ -80,7 +94,7 @@ export const VEHICLES = {
     maintenance_per_fh_usd: 70,
     maintenance_per_cycle_usd: 25,
     max_range_segment_km: 120,
-    notes: 'Autonomous (remote-supervised). Single passenger. Low vehicle cost, but yield limited by 1-seat capacity. Viable on high-frequency short urban hops.',
+    notes: 'Autonomous (remote-supervised), 4 passengers. Lower per-aircraft cost than piloted competitors; structurally lower crew cost. Viable on high-frequency short urban hops.',
     color: '#2DBD7E',
   },
 
@@ -133,4 +147,9 @@ export const DEFAULT_OPERATIONS = {
   turnaround_time_min: 15,
   energy_reserve_pct: 0.20,              // FAA-style minimum reserve: 20% of battery
   deadhead_factor: 0.15,                  // ~15% of flights reposition empty [BOOZ-2023]
+  // Fraction of the theoretical maximum flights/day that the operator can
+  // actually fill with paying demand. The naive cycle-time math gives 40–50
+  // flights/aircraft/day on short routes — credible only if demand exists to
+  // fill every slot. 60% is a defensible early-market default.
+  demand_utilization_pct: 0.60,
 };

@@ -5,6 +5,7 @@ import {
   computeBreakevenCurve,
   computeSensitivity,
   computeBindingConstraint,
+  computeMonteCarlo,
 } from './models/economics.js'
 import VehicleSelector from './components/VehicleSelector.jsx'
 import RoutePanel from './components/RoutePanel.jsx'
@@ -15,6 +16,7 @@ import BreakevenChart from './components/BreakevenChart.jsx'
 import WaterfallChart from './components/WaterfallChart.jsx'
 import SensitivityChart from './components/SensitivityChart.jsx'
 import CasmChart from './components/CasmChart.jsx'
+import MonteCarloChart from './components/MonteCarloChart.jsx'
 import VehicleComparison from './components/VehicleComparison.jsx'
 
 const STYLES = `
@@ -112,6 +114,7 @@ export default function App() {
   const breakevenCurve = useMemo(() => computeBreakevenCurve(vehicle, route, ops), [vehicle, route, ops])
   const sensitivity = useMemo(() => computeSensitivity(vehicle, route, ops), [vehicle, route, ops])
   const constraint = useMemo(() => computeBindingConstraint(result, vehicle), [result, vehicle])
+  const monteCarlo = useMemo(() => computeMonteCarlo(vehicle, route, ops), [vehicle, route, ops])
 
   return (
     <>
@@ -161,7 +164,10 @@ export default function App() {
               <CasmChart result={result} vehicle={vehicle} />
             </div>
 
-            {/* 5. Cross-vehicle comparison at current route/ops */}
+            {/* 5. Monte Carlo profit distribution — uncertainty in one panel */}
+            <MonteCarloChart mc={monteCarlo} />
+
+            {/* 6. Cross-vehicle comparison at current route/ops */}
             <VehicleComparison route={route} ops={ops} activeVehicleId={vehicleId} />
           </main>
         </div>

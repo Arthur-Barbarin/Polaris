@@ -56,7 +56,7 @@ export default function OpsPanel({ ops, setOps, vehicle }) {
 
           <Slider label="Turnaround time" unit="min" value={ops.turnaround_time_min}
             min={5} max={60} onChange={v => set('turnaround_time_min', v)}
-            hint="Max ground time" />
+            hint="Target ground time" />
 
           <Slider label="Aircraft availability" unit="" value={ops.availability_factor}
             min={0.5} max={0.99} step={0.01} onChange={v => set('availability_factor', v)}
@@ -66,12 +66,17 @@ export default function OpsPanel({ ops, setOps, vehicle }) {
           <Slider label="Energy reserve" unit="" value={ops.energy_reserve_pct}
             min={0.10} max={0.40} step={0.01} onChange={v => set('energy_reserve_pct', v)}
             displayFn={v => `${Math.round(v * 100)}%`}
-            hint="FAA-style 20% min" />
+            hint="Industry assumption ~20%" />
 
           <Slider label="Deadhead rate" unit="" value={ops.deadhead_factor}
             min={0.0} max={0.40} step={0.01} onChange={v => set('deadhead_factor', v)}
             displayFn={v => `${Math.round(v * 100)}%`}
             hint="Empty repositioning" />
+
+          <Slider label="Demand utilization" unit="" value={ops.demand_utilization_pct}
+            min={0.10} max={1.00} step={0.05} onChange={v => set('demand_utilization_pct', v)}
+            displayFn={v => `${Math.round(v * 100)}%`}
+            hint="% of slot capacity filled" />
 
           <Slider label="Infra capex / aircraft" unit="$k" value={ops.infrastructure_capex_per_aircraft / 1000}
             min={50} max={1000} step={25} onChange={v => set('infrastructure_capex_per_aircraft', v * 1000)}
