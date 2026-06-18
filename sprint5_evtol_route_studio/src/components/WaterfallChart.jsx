@@ -114,7 +114,7 @@ export default function WaterfallChart({ result }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <span style={{ fontSize: 11, color: '#5a6080' }}>
-          {result.annual_flights_revenue.toLocaleString()} revenue flights · {result.annual_flights.toLocaleString()} total (incl. deadhead)
+          {Math.round(result.annual_flights_revenue).toLocaleString()} revenue flights · {Math.round(result.annual_flights).toLocaleString()} total (incl. deadhead)
         </span>
         <span style={{ fontSize: 12, fontWeight: 700, color: isProfitable ? '#2DBD7E' : '#E85C5C' }}>
           {isProfitable ? '+' : ''}{(result.annual_margin_pct * 100).toFixed(1)}% margin

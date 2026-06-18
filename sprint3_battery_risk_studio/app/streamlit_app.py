@@ -299,6 +299,35 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
         X_train_soh = train_df[SOH_COLS]
         shap_vals   = compute_shap(rf_soh, X_train_soh, X_soh)
 
+        # ── Headline: baseline vs prediction in plain words ────────────────
+        # The waterfall is easier to read once the reader knows how big the
+        # delta from baseline is and which feature carries it. Compute the
+        # top driver (by |SHAP|) and surface it above the chart so the
+        # viewer isn't left squinting at near-zero bars to find the story.
+        baseline   = float(shap_vals.base_values[0])
+        prediction = float(shap_vals.values[0].sum() + baseline)
+        delta      = prediction - baseline
+        top_idx    = int(np.argmax(np.abs(shap_vals.values[0])))
+        top_feat   = shap_vals.feature_names[top_idx]
+        top_val    = float(shap_vals.data[0][top_idx])
+        delta_dir  = "below" if delta < 0 else "above"
+
+        st.caption(
+            f"This cycle's predicted SOH (**{prediction:.1%}**) is "
+            f"**{abs(delta):.1%} {delta_dir}** the training-set average "
+            f"(**{baseline:.1%}**). Main driver: "
+            f"`{top_feat} = {top_val:.3g}`."
+        )
+
+        # ── Filter noise: only show bars with |SHAP| ≥ 0.005 ──────────────
+        # SHAP collapses the remaining features into a single "N other
+        # features" row when max_display < n_features. Set max_display to
+        # (significant + 1) so the collapsed row appears only if there are
+        # truly small contributors to hide.
+        SHAP_NOISE_FLOOR = 0.005
+        n_significant = int((np.abs(shap_vals.values[0]) >= SHAP_NOISE_FLOOR).sum())
+        max_display   = max(3, min(n_significant + 1, len(shap_vals.feature_names)))
+
         # Force white text globally before SHAP draws
         with plt.rc_context({
             "text.color": "#FAFAFA",
@@ -309,15 +338,24 @@ def tab_battery(df: pd.DataFrame, rf_soh, rf_rul, meta: dict) -> None:
             "figure.facecolor": "#1A1D2E",
         }):
             fig2, ax2 = plt.subplots(figsize=(6, 4.2))
-            shap.waterfall_plot(shap_vals[0], show=False, max_display=8)
+            shap.waterfall_plot(shap_vals[0], show=False, max_display=max_display)
             plt.title(f"SHAP — cycle {cycle_idx}", fontsize=10,
                       fontweight="bold", pad=8, color="#FAFAFA")
             # Patch any remaining dark text elements
             for obj in fig2.findobj(plt.Text):
                 obj.set_color("#FAFAFA")
             plt.tight_layout()
-            st.pyplot(fig2)
-            plt.close()
+
+            # Render via st.image rather than st.pyplot — st.pyplot wraps
+            # the figure in a container whose tooltip ("streamlitApp")
+            # floats over the chart on hover. st.image has no such tooltip.
+            import io
+            buf = io.BytesIO()
+            fig2.savefig(buf, format="png", dpi=150,
+                         facecolor=fig2.get_facecolor(), bbox_inches="tight")
+            plt.close(fig2)
+            buf.seek(0)
+            st.image(buf, use_container_width=True)
 
     explanation = top_drivers(shap_vals, idx=0, n=3)
     st.info(f"**Model explanation:** {explanation}", icon="🔍")

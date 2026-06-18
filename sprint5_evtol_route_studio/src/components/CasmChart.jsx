@@ -23,9 +23,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function CasmChart({ result, vehicle }) {
   // Shorten names for x-axis readability
   const shortName = (name) => name
-    .replace('Helicopter charter', 'Helicopter')
-    .replace('Turboprop (19-seat)', 'Turboprop')
-    .replace('Regional jet (50-seat)', 'Reg. jet');
+    .replace('Helicopter charter', 'Heli charter')
+    .replace('Helicopter shuttle', 'Heli shuttle')
+    .replace('Premium ground (4-seat)', 'Premium ground');
 
   const data = [
     { name: shortName(vehicle.name), casm: result.casm, color: vehicle.color, isActive: true },
@@ -36,11 +36,14 @@ export default function CasmChart({ result, vehicle }) {
 
   return (
     <div className="panel">
-      <div className="chart-title">CASM vs aviation benchmarks</div>
+      <div className="chart-title">CASM vs corridor competitors</div>
       <div className="chart-sub">
-        Cost per available seat-mile — positioned against comparable aviation modes.
-        Green line = RASM (revenue per total ASM). CASM &lt; RASM ⇒ opex is covered.
-        Both metrics use total ASM (including deadhead), per industry convention.
+        <strong>Bars = CASM</strong> (operating cost per available seat-mile).
+        Compared against modes that actually compete on UAM trip lengths (5–100 km):
+        helicopter operations and premium ground. Long-haul aviation excluded —
+        different mission profile, not a competitive set.{' '}
+        <span style={{ color: '#2DBD7E' }}>Green line</span> = RASM (revenue / total ASM);
+        CASM &lt; RASM ⇒ opex covered.
       </div>
 
       <ResponsiveContainer width="100%" height={200}>
@@ -54,7 +57,7 @@ export default function CasmChart({ result, vehicle }) {
           <YAxis
             tick={{ fill: '#5a6080', fontSize: 10 }}
             tickFormatter={v => `$${v.toFixed(2)}`}
-            label={{ value: '$/ASM', angle: -90, position: 'insideLeft', offset: -2, fill: '#5a6080', fontSize: 10 }}
+            label={{ value: 'CASM ($/seat-mile)', angle: -90, position: 'insideLeft', offset: 10, dy: 60, fill: '#5a6080', fontSize: 10 }}
           />
           <Tooltip content={<CustomTooltip />} />
 
@@ -66,7 +69,17 @@ export default function CasmChart({ result, vehicle }) {
             label={{ value: `RASM $${rasm.toFixed(2)}`, fill: '#2DBD7E', fontSize: 10, position: 'insideTopRight' }}
           />
 
-          <Bar dataKey="casm" radius={[4, 4, 0, 0]}>
+          <Bar
+            dataKey="casm"
+            radius={[4, 4, 0, 0]}
+            label={{
+              position: 'top',
+              formatter: v => `$${v.toFixed(2)}`,
+              fill: '#9aa0b8',
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          >
             {data.map((entry, i) => (
               <Cell
                 key={i}
@@ -80,7 +93,7 @@ export default function CasmChart({ result, vehicle }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
         <div className="source-line" style={{ margin: 0 }}>
-          [FAA-HELO] helicopter survey · [DOT-2023] BTS airline data
+          [FAA-HELO] helicopter ops · Blade investor materials · AAA / TNC operating-cost estimates
         </div>
         <div style={{ fontSize: 10, color: result.casm < rasm ? '#2DBD7E' : '#E85C5C', fontWeight: 600 }}>
           {result.casm < rasm

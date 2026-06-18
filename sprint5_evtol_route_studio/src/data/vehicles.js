@@ -77,6 +77,9 @@ export const VEHICLES = {
     piloted: false,
     // Autonomous ≠ free. FAA requires remote pilot oversight.
     // Assume 1 operator monitors 8 aircraft @ $95/h loaded → $11.88/FH/aircraft [estimated]
+    // 1 operator / 8 aircraft × $95/FH loaded = $11.88. This is a mature-ops
+    // assumption; early Part 23 certs may require 1:1 or 1:2 oversight, which
+    // would multiply this 4–8×. Surfaced in vehicle notes as a known optimism.
     remote_ops_cost_per_fh: 12,
     range_km: 145,                    // [WISK-PR] 90 miles
     cruise_speed_kmh: 193,            // [WISK-PR] ~120 mph cruise
@@ -94,7 +97,7 @@ export const VEHICLES = {
     maintenance_per_fh_usd: 70,
     maintenance_per_cycle_usd: 25,
     max_range_segment_km: 120,
-    notes: 'Autonomous (remote-supervised), 4 passengers. Lower per-aircraft cost than piloted competitors; structurally lower crew cost. Viable on high-frequency short urban hops.',
+    notes: 'Autonomous (remote-supervised), 4 passengers. Modeled remote-ops cost ($12/FH) assumes 1 operator per 8 aircraft — early-cert ratios may be 1:1, making real autonomy savings smaller than shown.',
     color: '#2DBD7E',
   },
 
@@ -123,13 +126,36 @@ export const VEHICLES = {
 };
 
 /**
- * Aviation-comparable benchmarks for CASM
- * Uber Black excluded — ground $/mile ≠ aviation $/ASM (different seat-mile basis)
+ * Competitive set on UAM corridors (5–100 km urban/suburban hops).
+ *
+ * Mainline aviation (turboprop, regional jet) was previously included as a
+ * "reference" — removed because (a) those modes don't compete on UAM trip
+ * lengths and (b) including them implied UAM is "expensive aviation," when
+ * the real competitive frame is "cheap helicopter / premium ground."
+ *
+ * All figures are CASM-equivalent: fully-loaded operating cost per available
+ * seat-mile. For ground modes, treated as cost per vehicle-mile / available
+ * seats. Excludes operator margin (so it's comparable to UAM CASM, not RASM).
  */
 export const BENCHMARKS = [
-  { name: 'Helicopter charter', casm_usd: 4.20, color: '#666', note: '[FAA-HELO] $3–6 range' },
-  { name: 'Turboprop (19-seat)', casm_usd: 0.72, color: '#555', note: '[DOT-2023] Cape Air / regional' },
-  { name: 'Regional jet (50-seat)', casm_usd: 0.28, color: '#444', note: '[DOT-2023] BTS average' },
+  {
+    name: 'Helicopter charter',
+    casm_usd: 4.20,
+    color: '#666',
+    note: '[FAA-HELO] charter ops, low LF, $3–6/ASM range',
+  },
+  {
+    name: 'Helicopter shuttle',
+    casm_usd: 3.20,
+    color: '#555',
+    note: 'Scheduled multi-seat ops (Blade-style); higher LF lowers $/ASM vs charter',
+  },
+  {
+    name: 'Premium ground (4-seat)',
+    casm_usd: 0.85,
+    color: '#444',
+    note: 'Uber Black-equivalent: ~$3.40/vehicle-mile, 4 seats fully loaded',
+  },
 ];
 
 export const DEFAULT_ROUTE = {
@@ -144,7 +170,11 @@ export const DEFAULT_OPERATIONS = {
   landing_fee_usd: 40,                    // per landing; vertiport estimate [NASA-UAM]
   infrastructure_capex_per_aircraft: 300_000,
   availability_factor: 0.85,
-  turnaround_time_min: 15,
+  // Operator-procedural floor on ground time (slot booking, crew handoff,
+  // paperwork). 8 min matches Joby/Archer's vehicle min_ground so default
+  // behaviour mirrors a clean turnaround with no extra ops overhead — the
+  // user adds overhead by moving the slider up.
+  turnaround_time_min: 8,
   energy_reserve_pct: 0.20,              // FAA-style minimum reserve: 20% of battery
   deadhead_factor: 0.15,                  // ~15% of flights reposition empty [BOOZ-2023]
   // Fraction of the theoretical maximum flights/day that the operator can
@@ -152,4 +182,8 @@ export const DEFAULT_OPERATIONS = {
   // flights/aircraft/day on short routes — credible only if demand exists to
   // fill every slot. 60% is a defensible early-market default.
   demand_utilization_pct: 0.60,
+  // Daily ops window. 16h is end-state (sunrise→late-evening); early UAM
+  // markets are constrained by noise curfews, commute peaks, and weather
+  // → 8–12 h is more realistic for years 1–3.
+  operating_hours_per_day: 16,
 };

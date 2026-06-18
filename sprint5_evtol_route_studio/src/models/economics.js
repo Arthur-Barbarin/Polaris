@@ -25,34 +25,35 @@ export function computeEconomics(vehicle, route, ops) {
     energy_reserve_pct,        // fraction of battery held as reserve (default 0.20)
     deadhead_factor,           // fraction of flights that are empty repositioning (default 0.15)
     demand_utilization_pct = 1.0,  // fraction of slot capacity actually filled
+    operating_hours_per_day = 16,  // daily ops window
   } = ops;
 
   // --- Flight physics ---
   const flight_time_h = distance_km / vehicle.cruise_speed_kmh;
   const flight_time_min = flight_time_h * 60;
 
-  // Ground time: max of minimum boarding time and charge time for energy used.
-  // Energy used per flight as fraction of total battery:
+  // Ground time: bounded below by THREE constraints — vehicle's physical
+  // boarding minimum, the operator's procedural turnaround target, and the
+  // charge time the energy budget actually needs. Whichever is largest wins.
   const mission_kwh_raw = vehicle.kWh_per_seat_km * distance_km * vehicle.seats_passenger;
-  // Energy reserve: must retain (energy_reserve_pct) of battery. So we need to carry
-  // enough that after using mission energy, reserve_pct remains.
-  // effective_mission_kwh = mission_kwh_raw / (1 - reserve_pct)
   const energy_reserve_factor = 1 / (1 - energy_reserve_pct);
   const energy_kwh_with_reserve = mission_kwh_raw * energy_reserve_factor;
-  // Fraction of battery actually consumed (net of reserve):
   const battery_fraction_used = mission_kwh_raw / vehicle.battery_kwh;
   // Proportional charge time (linear approximation at rapid-charge rate):
   const proportional_charge_min = battery_fraction_used * vehicle.charge_time_min;
-  const ground_time_min = Math.max(vehicle.min_ground_time_min, proportional_charge_min);
-  // Cycle time = flight + ground. Ground time is whatever the physics demands
-  // (charge + boarding floor). `turnaround_time_min` is an operational target,
-  // not a cap — if charging takes longer, the aircraft sits on the pad longer.
-  // The previous version used Math.min(turnaround, ground), which silently
-  // assumed you could dispatch an undercharged aircraft. Fixed:
+  // All three are floors on ground time. Without including turnaround here,
+  // moving the turnaround slider had no effect on cycle time — a regression
+  // from the earlier Math.min fix. Now turnaround acts as a true operational
+  // floor (slot booking, paperwork, crew handoff).
+  const ground_time_min = Math.max(
+    vehicle.min_ground_time_min,
+    turnaround_time_min,
+    proportional_charge_min,
+  );
   const cycle_time_min = flight_time_min + ground_time_min;
-  // Flag the case where actual ground time exceeds the operator's target.
-  // Downstream UI can render a warning so the user sees the schedule pressure.
-  const charge_exceeds_turnaround = ground_time_min > turnaround_time_min;
+  // Schedule-pressure flag: actual charging demand exceeds what the operator
+  // planned for in their turnaround target.
+  const charge_exceeds_turnaround = proportional_charge_min > turnaround_time_min;
 
   // --- Per-flight costs ---
   // Energy: use energy WITH reserve to reflect actual operational energy budget
@@ -75,17 +76,23 @@ export function computeEconomics(vehicle, route, ops) {
   const margin_per_flight = revenue_per_flight - total_opex_per_flight;
 
   // --- Annual utilization ---
-  // Capacity = how many flights the cycle time allows in a 16-hour ops day.
-  // Realised = capacity × demand_utilization. Without the demand throttle the
-  // model implicitly assumes every slot fills, which is fantasy in any
-  // early-market UAM corridor. Display both so the user sees the gap.
-  const operating_hours_per_day = 16;
-  const flights_per_day_capacity = Math.floor((operating_hours_per_day * 60) / cycle_time_min);
-  const flights_per_day = Math.max(
-    1, Math.round(flights_per_day_capacity * demand_utilization_pct));
-  const annual_flights_total = Math.round(flights_per_day * 365 * availability_factor);
-  // Revenue-generating flights: total minus deadhead repositioning flights
-  const annual_flights_revenue = Math.round(annual_flights_total * (1 - deadhead_factor));
+  // Capacity = how many flights the cycle time allows in the daily ops window.
+  // Realised = capacity × demand_utilization.
+  //
+  // SMOOTHNESS: keep flights/day continuous for ALL economics math, only
+  // round for display. Previously, Math.floor(capacity) and Math.round(realised)
+  // propagated into annual P&L and produced a visible staircase as inputs
+  // moved continuously. A real fleet's *annual* output is fractional; the
+  // user-facing daily integer is just a display convenience.
+  const flights_per_day_capacity_continuous = (operating_hours_per_day * 60) / cycle_time_min;
+  const flights_per_day_capacity = Math.floor(flights_per_day_capacity_continuous);   // display only
+  const flights_per_day_continuous = flights_per_day_capacity_continuous * demand_utilization_pct;
+  const flights_per_day = Math.max(1, Math.round(flights_per_day_continuous));        // display only
+  // Annual P&L: continuous through every step — no rounding.
+  const annual_flights_total = flights_per_day_continuous * 365 * availability_factor;
+  // Revenue-generating flights: total minus deadhead repositioning flights.
+  // Continuous (no round) so annual_revenue stays smooth under input sweeps.
+  const annual_flights_revenue = annual_flights_total * (1 - deadhead_factor);
 
   // --- Annual economics ---
   // Opex applies to ALL flights (you burn energy and wear parts on deadhead too)
@@ -206,14 +213,16 @@ export function computeEconomics(vehicle, route, ops) {
 }
 
 /**
- * Break-even curve: annual profit vs load factor (0–100%)
+ * Break-even curve: annual profit vs load factor (0–100%).
+ * 1% resolution so chart hover snaps at 1pp, not 5pp.
  */
 export function computeBreakevenCurve(vehicle, route, ops) {
   const points = [];
-  for (let lf = 0; lf <= 1.0; lf += 0.05) {
+  for (let i = 0; i <= 100; i += 1) {
+    const lf = i / 100;
     const r = computeEconomics(vehicle, { ...route, load_factor: lf }, ops);
     points.push({
-      load_factor_pct: Math.round(lf * 100),
+      load_factor_pct: i,
       annual_profit: r.annual_profit,
     });
   }
@@ -228,14 +237,32 @@ export function computeSensitivity(vehicle, route, ops) {
   const base = computeEconomics(vehicle, route, ops);
   const delta = 0.20;
 
-  // Pilot cost is irrelevant for autonomous vehicles — drop it rather than
-  // showing a zero-impact bar that just adds noise.
+  // Per-input physical bounds. Without clamping, a 0.85 load factor under
+  // +20% becomes 1.02 — over 100% — and computeEconomics happily computes
+  // revenue as if you sold more seats than the aircraft has. That makes
+  // load_factor's leverage bar nonsense whenever the user dials LF above ~0.83.
+  const bounds = {
+    load_factor:             [0, 1],
+    availability_factor:     [0, 1],
+    demand_utilization_pct:  [0.01, 1],
+    deadhead_factor:         [0, 0.9],
+    energy_reserve_pct:      [0.01, 0.6],
+  };
+  const clamp = (key, v) => {
+    const b = bounds[key];
+    return b ? Math.max(b[0], Math.min(b[1], v)) : v;
+  };
+
+  // Pilot cost is irrelevant for autonomous vehicles — drop it.
+  // Fare and LF are mathematically equivalent revenue levers (both scale
+  // revenue linearly by the same factor); flagged in `note` so the UI can
+  // explain why the bars are identical.
   const allInputs = [
-    { key: 'fare_per_seat_usd',         label: 'Fare per seat',          type: 'route', direction: 'up_good' },
-    { key: 'load_factor',               label: 'Load factor',            type: 'route', direction: 'up_good' },
+    { key: 'fare_per_seat_usd',         label: 'Fare per seat',          type: 'route', direction: 'up_good',   note: 'lf_equiv' },
+    { key: 'load_factor',               label: 'Load factor',            type: 'route', direction: 'up_good',   note: 'lf_equiv' },
     { key: 'deadhead_factor',           label: 'Deadhead rate',          type: 'ops',   direction: 'down_good' },
-    { key: 'demand_utilization_pct',    label: 'Demand utilization',     type: 'ops',   direction: 'up_good' },
-    { key: 'availability_factor',       label: 'Aircraft availability',  type: 'ops',   direction: 'up_good' },
+    { key: 'demand_utilization_pct',    label: 'Demand utilization',     type: 'ops',   direction: 'up_good',   note: 'margin_dep' },
+    { key: 'availability_factor',       label: 'Aircraft availability',  type: 'ops',   direction: 'up_good',   note: 'margin_dep' },
     { key: 'electricity_price_usd_kwh', label: 'Electricity price',      type: 'ops',   direction: 'down_good' },
     { key: 'energy_reserve_pct',        label: 'Energy reserve',         type: 'ops',   direction: 'down_good' },
     { key: 'pilot_cost_per_fh_usd',     label: 'Pilot cost/FH',          type: 'ops',   direction: 'down_good', requiresPiloted: true },
@@ -245,25 +272,45 @@ export function computeSensitivity(vehicle, route, ops) {
   ];
   const inputs = allInputs.filter(i => !i.requiresPiloted || vehicle.piloted);
 
-  return inputs.map(({ key, label, type, direction }) => {
+  return inputs.map(({ key, label, type, direction, note }) => {
+    const src = type === 'route' ? route : ops;
+    const baseVal = src[key];
+    const upVal   = clamp(key, baseVal * (1 + delta));
+    const downVal = clamp(key, baseVal * (1 - delta));
+
     const upResult = type === 'route'
-      ? computeEconomics(vehicle, { ...route, [key]: route[key] * (1 + delta) }, ops)
-      : computeEconomics(vehicle, route, { ...ops, [key]: ops[key] * (1 + delta) });
+      ? computeEconomics(vehicle, { ...route, [key]: upVal }, ops)
+      : computeEconomics(vehicle, route, { ...ops, [key]: upVal });
 
     const downResult = type === 'route'
-      ? computeEconomics(vehicle, { ...route, [key]: route[key] * (1 - delta) }, ops)
-      : computeEconomics(vehicle, route, { ...ops, [key]: ops[key] * (1 - delta) });
+      ? computeEconomics(vehicle, { ...route, [key]: downVal }, ops)
+      : computeEconomics(vehicle, route, { ...ops, [key]: downVal });
 
     const impact_up = upResult.annual_profit - base.annual_profit;
     const impact_down = downResult.annual_profit - base.annual_profit;
 
+    // Asymmetric leverage flag: when the +20% direction is clamped, the
+    // displayed (up) bar understates true leverage. The tooltip uses this
+    // to warn the user that the down-side is bigger.
+    const asymmetric = Math.abs(Math.abs(impact_up) - Math.abs(impact_down)) /
+                       Math.max(Math.abs(impact_up), Math.abs(impact_down), 1) > 0.10;
+
     return {
-      key, label, direction,
+      key, label, direction, note,
+      base_val: baseVal,
+      up_val:   upVal,
+      down_val: downVal,
+      clamped:  upVal !== baseVal * (1 + delta) || downVal !== baseVal * (1 - delta),
+      asymmetric,
       impact_up,
       impact_down,
       abs_impact: Math.max(Math.abs(impact_up), Math.abs(impact_down)),
     };
-  }).sort((a, b) => b.abs_impact - a.abs_impact);
+    // Sort by |impact_up| — matches what the bar displays, so a bigger bar
+    // is always higher in the list. The previous sort by max(|up|,|down|)
+    // caused clamped inputs (e.g. availability at LF→1.0) to rank above
+    // smaller-bar inputs, which looked like a UI bug.
+  }).sort((a, b) => Math.abs(b.impact_up) - Math.abs(a.impact_up));
 }
 
 /**

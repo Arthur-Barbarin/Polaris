@@ -78,6 +78,11 @@ export default function OpsPanel({ ops, setOps, vehicle }) {
             displayFn={v => `${Math.round(v * 100)}%`}
             hint="% of slot capacity filled" />
 
+          <Slider label="Operating window" unit="h/day" value={ops.operating_hours_per_day ?? 16}
+            min={6} max={20} step={1} onChange={v => set('operating_hours_per_day', v)}
+            displayFn={v => `${v} h/day`}
+            hint="Early UAM: 8–12h" />
+
           <Slider label="Infra capex / aircraft" unit="$k" value={ops.infrastructure_capex_per_aircraft / 1000}
             min={50} max={1000} step={25} onChange={v => set('infrastructure_capex_per_aircraft', v * 1000)}
             displayFn={v => `$${v}k`}

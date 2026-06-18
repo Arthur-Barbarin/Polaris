@@ -38,7 +38,7 @@ export default function MetricsBar({ result }) {
       <Metric
         label="Annual profit / aircraft"
         value={fmt_usd(annual_profit)}
-        sub={`${fmt_pct(annual_margin_pct)} margin · ${annual_flights_revenue.toLocaleString()} rev. flights`}
+        sub={`${fmt_pct(annual_margin_pct)} margin · ${Math.round(annual_flights_revenue).toLocaleString()} rev. flights`}
         color={profitColor}
       />
       <Metric

@@ -153,6 +153,7 @@ export default function App() {
                 curve={breakevenCurve}
                 currentLF={route.load_factor}
                 breakevenLF={result.breakeven_load_factor}
+                currentProfit={result.annual_profit}
                 vehicle={vehicle}
               />
               <WaterfallChart result={result} />

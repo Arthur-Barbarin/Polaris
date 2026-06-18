@@ -17,8 +17,15 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function BreakevenChart({ curve, currentLF, breakevenLF, vehicle }) {
-  const beLFpct = Math.round(Math.min(breakevenLF, 1) * 100);
+export default function BreakevenChart({ curve, currentLF, breakevenLF, vehicle, currentProfit }) {
+  // B/E may be >100% (infeasible) or <0% (always profitable). Clamp so we
+  // can still draw the line at the chart edge — flicker-free as inputs move.
+  const beOnChart = isFinite(breakevenLF) && breakevenLF >= 0 && breakevenLF <= 1;
+  const beClampedPct = Math.round(Math.min(Math.max(breakevenLF, 0), 1) * 100);
+  const beLabel = !isFinite(breakevenLF)         ? 'B/E ∞'
+                : breakevenLF > 1                 ? 'B/E >100%'
+                : breakevenLF < 0                 ? 'B/E <0%'
+                : `B/E ${Math.round(breakevenLF * 100)}%`;
   const currentLFpct = Math.round(currentLF * 100);
 
   const profits = curve.map(p => p.annual_profit);
@@ -30,11 +37,22 @@ export default function BreakevenChart({ curve, currentLF, breakevenLF, vehicle 
 
   return (
     <div className="panel">
-      <div className="chart-title">Break-even curve</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+        <div className="chart-title">Break-even curve</div>
+        {currentProfit !== undefined && isFinite(currentProfit) && (
+          <div style={{ fontSize: 12, color: '#5a6080' }}>
+            at {currentLFpct}% LF:{' '}
+            <span style={{ fontWeight: 700, color: currentProfit >= 0 ? '#2DBD7E' : '#E85C5C' }}>
+              {fmt_usd(currentProfit)}/yr
+            </span>
+          </div>
+        )}
+      </div>
       <div className="chart-sub">
-        Annual profit per aircraft vs load factor.
-        {' '}<span style={{ color: '#E85C5C' }}>Red zone</span> = loss.
-        {' '}<span style={{ color: '#2DBD7E' }}>Green zone</span> = profit.
+        Annual profit per aircraft vs load factor. Y-axis auto-scales per vehicle —
+        compare the absolute number above, not bar height.
+        {' '}<span style={{ color: '#E85C5C' }}>Red</span> = loss ·
+        {' '}<span style={{ color: '#2DBD7E' }}>green</span> = profit.
       </div>
 
       <ResponsiveContainer width="100%" height={230}>
@@ -43,13 +61,13 @@ export default function BreakevenChart({ curve, currentLF, breakevenLF, vehicle 
 
           {/* Loss zone */}
           <ReferenceArea
-            x1={0} x2={beLFpct}
+            x1={0} x2={beClampedPct}
             y1={yDomain[0]} y2={0}
             fill="#E85C5C" fillOpacity={0.06}
           />
           {/* Profit zone */}
           <ReferenceArea
-            x1={beLFpct} x2={100}
+            x1={beClampedPct} x2={100}
             y1={0} y2={yDomain[1]}
             fill="#2DBD7E" fillOpacity={0.06}
           />
@@ -71,19 +89,20 @@ export default function BreakevenChart({ curve, currentLF, breakevenLF, vehicle 
           {/* Zero line */}
           <ReferenceLine y={0} stroke="#3a4060" strokeWidth={1.5} />
 
-          {/* Break-even line */}
-          {isFinite(breakevenLF) && breakevenLF <= 1 && (
-            <ReferenceLine
-              x={beLFpct}
-              stroke="#E8813A"
-              strokeDasharray="5 3"
-              label={{
-                value: `B/E ${beLFpct}%`,
-                fill: '#E8813A', fontSize: 10,
-                position: beLFpct > 50 ? 'insideTopLeft' : 'insideTopRight',
-              }}
-            />
-          )}
+          {/* Break-even line — always rendered, even when off-chart it's
+              pinned to the nearest edge with an explicit label so the user
+              never sees the line flicker as inputs cross 100%. */}
+          <ReferenceLine
+            x={beClampedPct}
+            stroke="#E8813A"
+            strokeDasharray="5 3"
+            strokeOpacity={beOnChart ? 1 : 0.5}
+            label={{
+              value: beLabel,
+              fill: '#E8813A', fontSize: 10,
+              position: beClampedPct > 50 ? 'insideTopLeft' : 'insideTopRight',
+            }}
+          />
 
           {/* Current load factor */}
           <ReferenceLine
