@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MapView from "./components/MapView.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import VerdictPanel from "./components/VerdictPanel.jsx";
 import EnergyChart from "./components/EnergyChart.jsx";
 import { DRONES } from "./data/drones.js";
 import { NO_FLY_PRESETS } from "./data/no_fly.js";
+import { WATER_BODIES } from "./data/water.js";
 import { planRoute, pathDistance_m } from "./models/planner.js";
 import {
   missionEnergy,
@@ -13,6 +14,7 @@ import {
 } from "./models/energy.js";
 import { riskExposure } from "./models/risk.js";
 import { checkCompliance } from "./models/regulatory.js";
+import { validateLocation, findCorridorBlockers } from "./models/location.js";
 
 // Defaults: a Seattle Center → Bellevue Square inspection corridor.
 // Crosses Lake Washington — good for showing wind sensitivity over open water.
@@ -41,14 +43,24 @@ export default function App() {
   const [noFlyToggles, setNoFlyToggles] = useState(
     Object.fromEntries(NO_FLY_PRESETS.map((p) => [p.id, p.enabled_by_default]))
   );
+  const [toast, setToast] = useState(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const drone = DRONES[droneId];
 
-  const noFlyPolys = useMemo(
+  const noFlyZones = useMemo(
     () => NO_FLY_PRESETS.filter((p) => noFlyToggles[p.id]),
     [noFlyToggles]
   );
-  const noFlyPolygons = noFlyPolys.map((p) => p.polygon);
+  const noFlyPolygons = noFlyZones.map((p) => p.polygon);
+  const blockers = useMemo(() => {
+    if (!start || !goal) return [];
+    return findCorridorBlockers(start, goal, noFlyZones);
+  }, [start, goal, noFlyZones]);
 
   const planResult = useMemo(
     () =>
@@ -97,6 +109,16 @@ export default function App() {
   );
 
   const onMapClick = (pt) => {
+    const v = validateLocation(pt, WATER_BODIES, noFlyZones);
+    if (!v.ok) {
+      const role = clickMode === "start" ? "Start" : "Goal";
+      const reason =
+        v.type === "water"
+          ? `${role} can't be placed over water (${v.name}).`
+          : `${role} sits inside restricted airspace (${v.name}). Toggle the zone off in the sidebar or pick a point outside it.`;
+      setToast({ type: v.type, message: reason });
+      return;
+    }
     if (clickMode === "start") {
       setStart(pt);
       setClickMode("goal");
@@ -121,6 +143,7 @@ export default function App() {
         onReset={() => {
           setStart(DEFAULT_START);
           setGoal(DEFAULT_GOAL);
+          setToast(null);
         }}
       />
       <main className="main">
@@ -129,7 +152,7 @@ export default function App() {
             start={start}
             goal={goal}
             path={planResult.path}
-            noFlyPolys={noFlyPolys}
+            noFlyPolys={noFlyZones}
             onMapClick={onMapClick}
           />
           <div className="map-hint">
@@ -142,6 +165,9 @@ export default function App() {
               </span>
             )}
           </div>
+          {toast && (
+            <div className={`toast toast-${toast.type}`}>{toast.message}</div>
+          )}
         </div>
         <div className="bottom">
           <VerdictPanel
@@ -150,6 +176,7 @@ export default function App() {
             compliance={compliance}
             pathFound={planResult.found}
             distance_m={distance_m}
+            blockers={blockers}
           />
           <EnergyChart
             drone={drone}

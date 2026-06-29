@@ -4,6 +4,7 @@ export default function VerdictPanel({
   compliance,
   pathFound,
   distance_m,
+  blockers = [],
 }) {
   if (!pathFound) {
     return (
@@ -11,10 +12,28 @@ export default function VerdictPanel({
         <div className="verdict-head">
           <span className="badge block">No route found</span>
         </div>
-        <p>
-          A* could not find a feasible path. Likely the goal sits inside an
-          enabled no-fly zone, or the zone fully separates start and goal.
-        </p>
+        {blockers.length > 0 ? (
+          <p>
+            The planner could not find a route around the active no-fly zones.
+            The direct corridor is cut by:
+            <ul style={{ margin: "6px 0 0 16px", paddingLeft: 0 }}>
+              {blockers.map((b) => (
+                <li key={b.id} style={{ fontSize: 12 }}>
+                  <b>{b.name}</b>
+                </li>
+              ))}
+            </ul>
+            <small style={{ color: "var(--muted)" }}>
+              Toggle the offending zone off in the sidebar, or move the
+              start/goal so the corridor has a free path.
+            </small>
+          </p>
+        ) : (
+          <p>
+            The planner could not find a route. Move the start or goal to a
+            point with a clearer corridor.
+          </p>
+        )}
       </div>
     );
   }

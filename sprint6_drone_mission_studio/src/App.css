@@ -173,6 +173,41 @@ body,
   font-weight: 600;
 }
 
+.toast {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 1100;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  max-width: 520px;
+  line-height: 1.35;
+  animation: toast-in 180ms ease-out;
+}
+.toast-water {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #7dd3fc;
+}
+.toast-restricted {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 .bottom {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
