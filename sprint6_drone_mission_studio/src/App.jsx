@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MapView from "./components/MapView.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import VerdictPanel from "./components/VerdictPanel.jsx";
 import EnergyChart from "./components/EnergyChart.jsx";
 import { DRONES } from "./data/drones.js";
 import { NO_FLY_PRESETS } from "./data/no_fly.js";
-import { WATER_BODIES } from "./data/water.js";
 import { planRoute, pathDistance_m } from "./models/planner.js";
 import {
   missionEnergy,
@@ -14,7 +13,11 @@ import {
 } from "./models/energy.js";
 import { riskExposure } from "./models/risk.js";
 import { checkCompliance } from "./models/regulatory.js";
-import { validateLocation, findCorridorBlockers } from "./models/location.js";
+import {
+  validateLocation,
+  findCorridorBlockers,
+  checkOverWater,
+} from "./models/location.js";
 
 // Defaults: a Seattle Center → Bellevue Square inspection corridor.
 // Crosses Lake Washington — good for showing wind sensitivity over open water.
@@ -46,9 +49,12 @@ export default function App() {
   const [toast, setToast] = useState(null);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4500);
+    const t = setTimeout(() => setToast(null), 5500);
     return () => clearTimeout(t);
   }, [toast]);
+  // Token to discard stale Nominatim responses if user clicks rapidly.
+  const waterCheckToken = useRef(0);
+  const waterAbort = useRef(null);
 
   const drone = DRONES[droneId];
 
@@ -108,23 +114,39 @@ export default function App() {
     [drone, conditions]
   );
 
-  const onMapClick = (pt) => {
-    const v = validateLocation(pt, WATER_BODIES, noFlyZones);
+  const onMapClick = async (pt) => {
+    // Hard block: restricted airspace.
+    const v = validateLocation(pt, noFlyZones);
     if (!v.ok) {
       const role = clickMode === "start" ? "Start" : "Goal";
-      const reason =
-        v.type === "water"
-          ? `${role} can't be placed over water (${v.name}).`
-          : `${role} sits inside restricted airspace (${v.name}). Toggle the zone off in the sidebar or pick a point outside it.`;
-      setToast({ type: v.type, message: reason });
+      setToast({
+        type: "restricted",
+        message: `${role} sits inside restricted airspace (${v.name}). Toggle the zone off in the sidebar or pick a point outside it.`,
+      });
       return;
     }
+
+    // Accept the point immediately — the water check is informational only.
+    const role = clickMode;
     if (clickMode === "start") {
       setStart(pt);
       setClickMode("goal");
     } else {
       setGoal(pt);
       setClickMode("start");
+    }
+
+    // Async soft warning: is this point over water?
+    if (waterAbort.current) waterAbort.current.abort();
+    waterAbort.current = new AbortController();
+    const myToken = ++waterCheckToken.current;
+    const result = await checkOverWater(pt, { signal: waterAbort.current.signal });
+    if (myToken !== waterCheckToken.current) return; // superseded by a newer click
+    if (result.water) {
+      setToast({
+        type: "water",
+        message: `${role === "start" ? "Start" : "Goal"} appears to be over ${result.name}. Drone ops from boats and fixed water platforms are possible — confirm this is intentional.`,
+      });
     }
   };
 
