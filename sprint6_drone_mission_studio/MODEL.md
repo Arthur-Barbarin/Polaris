@@ -37,7 +37,19 @@ $$v_{\text{headwind}} = -|v_{\text{wind}}| \cdot \cos(\beta - (\phi + 180°))$$
 
 A west wind (φ=270°) for an east-bound flight (β=90°) gives a *negative* headwind component (tailwind). A pure crosswind has zero projection on the flight axis (we currently do not model the small extra induced-power penalty from a crab angle — typically <5% at 30° crab).
 
-### 1.4 Drones without published battery
+### 1.4 Payload scaling
+
+Adding payload `p` to a drone of MTOW `m` scales hover power as
+
+$$\bar{P}(p) = \bar{P}_0 \cdot \left( \frac{m + p}{m} \right)^{1.5}$$
+
+This is the standard induced-power result from momentum theory for a rotor at fixed disk loading: thrust scales linearly with weight, and induced power scales as thrust^1.5 / sqrt(2·ρ·A). For the Skydio X10, 1 kg of payload (≈40% MTOW) increases P̄ from 199 W to 330 W and reduces the still-air energy margin on the default 12.6 km mission from 60% to 33% — a meaningful operational insight, verifiable in `verify.mjs` block 7.
+
+For delivery drones with no published battery (Wing, Zipline P2), payload scales the published range by the inverse: `range_eff = range_published × (m / (m + p))^1.5`.
+
+We intentionally don't expose a mission-altitude slider. At sUAS altitudes (0–500 ft AGL) climb energy is on the order of `m·g·h ≈ 0.5 Wh` round-trip for a Skydio-class drone, and air-density derating is ~1% — both negligible against wind and payload effects. The regulatory altitude check uses a fixed 200 ft AGL, well within the Part 107 ceiling.
+
+### 1.5 Drones without published battery
 
 Wing's Hummingbird and Zipline's P2 do not publish battery capacity. For those we report **feasibility via published range** instead of an absolute Wh figure: `feasible ⇔ d_path ≤ d_max,published × 0.85`. This is flagged in the UI verdict so the operator knows the energy bar is range-based.
 
@@ -92,5 +104,5 @@ Findings are tagged `ok / warn / block`. The overall mission is `ALLOW` iff no `
 - **Population density is a synthetic Gaussian model**, not a real raster. Use it to demonstrate the planner's risk-awareness, not for actual ConOps approval.
 - **No-fly zones are simplified octagons** approximating Class B/C/D cores. Real FAA Class B has tiered shelves, TFRs change daily, and grid ceilings vary by UAS Facility Map cell. For production you'd ingest the FAA UAS Facility Maps + USNS NOTAMs.
 - **Delivery drones without published battery** are scored on range only. Their absolute Wh is not displayed.
-- **Battery degradation, payload weight, altitude (density), temperature** all increase mission power. We don't model them — operator should add reserve.
+- **Battery degradation, temperature** increase mission power and shrink usable Wh; not modelled (operator should add reserve). Payload is modelled (§1.4).
 - **A\* is grid-quantised.** Reported path distance carries ~5–10% overhead vs the true continuous shortest path. With risk weighting on, additional overhead is by design (the planner is trading distance for lower overflight exposure).

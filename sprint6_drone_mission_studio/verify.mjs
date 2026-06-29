@@ -98,7 +98,17 @@ line("Haversine (north→south):", `${fmt(havS / 1000, 2)} km`);
 line("A* no NFZ:", `${fmt(pathDistance_m(free.path) / 1000, 2)} km`);
 line("A* KSEA+KBFI in path:", `${fmt(pathDistance_m(block.path) / 1000, 2)} km (detour ${fmt(pathDistance_m(block.path) / pathDistance_m(free.path), 2)}×)`);
 
-console.log("\n=== 7. Population density spot checks ===");
+console.log("\n=== 7. Payload sensitivity (Skydio X10, default mission, no wind) ===");
+console.log("Hover power scales as ((m+payload)/m)^1.5 (induced-power model).");
+for (const p of [0, 0.25, 0.5, 0.75, 1.0]) {
+  const e = missionEnergy(DRONES.skydio_x10, pathD, 0, 0, p);
+  line(
+    `payload ${p.toFixed(2)} kg`,
+    `P̄=${fmt(e.avg_power_w, 0)} W · E=${fmt(e.energy_wh, 1)} Wh · margin ${fmt(e.margin_pct, 0)}% · feasible=${e.feasible}`
+  );
+}
+
+console.log("\n=== 8. Population density spot checks ===");
 line("Downtown Seattle (47.61, -122.33):", fmt(popDensity({ lat: 47.6062, lng: -122.3321 }), 1));
 line("Bellevue (47.61, -122.20):", fmt(popDensity({ lat: 47.6101, lng: -122.2015 }), 1));
 line("Mid Lake Washington:", fmt(popDensity({ lat: 47.61, lng: -122.27 }), 1));

@@ -109,15 +109,23 @@ export default function Sidebar({
           />
         </label>
         <label>
-          Mission altitude: <b>{conditions.altitudeFt} ft AGL</b>
-          <input
-            type="range"
-            min="50"
-            max="500"
-            step="10"
-            value={conditions.altitudeFt}
-            onChange={(e) => set("altitudeFt", parseInt(e.target.value))}
-          />
+          Payload: <b>{conditions.payloadKg.toFixed(1)} kg</b>
+          {(() => {
+            const maxPayload = drone.payload_kg ?? drone.mtow_kg * 0.4;
+            return (
+              <input
+                type="range"
+                min="0"
+                max={maxPayload}
+                step="0.1"
+                value={Math.min(conditions.payloadKg, maxPayload)}
+                onChange={(e) => set("payloadKg", parseFloat(e.target.value))}
+              />
+            );
+          })()}
+          <small style={{ color: "var(--muted)", fontSize: 10, display: "block", marginTop: 2 }}>
+            Hover power scales as W^1.5 — heavier load shrinks the corridor.
+          </small>
         </label>
         <label>
           Hover time (inspection): <b>{conditions.hoverMin} min</b>

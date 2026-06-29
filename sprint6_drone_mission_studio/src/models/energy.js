@@ -23,10 +23,19 @@
 
 export const USABLE_BATTERY_FRACTION = 0.85;
 
-export function avgPowerW(drone) {
+export function avgPowerW(drone, payload_kg = 0) {
+  // Baseline power = manufacturer endurance at empty MTOW.
+  // Adding payload scales hover power as P ∝ W^1.5 (induced power dominates;
+  // standard momentum-theory result for a rotor at fixed disk loading).
   if (drone.battery_wh == null) return null;
   const t_h = drone.max_flight_time_min / 60;
-  return (drone.battery_wh * USABLE_BATTERY_FRACTION) / t_h;
+  const p0 = (drone.battery_wh * USABLE_BATTERY_FRACTION) / t_h;
+  if (payload_kg <= 0) return p0;
+  const scale = Math.pow(
+    (drone.mtow_kg + payload_kg) / drone.mtow_kg,
+    1.5
+  );
+  return p0 * scale;
 }
 
 export function maxRangeM(drone) {
@@ -61,7 +70,7 @@ export function pathBearing(a, b) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-export function missionEnergy(drone, distance_m, headwind_ms = 0, hover_s = 0) {
+export function missionEnergy(drone, distance_m, headwind_ms = 0, hover_s = 0, payload_kg = 0) {
   if (drone.cruise_ms <= 0) {
     return { feasible: false, reason: "No cruise speed defined" };
   }
@@ -76,8 +85,12 @@ export function missionEnergy(drone, distance_m, headwind_ms = 0, hover_s = 0) {
   const t_total_s = t_cruise_s + hover_s;
 
   if (drone.battery_wh == null) {
-    // Range-based feasibility
-    const max_dist = drone.range_km_one_way * 1000 * USABLE_BATTERY_FRACTION;
+    // Range-based feasibility. Payload scaling derates the published range
+    // by the inverse power ratio so heavier loads shrink the usable corridor.
+    const payload_derate = payload_kg > 0
+      ? Math.pow(drone.mtow_kg / (drone.mtow_kg + payload_kg), 1.5)
+      : 1;
+    const max_dist = drone.range_km_one_way * 1000 * USABLE_BATTERY_FRACTION * payload_derate;
     const range_used_pct = (distance_m / max_dist) * 100;
     return {
       feasible: range_used_pct <= 100,
@@ -91,7 +104,7 @@ export function missionEnergy(drone, distance_m, headwind_ms = 0, hover_s = 0) {
     };
   }
 
-  const P = avgPowerW(drone);
+  const P = avgPowerW(drone, payload_kg);
   const E_wh = (P * t_total_s) / 3600;
   const E_avail = drone.battery_wh * USABLE_BATTERY_FRACTION;
   return {

@@ -27,13 +27,17 @@ export default function App() {
   const [conditions, setConditions] = useState({
     windSpeed: 4,
     windFrom: 270,
-    altitudeFt: 250,
+    payloadKg: 0,
     hoverMin: 2,
     vlos: true,
     controlled: false,
     overPeople: false,
     night: false,
   });
+  // Mission altitude is fixed at 200 ft AGL — well within Part 107 ceiling.
+  // At sUAS altitudes (0–500 ft) climb energy (~0.5 Wh) and density derating
+  // (~1%) are negligible vs wind/payload effects, so we don't expose it.
+  const MISSION_ALTITUDE_FT = 200;
   const [noFlyToggles, setNoFlyToggles] = useState(
     Object.fromEntries(NO_FLY_PRESETS.map((p) => [p.id, p.enabled_by_default]))
   );
@@ -66,8 +70,15 @@ export default function App() {
   }, [start, goal, conditions.windSpeed, conditions.windFrom]);
 
   const energy = useMemo(
-    () => missionEnergy(drone, distance_m, headwind_ms, conditions.hoverMin * 60),
-    [drone, distance_m, headwind_ms, conditions.hoverMin]
+    () =>
+      missionEnergy(
+        drone,
+        distance_m,
+        headwind_ms,
+        conditions.hoverMin * 60,
+        conditions.payloadKg
+      ),
+    [drone, distance_m, headwind_ms, conditions.hoverMin, conditions.payloadKg]
   );
 
   const risk = useMemo(() => riskExposure(planResult.path), [planResult.path]);
@@ -76,7 +87,7 @@ export default function App() {
     () =>
       checkCompliance({
         drone,
-        max_altitude_ft: conditions.altitudeFt,
+        max_altitude_ft: MISSION_ALTITUDE_FT,
         vlos: conditions.vlos,
         controlled_airspace: conditions.controlled,
         over_people: conditions.overPeople,
@@ -144,6 +155,7 @@ export default function App() {
             drone={drone}
             distance_m={distance_m}
             currentHeadwind_ms={headwind_ms}
+            payloadKg={conditions.payloadKg}
           />
         </div>
       </main>
