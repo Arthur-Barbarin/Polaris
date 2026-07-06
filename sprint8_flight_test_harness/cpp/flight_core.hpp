@@ -13,12 +13,15 @@ constexpr double G = 9.80665;  // standard gravity [m/s^2]
 
 struct Airframe {
     double Va_cruise, Va_min, Va_max, phi_max, gamma_max;
-    double tau_phi, tau_gamma, tau_Va, accel_max, decel_max;
+    double tau_phi, tau_gamma, thrust_accel_max, drag_coef;
 };
 
 struct State { double pn, pe, h, Va, psi, gamma, phi; };
 struct Control { double phi_c, gamma_c, throttle; };
-struct Actuator { double roll_eff, pitch_eff, thr_eff; };
+struct Actuator {
+    double roll_authority, pitch_authority, thr_eff;
+    double roll_rate_factor, pitch_rate_factor;
+};
 struct Gains { double k_path, chi_inf, k_chi, k_h, kp_V, ki_V; };
 
 // Wind sampled at the three RK4 sub-times (t, t+dt/2, t+dt) so a time-varying

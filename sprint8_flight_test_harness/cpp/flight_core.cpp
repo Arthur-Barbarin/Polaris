@@ -18,15 +18,21 @@ double wrap_pi(double a) {
 
 void derivatives(const State& s, const Control& c, double wn, double we,
                  const Airframe& af, const Actuator& act, double out[7]) {
-    double phi_c = clip(c.phi_c, -af.phi_max, af.phi_max) * act.roll_eff;
-    double gamma_c = clip(c.gamma_c, -af.gamma_max, af.gamma_max) * act.pitch_eff;
-    double phi_dot = (phi_c - s.phi) / af.tau_phi;
-    double gamma_dot = (gamma_c - s.gamma) / af.tau_gamma;
+    // Reduced authority = tighter saturation; degraded actuator = slower tau.
+    double phi_max_eff = af.phi_max * act.roll_authority;
+    double gamma_max_eff = af.gamma_max * act.pitch_authority;
+    double tau_phi_eff = af.tau_phi * act.roll_rate_factor;
+    double tau_gamma_eff = af.tau_gamma * act.pitch_rate_factor;
+    double phi_c = clip(c.phi_c, -phi_max_eff, phi_max_eff);
+    double gamma_c = clip(c.gamma_c, -gamma_max_eff, gamma_max_eff);
+    double phi_dot = (phi_c - s.phi) / tau_phi_eff;
+    double gamma_dot = (gamma_c - s.gamma) / tau_gamma_eff;
 
+    // Longitudinal speed: point-mass thrust - drag - gravity-along-path.
     double thr = clip(c.throttle, 0.0, 1.0) * act.thr_eff;
-    double accel_cmd = (2.0 * thr - 1.0);
-    accel_cmd *= (accel_cmd >= 0 ? af.accel_max : af.decel_max);
-    double Va_dot = accel_cmd - (s.Va - af.Va_cruise) / af.tau_Va;
+    double Va_dot = thr * af.thrust_accel_max
+                    - af.drag_coef * s.Va * s.Va
+                    - G * std::sin(s.gamma);
 
     double Va = s.Va < 1.0 ? 1.0 : s.Va;   // guard for psi_dot only
     double psi_dot = (G / Va) * std::tan(s.phi);

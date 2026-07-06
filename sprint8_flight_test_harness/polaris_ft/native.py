@@ -61,7 +61,7 @@ def library_path() -> Optional[str]:
 
 def _af_array(af: Airframe) -> np.ndarray:
     return np.array([af.Va_cruise, af.Va_min, af.Va_max, af.phi_max, af.gamma_max,
-                     af.tau_phi, af.tau_gamma, af.tau_Va, af.accel_max, af.decel_max],
+                     af.tau_phi, af.tau_gamma, af.thrust_accel_max, af.drag_coef],
                     dtype=np.float64)
 
 
@@ -85,7 +85,8 @@ def step_native(
     wn_m, we_m = wind.sample(t + dt / 2)
     wn_e, we_e = wind.sample(t + dt)
     w = np.array([wn_t, we_t, wn_m, we_m, wn_e, we_e], dtype=np.float64)
-    a = np.array([act.roll_eff, act.pitch_eff, act.thr_eff], dtype=np.float64)
+    a = np.array([act.roll_authority, act.pitch_authority, act.thr_eff,
+                  act.roll_rate_factor, act.pitch_rate_factor], dtype=np.float64)
     af = _af_array(airframe)
     out = np.zeros(7, dtype=np.float64)
     _lib.ft_step(_ptr(s), _ptr(c), _ptr(w), ctypes.c_double(dt),

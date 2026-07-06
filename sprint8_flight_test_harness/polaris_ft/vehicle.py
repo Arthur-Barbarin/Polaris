@@ -60,10 +60,12 @@ class Airframe:
     # Inner-loop time constants (first-order autopilot response).
     tau_phi: float = 0.35            # roll [s]
     tau_gamma: float = 1.2           # flight-path [s]
-    tau_Va: float = 4.0             # airspeed/throttle -> speed [s]
-    # Throttle authority: max accel at full throttle, max decel at idle [m/s^2].
-    accel_max: float = 2.5
-    decel_max: float = 2.0
+    # Longitudinal speed dynamics (point-mass): Va_dot = thrust - drag - g*sin(gamma).
+    # thrust_accel = throttle * thrust_accel_max ; drag_accel = drag_coef * Va^2.
+    # Trim (level, Va=Va_cruise) is throttle=0.5 by construction:
+    #   0.5*thrust_accel_max == drag_coef*Va_cruise^2.
+    thrust_accel_max: float = 5.0    # accel at full throttle, sea level [m/s^2]
+    drag_coef: float = 5.0 / (2.0 * 30.0 ** 2)  # 0.5*thrust_accel_max/Va_cruise^2
 
 
 @dataclass
@@ -110,16 +112,27 @@ class Wind:
 
 @dataclass
 class Actuator:
-    """Control-effectiveness multipliers, used for actuator-fault injection.
+    """Actuator-degradation model for fault injection.
 
-    A healthy vehicle has all multipliers = 1.0. Reduced roll authority
-    (aileron loss) drops `roll_eff`; reduced pitch authority drops
-    `pitch_eff`; a throttle fault drops `thr_eff`.
+    A healthy vehicle has authority = 1.0 and rate_factor = 1.0. A control-
+    surface fault is modelled the way it actually manifests: as a loss of
+    *authority* (the max bank / flight-path angle the surface can still
+    produce) and/or a slower *rate* (a larger effective time constant) — NOT
+    as a gain reduction on the command. Reduced authority + sluggish response
+    degrade tracking; they never improve it.
+
+        roll_authority   scales phi_max   (1.0 = full aileron authority)
+        pitch_authority  scales gamma_max (1.0 = full elevator authority)
+        roll_rate_factor    scales tau_phi   (>1 = slower roll response)
+        pitch_rate_factor   scales tau_gamma (>1 = slower pitch response)
+        thr_eff          scales available thrust (1.0 = full thrust)
     """
 
-    roll_eff: float = 1.0
-    pitch_eff: float = 1.0
+    roll_authority: float = 1.0
+    pitch_authority: float = 1.0
     thr_eff: float = 1.0
+    roll_rate_factor: float = 1.0
+    pitch_rate_factor: float = 1.0
 
 
 def derivatives(
@@ -133,18 +146,25 @@ def derivatives(
     """Continuous-time state derivative d/dt [pn, pe, h, Va, psi, gamma, phi]."""
     af = airframe
 
-    # --- Inner-loop responses (first-order lags toward commanded values) ---
-    phi_c = float(np.clip(ctrl.phi_c, -af.phi_max, af.phi_max)) * act.roll_eff
-    gamma_c = float(np.clip(ctrl.gamma_c, -af.gamma_max, af.gamma_max)) * act.pitch_eff
-    phi_dot = (phi_c - state.phi) / af.tau_phi
-    gamma_dot = (gamma_c - state.gamma) / af.tau_gamma
+    # --- Inner-loop responses: reduced authority = tighter saturation limits,
+    #     degraded actuator = slower (larger) effective time constant. The
+    #     command gain is NOT scaled, so a fault can only ever hurt tracking. ---
+    phi_max_eff = af.phi_max * act.roll_authority
+    gamma_max_eff = af.gamma_max * act.pitch_authority
+    tau_phi_eff = af.tau_phi * act.roll_rate_factor
+    tau_gamma_eff = af.tau_gamma * act.pitch_rate_factor
+    phi_c = float(np.clip(ctrl.phi_c, -phi_max_eff, phi_max_eff))
+    gamma_c = float(np.clip(ctrl.gamma_c, -gamma_max_eff, gamma_max_eff))
+    phi_dot = (phi_c - state.phi) / tau_phi_eff
+    gamma_dot = (gamma_c - state.gamma) / tau_gamma_eff
 
-    # Airspeed: throttle in [0,1] maps to accel in [-decel_max, +accel_max],
-    # then a first-order lag pulls Va toward the throttle-implied trim speed.
+    # --- Longitudinal speed: point-mass thrust - drag - gravity-along-path.
+    #     Airspeed is now genuinely set by throttle vs drag (no cruise
+    #     attractor), so the throttle loop is under test and climbs cost speed. ---
     thr = float(np.clip(ctrl.throttle, 0.0, 1.0)) * act.thr_eff
-    accel_cmd = (2.0 * thr - 1.0)
-    accel_cmd = accel_cmd * (af.accel_max if accel_cmd >= 0 else af.decel_max)
-    Va_dot = accel_cmd - (state.Va - af.Va_cruise) / af.tau_Va
+    Va_dot = (thr * af.thrust_accel_max
+              - af.drag_coef * state.Va ** 2
+              - G * np.sin(state.gamma))
 
     # --- Coordinated-turn heading kinematics ---
     Va = max(state.Va, 1.0)  # guard against divide-by-zero

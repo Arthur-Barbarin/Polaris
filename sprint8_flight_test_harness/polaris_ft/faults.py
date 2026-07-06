@@ -89,29 +89,42 @@ def gps_dropout() -> Scenario:
 
 def airspeed_bias() -> Scenario:
     cfg = SensorConfig(airspeed_bias=-4.0)  # pitot reads 4 m/s slow
+    # Persistent sensor fault -> no single disturbance onset; settling n/a.
     return Scenario(
         name="airspeed_bias", label="AIRSPEED_BIAS",
         wind=Wind(Wn=2.0, We=-3.0),
         sensor=cfg,
-        disturbance_t=0.0,
+        disturbance_t=None,
     )
 
 
 def aileron_loss() -> Scenario:
+    # Reduced roll authority + sluggish roll response: wider, laggy turns.
     return Scenario(
         name="aileron_loss", label="AILERON_LOSS",
         wind=Wind(Wn=2.0, We=-3.0),
-        actuator=Actuator(roll_eff=0.45),
-        disturbance_t=0.0,
+        actuator=Actuator(roll_authority=0.5, roll_rate_factor=2.5),
+        disturbance_t=None,
     )
 
 
 def elevator_loss() -> Scenario:
+    # Reduced pitch authority + sluggish pitch response: laggy altitude hold.
     return Scenario(
         name="elevator_loss", label="ELEVATOR_LOSS",
         wind=Wind(Wn=2.0, We=-3.0),
-        actuator=Actuator(pitch_eff=0.30),
-        disturbance_t=0.0,
+        actuator=Actuator(pitch_authority=0.5, pitch_rate_factor=3.0),
+        disturbance_t=None,
+    )
+
+
+def thrust_loss() -> Scenario:
+    # Partial propulsion loss: throttle saturates trying to hold speed/climb.
+    return Scenario(
+        name="thrust_loss", label="THRUST_LOSS",
+        wind=Wind(Wn=2.0, We=-3.0),
+        actuator=Actuator(thr_eff=0.45),
+        disturbance_t=None,
     )
 
 
@@ -123,4 +136,5 @@ ALL_SCENARIOS: dict[str, Callable[[], Scenario]] = {
     "airspeed_bias": airspeed_bias,
     "aileron_loss": aileron_loss,
     "elevator_loss": elevator_loss,
+    "thrust_loss": thrust_loss,
 }

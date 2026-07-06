@@ -20,7 +20,7 @@ from polaris_ft import (  # noqa: E402
     Airframe, NavEKF, SensorConfig, compute_metrics, grade, simulate,
 )
 from polaris_ft.faults import (  # noqa: E402
-    aileron_loss, airspeed_bias, gps_dropout, nominal, wind_step,
+    ALL_SCENARIOS, aileron_loss, airspeed_bias, gps_dropout, nominal, wind_step,
 )
 from polaris_ft.vehicle import G, VehicleState, Wind, step_rk4  # noqa: E402
 
@@ -84,6 +84,34 @@ print("\n=== 6. EKF coasts through GPS dropout (no divergence) ===")
 # heading pseudo-measurement keeps it from running away).
 check("gps_dropout max nav error", mg.est_pos_max, 8.0, 120.0, "m")
 check("gps_dropout mission complete", float(mg.mission_complete), 1.0, 1.0)
+
+print("\n=== 7. Post-audit fixes hold (regression guards) ===")
+# 7a. Airspeed is set by throttle vs drag, NOT an attractor to cruise:
+#     full throttle accelerates above cruise, idle decelerates below it.
+st = VehicleState(Va=af.Va_cruise, h=100, psi=0, gamma=0, phi=0)
+for _ in range(int(20 / 0.05)):
+    st = step_rk4(st, ControlInput(phi_c=0, gamma_c=0, throttle=1.0),
+                  Wind(), 0.0, 0.05, af, Actuator())
+check("Va at full throttle (> cruise)", st.Va, 34.0, 46.0, "m/s")
+st = VehicleState(Va=af.Va_cruise, h=100, psi=0, gamma=0, phi=0)
+for _ in range(int(20 / 0.05)):
+    st = step_rk4(st, ControlInput(phi_c=0, gamma_c=0, throttle=0.0),
+                  Wind(), 0.0, 0.05, af, Actuator())
+check("Va at idle throttle (< cruise)", st.Va, 10.0, 26.0, "m/s")
+
+# 7b. Actuator faults DEGRADE, never improve: elevator loss worsens alt-hold.
+mn = compute_metrics(simulate(nominal(), seed=3, dt=0.05))
+me = compute_metrics(simulate(ALL_SCENARIOS["elevator_loss"](), seed=3, dt=0.05))
+check("elevator_loss alt-hold penalty (x nominal)",
+      me.alt_hold_rms / mn.alt_hold_rms, 1.5, 10.0, "x")
+
+# 7c. Throttle-saturation card is now live: thrust loss saturates the throttle.
+mt = compute_metrics(simulate(ALL_SCENARIOS["thrust_loss"](), seed=3, dt=0.05))
+check("thrust_loss throttle saturation", mt.throttle_sat_pct, 30.0, 100.0, "%")
+
+# 7d. Settling time is n/a (NaN) for a persistent fault (no discrete onset).
+check("airspeed_bias settling is NaN (1=yes)",
+      float(np.isnan(mb.settling_time_s)), 1.0, 1.0)
 
 print()
 if FAILS:

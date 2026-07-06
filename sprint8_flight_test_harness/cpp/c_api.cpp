@@ -5,7 +5,9 @@
 using namespace polaris_ft;
 
 static Airframe unpack_af(const double* a) {
-    return Airframe{ a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9] };
+    // [Va_cruise,Va_min,Va_max,phi_max,gamma_max,tau_phi,tau_gamma,
+    //  thrust_accel_max,drag_coef]
+    return Airframe{ a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8] };
 }
 
 extern "C" {
@@ -15,17 +17,17 @@ double ft_wrap_pi(double a) { return wrap_pi(a); }
 // state7 = [pn,pe,h,Va,psi,gamma,phi]
 // ctrl3  = [phi_c,gamma_c,throttle]
 // wind6  = [wn_t,we_t, wn_mid,we_mid, wn_end,we_end]
-// af10   = [Va_cruise,Va_min,Va_max,phi_max,gamma_max,tau_phi,tau_gamma,tau_Va,accel_max,decel_max]
-// act3   = [roll_eff,pitch_eff,thr_eff]
+// af9    = [Va_cruise,Va_min,Va_max,phi_max,gamma_max,tau_phi,tau_gamma,thrust_accel_max,drag_coef]
+// act5   = [roll_authority,pitch_authority,thr_eff,roll_rate_factor,pitch_rate_factor]
 // out7   = next state (same order as state7)
 void ft_step(const double* state7, const double* ctrl3, const double* wind6,
-             double dt, const double* af10, const double* act3, double* out7) {
+             double dt, const double* af9, const double* act5, double* out7) {
     State s{ state7[0], state7[1], state7[2], state7[3],
              state7[4], state7[5], state7[6] };
     Control c{ ctrl3[0], ctrl3[1], ctrl3[2] };
     WindStep w{ wind6[0], wind6[1], wind6[2], wind6[3], wind6[4], wind6[5] };
-    Actuator act{ act3[0], act3[1], act3[2] };
-    State n = step_rk4(s, c, w, dt, unpack_af(af10), act);
+    Actuator act{ act5[0], act5[1], act5[2], act5[3], act5[4] };
+    State n = step_rk4(s, c, w, dt, unpack_af(af9), act);
     out7[0] = n.pn; out7[1] = n.pe; out7[2] = n.h; out7[3] = n.Va;
     out7[4] = n.psi; out7[5] = n.gamma; out7[6] = n.phi;
 }

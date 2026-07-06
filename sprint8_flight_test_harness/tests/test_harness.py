@@ -98,6 +98,41 @@ def test_airspeed_bias_shows_in_airspeed_error():
     assert abs(m.airspeed_mean_err) > 2.0
 
 
+# ------------------------------------------------- post-audit regression guards
+def test_airspeed_is_throttle_driven_not_an_attractor():
+    """Full throttle must accelerate above cruise, idle decelerate below —
+    proving the speed loop is real, not a hidden attractor to Va_cruise."""
+    af, act = Airframe(), Actuator()
+    hi = VehicleState(Va=af.Va_cruise, h=100)
+    lo = VehicleState(Va=af.Va_cruise, h=100)
+    for _ in range(400):
+        hi = step_rk4(hi, ControlInput(throttle=1.0), Wind(), 0.0, 0.05, af, act)
+        lo = step_rk4(lo, ControlInput(throttle=0.0), Wind(), 0.0, 0.05, af, act)
+    assert hi.Va > af.Va_cruise + 3.0
+    assert lo.Va < af.Va_cruise - 3.0
+
+
+def test_actuator_fault_degrades_never_improves():
+    """Reduced pitch authority must WORSEN altitude hold vs nominal."""
+    from polaris_ft.faults import elevator_loss
+    mn = compute_metrics(simulate(nominal(), seed=0, dt=0.1))
+    me = compute_metrics(simulate(elevator_loss(), seed=0, dt=0.1))
+    assert me.alt_hold_rms > 1.5 * mn.alt_hold_rms
+
+
+def test_thrust_loss_saturates_throttle():
+    """A propulsion fault drives the (now live) throttle-saturation metric."""
+    from polaris_ft.faults import thrust_loss
+    m = compute_metrics(simulate(thrust_loss(), seed=0, dt=0.1))
+    assert m.throttle_sat_pct > 30.0
+
+
+def test_settling_is_nan_for_persistent_faults():
+    """Persistent faults have no discrete onset -> settling time is n/a."""
+    m = compute_metrics(simulate(airspeed_bias(), seed=0, dt=0.1))
+    assert np.isnan(m.settling_time_s)
+
+
 def test_card_report_is_traceable():
     r = grade(compute_metrics(simulate(nominal(), seed=0, dt=0.1)))
     assert r.version  # versioned criteria

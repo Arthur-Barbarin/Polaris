@@ -108,25 +108,36 @@ def compute_metrics(log: FlightLog, settle_band_m: float = 25.0,
     )
 
 
-def _settling_time(log: FlightLog, band_m: float, steady: np.ndarray) -> float:
-    """Time after the disturbance onset for |cross-track| to return to and
-    stay within `band_m`, evaluated on straight-leg samples only (turn
-    transients excluded). NaN if there is no disturbance or it never settles."""
+def _settling_time(log: FlightLog, band_m: float, steady: np.ndarray,
+                   window_s: float = 60.0) -> float:
+    """Cross-track recovery time attributable to the injected disturbance.
+
+    Measured strictly inside a fixed window [t_onset, t_onset + window_s] and
+    on straight-leg samples only, so it reflects the *disturbance response* and
+    is not contaminated by unrelated turn-transition excursions later in the
+    flight. Returns:
+        NaN  if the scenario has no discrete disturbance onset (persistent
+             faults set disturbance_t=None) -> settling time is not applicable;
+        0.0  if cross-track never leaves the band within the window;
+        NaN  if it is still out of band at the end of the window (did not
+             settle in time);
+        else the time from onset back to the band.
+    """
     if log.disturbance_t is None:
         return float("nan")
-    mask = (log.t >= log.disturbance_t) & steady
+    t0 = log.disturbance_t
+    mask = (log.t >= t0) & (log.t <= t0 + window_s) & steady
     if not np.any(mask):
         return float("nan")
     t = log.t[mask]
     xt = np.abs(log.e_xt[mask])
-    # Find the last index where it is OUT of band; settled just after that.
     out = np.where(xt > band_m)[0]
     if len(out) == 0:
         return 0.0
     last_out = out[-1]
     if last_out >= len(t) - 1:
-        return float("nan")  # still out of band at end -> did not settle
-    return float(t[last_out + 1] - log.disturbance_t)
+        return float("nan")  # still out of band at window end -> did not settle
+    return float(t[last_out + 1] - t0)
 
 
 # --- Acceptance criteria ------------------------------------------------------
@@ -144,7 +155,7 @@ class Criterion:
 DEFAULT_CRITERIA: List[Criterion] = [
     Criterion("Cross-track RMS", "cross_track_rms", 20.0, "<=", "m"),
     Criterion("Cross-track max", "cross_track_max", 60.0, "<=", "m"),
-    Criterion("Altitude-hold RMS", "alt_hold_rms", 10.0, "<=", "m"),
+    Criterion("Altitude-hold RMS", "alt_hold_rms", 5.0, "<=", "m"),
     Criterion("Airspeed-hold RMS", "airspeed_hold_rms", 3.0, "<=", "m/s"),
     Criterion("Throttle saturation", "throttle_sat_pct", 15.0, "<=", "%"),
     Criterion("Bank saturation", "bank_sat_pct", 20.0, "<=", "%"),
