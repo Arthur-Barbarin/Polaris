@@ -1,0 +1,37 @@
+{
+  "overall_accuracy": 0.8916666666666667,
+  "per_class": {
+    "NOMINAL": [
+      8,
+      15
+    ],
+    "CROSSWIND": [
+      9,
+      15
+    ],
+    "GUST": [
+      15,
+      15
+    ],
+    "OFFSET_PAD": [
+      15,
+      15
+    ],
+    "GPS_BIAS": [
+      15,
+      15
+    ],
+    "LOW_LIGHT": [
+      15,
+      15
+    ],
+    "VISION_DROPOUT": [
+      15,
+      15
+    ],
+    "LATE_ACQUIRE": [
+      15,
+      15
+    ]
+  }
+}
