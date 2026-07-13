@@ -24,6 +24,7 @@ import numpy as np
 from .camera import CameraConfig
 from .pad import LandingPad
 from .signals import SensorConfig
+from .vehicle import Multirotor
 
 
 @dataclass
@@ -45,6 +46,8 @@ class Scenario:
     # Initial approach geometry.
     init_offset: Tuple[float, float] = (6.0, -4.0)
     init_z: float = 40.0
+    # Optional airframe override (None -> default Multirotor).
+    vehicle: Optional[Multirotor] = None
 
     def wind_at(self, t: float) -> np.ndarray:
         wx, wy = self.wind
@@ -93,6 +96,25 @@ def late_acquire() -> Scenario:
                     acquire_below_z=8.0, init_offset=(9.0, -6.0))
 
 
+def degraded_vehicle() -> Scenario:
+    # Tilt-limited, laggy, low-thrust airframe: the reduced horizontal-accel cap
+    # (g*tan14deg) and slower actuator lag make lateral correction sluggish, so
+    # it lands with visibly worse tracking under wind (degraded but airworthy).
+    # Exists to exercise the Multirotor envelope, which simulate() now accepts.
+    return Scenario(name="degraded_vehicle", label="DEGRADED_VEHICLE",
+                    wind=(1.2, -0.8),
+                    vehicle=Multirotor(name="degraded", tilt_max=np.radians(14),
+                                       az_up_max=2.0, az_down_max=1.1, tau_a=0.5))
+
+
+def narrow_fov() -> Scenario:
+    # Narrow field of view + a steep entry offset: the pad geometrically leaves
+    # the frame on entry, forcing GPS-only guidance until it re-enters the FOV.
+    return Scenario(name="narrow_fov", label="NARROW_FOV",
+                    camera=CameraConfig(width_px=240),
+                    init_offset=(11.0, -8.0))
+
+
 ALL_SCENARIOS: dict[str, Callable[[], Scenario]] = {
     "nominal": nominal,
     "crosswind": crosswind,
@@ -102,4 +124,6 @@ ALL_SCENARIOS: dict[str, Callable[[], Scenario]] = {
     "low_light": low_light,
     "vision_dropout": vision_dropout,
     "late_acquire": late_acquire,
+    "degraded_vehicle": degraded_vehicle,
+    "narrow_fov": narrow_fov,
 }

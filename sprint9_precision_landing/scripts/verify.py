@@ -83,6 +83,40 @@ check("nominal always PASS (of 4)",
       float(sum(grade(compute_metrics(simulate(nominal(), seed=s, dt=0.05))).passed
                 for s in range(4))), 4, 4)
 
+print("\n=== 6. Post-audit fixes hold (regression guards) ===")
+from polaris_pl import Multirotor, Scenario  # noqa: E402
+from polaris_pl.pad import LandingPad  # noqa: E402
+from polaris_pl.dispersion import FEATURES  # noqa: E402
+# 6a. CEP about the pad exposes the wind bias that CEP about the mean hides.
+pts = []
+for s in range(30):
+    lg = simulate(Scenario("cw", "CW", wind=(1.6, -1.0)), seed=s, dt=0.02)
+    if lg.outcome == "LANDED":
+        pts.append([lg.touchdown_x, lg.touchdown_y])
+cc = cep(np.array(pts))
+check("crosswind touchdown bias (hidden by CEP-mean)", cc.bias, 0.02, 0.20, "m")
+check("accuracy/precision ratio (CEP_pad/CEP_mean)", cc.cep50_pad / cc.cep50, 1.3, 5.0, "x")
+# 6b. touchdown_radius_m is load-bearing.
+td = compute_metrics(simulate(Scenario("n", "N"), seed=0, dt=0.02)).touchdown_lateral
+tight = grade(compute_metrics(simulate(
+    Scenario("n", "N", pad=LandingPad(touchdown_radius_m=td * 0.5)), seed=0, dt=0.02)))
+check("tiny pad radius flips PASS->FAIL (1=FAIL)", float(tight.outcome == "FAIL"), 1, 1)
+# 6c. Airframe is injectable and changes behaviour.
+dv = compute_metrics(simulate(Scenario("w", "W", wind=(1.5, 0.0)), seed=0, dt=0.02,
+                              vehicle=Multirotor(tilt_max=np.radians(12), tau_a=0.6)))
+nv = compute_metrics(simulate(Scenario("w", "W", wind=(1.5, 0.0)), seed=0, dt=0.02))
+check("sluggish airframe worsens tracking (x nominal)",
+      dv.max_lateral_final / max(nv.max_lateral_final, 1e-3), 1.2, 20.0, "x")
+# 6d. Camera FOV is no longer inert.
+from polaris_pl.faults import narrow_fov  # noqa: E402
+check("narrow_fov drops high-altitude vision",
+      compute_metrics(simulate(nominal(), seed=0, dt=0.02)).vision_avail_high
+      - compute_metrics(simulate(narrow_fov(), seed=0, dt=0.02)).vision_avail_high,
+      0.05, 1.0, "frac")
+# 6e. Dead triage feature removed.
+check("max_sink dropped from triage features (1=yes)",
+      float("max_sink" not in FEATURES), 1, 1)
+
 print()
 if FAILS:
     print(f"VERIFY FAILED: {FAILS} checks out of range")

@@ -146,7 +146,13 @@ with tabs[2]:
         ax.set_aspect("equal", "box"); ax.set_xlabel("East [m]"); ax.set_ylabel("North [m]")
         ax.legend(fontsize=7)
         st.pyplot(fig)
-        st.metric("CEP50 [m]", f"{c.cep50:.3f}"); st.metric("CEP95 [m]", f"{c.cep95:.3f}")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("CEP50 precision [m]", f"{c.cep50:.3f}",
+                  help="about the sample mean (scatter)")
+        m2.metric("Mean bias [m]", f"{c.bias:.3f}",
+                  help="systematic touchdown offset from the pad")
+        m3.metric("CEP50 accuracy [m]", f"{c.cep50_pad:.3f}",
+                  help="about the pad (bias + scatter) — the honest landing error")
     else:
         st.info("This scenario produced no landings (all go-arounds / rejects).")
 
@@ -192,6 +198,7 @@ with tabs[4]:
         st.dataframe(mat[["PASS", "FAIL", "REJECT", "TIMEOUT"]],
                      use_container_width=True)
         if blob.get("cep"):
-            st.subheader("Touchdown CEP by scenario")
-            cep_df = pd.DataFrame(blob["cep"]).T[["n", "cep50", "cep95"]]
+            st.subheader("Touchdown CEP by scenario (precision vs accuracy)")
+            cep_df = pd.DataFrame(blob["cep"]).T[["n", "cep50", "bias", "cep50_pad"]]
+            cep_df.columns = ["n", "CEP50 (precision)", "bias", "CEP50 (accuracy)"]
             st.dataframe(cep_df, use_container_width=True)

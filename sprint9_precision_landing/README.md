@@ -50,7 +50,7 @@ sprint9_precision_landing/
 │   ├── signals.py     coarse GPS (pad-referenced, biasable) + rangefinder + IMU
 │   ├── estimator.py   LandingKF: IMU predict; GPS/range/vision updates
 │   ├── guidance.py    gated descent state machine + decision-height go-around
-│   ├── faults.py      8 scenarios: nominal + 7 fault families
+│   ├── faults.py      10 scenarios: nominal + 9 fault families
 │   ├── simulator.py   closed-loop approach runner -> ApproachLog
 │   ├── testcards.py   landing acceptance cards (PASS / FAIL / REJECT)
 │   └── dispersion.py  CEP + covariance ellipse; PCA+GMM approach triage
@@ -68,7 +68,7 @@ sprint9_precision_landing/
 pip install -r requirements.txt
 
 python scripts/verify.py                    # sanity-check the physics + metrics
-python -m pytest -q                         # 15-test gate
+python -m pytest -q                         # 19-test gate
 python scripts/run_campaign.py --seeds 20   # campaign -> data/
 streamlit run dashboard/app.py              # interactive dashboard
 ```
@@ -109,36 +109,48 @@ scores a landing:
 
 | Criterion | Bound |
 |---|---|
-| Touchdown lateral error | ≤ 0.5 m |
+| Touchdown lateral error | ≤ pad acceptance radius (default 0.5 m) |
 | Touchdown sink rate | ≤ 1.0 m/s |
 | Max lateral on final | ≤ 2.0 m |
 | Vision availability on final | ≥ 70 % |
 | Nav error on final | ≤ 0.3 m |
 
-## Representative campaign (15 seeds/scenario, dt = 0.02 s)
+The touchdown card reads the pad's own `touchdown_radius_m`, so a bigger or
+smaller pad changes what counts as a good landing.
 
-| Scenario | PASS | FAIL | REJECT | CEP50 [m] | CEP95 [m] |
-|---|---|---|---|---|---|
-| nominal | 15 | | | 0.023 | 0.036 |
-| crosswind (steady) | 15 | | | 0.017 | 0.036 |
-| offset_pad (pad moved 2.2 m) | 15 | | | 0.021 | 0.036 |
-| gps_bias (3.2 m bias) | 15 | | | 0.023 | 0.036 |
-| late_acquire (pad seen < 8 m) | 14 | 1 | | 0.025 | 0.044 |
-| low_light (35 % detection) | | 15 | | 0.064 | 0.106 |
-| gust (late lateral gust) | | | 15 | — | — |
-| vision_dropout (occluded on final) | | | 15 | — | — |
+## Representative campaign (12 seeds/scenario, dt = 0.02 s)
 
-The studio lands the four nominal / compensated-fault cases to a **~2 cm CEP**,
-degrades `low_light` into a card **FAIL** (vision availability 35 % < 70 %),
-and correctly **rejects** the two unsafe finals (a late gust that misaligns
-below the decision height, and a pad occlusion on short final) via go-around.
+CEP is reported two ways: **precision** (about the sample mean) and **accuracy**
+(about the pad), so a steady-wind touchdown **bias** is not hidden.
 
-**Triage:** StandardScaler → PCA(6) → GMM buckets each approach into one of
-eight modes at **~89 % in-sample accuracy**. The residual confusion is between
-`nominal`, `crosswind`, `offset_pad` and `gps_bias` — because a successful
-handover makes a *compensated* fault look near-nominal in the outcome telemetry;
-they are only separable through the GPS-vision-disagreement feature. Honest, and
-a good talking point rather than a defect.
+| Scenario | PASS | FAIL | REJECT | CEP50 prec. [m] | bias [m] | CEP50 accur. [m] |
+|---|---|---|---|---|---|---|
+| nominal | 12 | | | 0.023 | 0.005 | 0.024 |
+| crosswind (steady) | 12 | | | 0.018 | **0.037** | **0.041** |
+| offset_pad (pad moved 2.2 m) | 12 | | | 0.021 | 0.005 | 0.022 |
+| gps_bias (3.2 m bias) | 12 | | | 0.023 | 0.006 | 0.024 |
+| degraded_vehicle (tilt/lag limited) | 12 | | | 0.017 | 0.012 | 0.022 |
+| narrow_fov (pad leaves frame on entry) | 12 | | | 0.020 | 0.005 | 0.021 |
+| late_acquire (pad seen < 8 m) | 11 | 1 | | 0.024 | 0.008 | 0.021 |
+| low_light (35 % detection) | | 12 | | 0.044 | 0.028 | 0.063 |
+| gust (late lateral gust) | | | 12 | — | — | — |
+| vision_dropout (occluded on final) | | | 12 | | | — |
+
+The studio lands the clean / compensated-fault cases to a **~2 cm precision
+CEP**, degrades `low_light` into a card **FAIL** (vision availability 35 % <
+70 %), and correctly **rejects** the two unsafe finals via go-around. Note the
+`crosswind` row: its precision CEP is 1.8 cm but its **accuracy** CEP is 4.1 cm —
+the 3.7 cm steady-wind bias that CEP-about-the-mean would have hidden.
+
+**Triage:** StandardScaler → PCA(6) → GMM buckets each approach into one of ten
+modes at **90 % in-sample accuracy** — and **all nine fault families are
+identified at 12/12**. The entire 10 % error is `nominal` approaches being
+absorbed into the benign clean-landing clusters: `nominal` is defined by the
+*absence* of any anomaly signature, so unsupervised clustering has nothing
+positive to grab onto — the expected hard case for unsupervised triage, and a
+more honest result than a tuned number. (`offset_pad` and `gps_bias` are still
+told apart from each other and from the benign cases by the GPS-vision-
+disagreement feature.)
 
 `scripts/verify.py` reproduces every headline number above with its expected
 physical range; the pytest suite gates the same behaviour on each change.
@@ -156,6 +168,22 @@ applied to Sprint 8), and the fixes are locked in by `verify.py` + pytest:
   only versions stalled the descent in a hover trap; caught and fixed).
 * **Go-arounds actually abort and climb clear** — decision-height logic converts
   unsafe finals into REJECT outcomes rather than bad landings.
+
+A second **expert audit pass** (hunting for dead inputs, inert couplings and
+metric blind spots) drove four more fixes, each locked by a regression guard:
+
+* **CEP now reports accuracy, not just precision** — about the pad as well as
+  the sample mean, so the ~3.7 cm steady-wind touchdown *bias* is surfaced
+  instead of hidden inside a displaced mean.
+* **The pad's `touchdown_radius_m` is load-bearing** — the touchdown card reads
+  it instead of a hardcoded 0.5 m (it was a dead config knob).
+* **The airframe is injectable through `simulate()`** — the `Multirotor`
+  envelope was hardcoded and unexercised; a `degraded_vehicle` scenario now
+  drives it (tilt/lag-limited → visibly worse tracking).
+* **The camera FOV limit and one dead triage feature were addressed** — a
+  `narrow_fov` scenario exercises the field-of-view gate (previously inert for
+  the approach envelope), and the schedule-limited `max_sink` feature (std 0.01)
+  was dropped from the triage set.
 
 ## Why this sprint (Flight Test)
 
@@ -184,12 +212,13 @@ vision-guided landing device-under-test.
   landing-test-card engine scoring touchdown CEP, sink rate, lateral corridor,
   nav accuracy and vision availability; a **Monte-Carlo dispersion campaign**
   reports CEP50/CEP95 and a covariance ellipse per condition.
-- Added **PCA + Gaussian-Mixture anomaly triage** over approaches (~89 %
-  in-sample), a **`verify` script** that reproduces every headline number
-  against its expected physical range, and a **15-test pytest gate** (including
-  a "never lands blind" safety guard) — after a physical-plausibility audit
-  that caught and fixed an unphysical sub-millimetre CEP and a wind-induced
-  hover trap.
+- Added **PCA + Gaussian-Mixture anomaly triage** over approaches (**all nine
+  fault families 100 %**, 90 % overall — nominal being the hard baseline case),
+  a **`verify` script** that reproduces every headline number against its
+  expected physical range, and a **19-test pytest gate** (including a "never
+  lands blind" safety guard) — after **two physical-plausibility audits** that
+  caught and fixed an unphysical sub-millimetre CEP, a wind-induced hover trap,
+  a precision-vs-accuracy CEP blind spot, and several dead / inert config knobs.
 
 ## JD keyword coverage
 

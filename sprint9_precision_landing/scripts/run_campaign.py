@@ -55,11 +55,13 @@ def main() -> None:
         if pts:
             c = cep(np.array(pts))
             cep_by_scen[name] = {"n": c.n, "cep50": c.cep50, "cep95": c.cep95,
+                                 "bias": c.bias, "cep50_pad": c.cep50_pad,
+                                 "cep95_pad": c.cep95_pad,
                                  "ellipse_a": c.ellipse_a, "ellipse_b": c.ellipse_b,
                                  "ellipse_angle": c.ellipse_angle,
                                  "mean_x": c.mean_x, "mean_y": c.mean_y}
 
-    tri = LandingTriage(n_components=6, n_clusters=16).fit(metrics)
+    tri = LandingTriage(n_components=6, n_clusters=18).fit(metrics)
     results = tri.predict(metrics)
     acc = LandingTriage.accuracy(results)
     per_class = defaultdict(lambda: [0, 0])
@@ -75,15 +77,18 @@ def main() -> None:
 
     print(f"\nPrecision-landing campaign  (card v{CARD_VERSION}, "
           f"{args.seeds} seeds/scenario, dt={args.dt}s)\n")
-    print(f"{'scenario':16s} {'PASS':>4s} {'FAIL':>4s} {'REJ':>4s} {'T/O':>4s}  "
-          f"{'CEP50[m]':>9s} {'CEP95[m]':>9s}")
+    print(f"{'scenario':17s} {'PASS':>4s} {'FAIL':>4s} {'REJ':>4s} {'T/O':>4s}  "
+          f"{'CEP50':>7s} {'bias':>7s} {'CEP50pad':>9s}")
+    print(f"{'':17s} {'':>4s} {'':>4s} {'':>4s} {'':>4s}  "
+          f"{'(prec)':>7s} {'':>7s} {'(accur)':>9s}")
     for name in ALL_SCENARIOS:
         o = outcomes[name]
         c = cep_by_scen.get(name, {})
         c50 = f"{c['cep50']:.3f}" if c else "  -"
-        c95 = f"{c['cep95']:.3f}" if c else "  -"
-        print(f"{name:16s} {o['PASS']:>4d} {o['FAIL']:>4d} {o['REJECT']:>4d} "
-              f"{o['TIMEOUT']:>4d}  {c50:>9s} {c95:>9s}")
+        bias = f"{c['bias']:.3f}" if c else "  -"
+        c50p = f"{c['cep50_pad']:.3f}" if c else "  -"
+        print(f"{name:17s} {o['PASS']:>4d} {o['FAIL']:>4d} {o['REJECT']:>4d} "
+              f"{o['TIMEOUT']:>4d}  {c50:>7s} {bias:>7s} {c50p:>9s}")
 
     print(f"\nTriage overall accuracy (in-sample): {acc:.1%}")
     for lbl, (c, n) in sorted(per_class.items()):

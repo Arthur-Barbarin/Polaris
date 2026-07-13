@@ -1,6 +1,6 @@
 {
   "card_version": "1.0.0",
-  "seeds": 15,
+  "seeds": 12,
   "dt": 0.02,
   "runs": [
     {
@@ -19,7 +19,8 @@
       "max_sink": 2.8833107778088394,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.4812710693722495,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -37,7 +38,8 @@
       "max_sink": 2.892611557075172,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.4394319306766357,
-      "vision_avail_high": 0.9714285714285714
+      "vision_avail_high": 0.9714285714285714,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -55,7 +57,8 @@
       "max_sink": 2.866033075904903,
       "descent_time": 28.82,
       "gps_vision_disagree": 1.5166629456623772,
-      "vision_avail_high": 0.976303317535545
+      "vision_avail_high": 0.976303317535545,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -73,7 +76,8 @@
       "max_sink": 2.875253702553032,
       "descent_time": 29.16,
       "gps_vision_disagree": 1.525881948759578,
-      "vision_avail_high": 0.9534883720930233
+      "vision_avail_high": 0.9534883720930233,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -91,7 +95,8 @@
       "max_sink": 2.868572287226102,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.421803339999316,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -109,7 +114,8 @@
       "max_sink": 2.8872995128491326,
       "descent_time": 28.88,
       "gps_vision_disagree": 1.503644541297255,
-      "vision_avail_high": 0.9571428571428572
+      "vision_avail_high": 0.9571428571428572,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -127,7 +133,8 @@
       "max_sink": 2.871488955981114,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.5226415353681917,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -145,7 +152,8 @@
       "max_sink": 2.8739696481869035,
       "descent_time": 28.88,
       "gps_vision_disagree": 1.5639786363512063,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -163,7 +171,8 @@
       "max_sink": 2.891951594438535,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.6018436995993641,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -181,7 +190,8 @@
       "max_sink": 2.885830264291117,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.4539582926951093,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -199,7 +209,8 @@
       "max_sink": 2.8980943616611623,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.4509019340148308,
-      "vision_avail_high": 0.9666666666666667
+      "vision_avail_high": 0.9666666666666667,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -217,61 +228,8 @@
       "max_sink": 2.878443247418001,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.5956293328098836,
-      "vision_avail_high": 0.9809523809523809
-    },
-    {
-      "seed": 12,
-      "scenario": "nominal",
-      "label": "NOMINAL",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.024094219881296806,
-      "touchdown_sink": 0.412600084042733,
-      "max_lateral_final": 0.38893190870603883,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.04025679214656624,
-      "max_sink": 2.88806031999353,
-      "descent_time": 28.8,
-      "gps_vision_disagree": 1.4497545878673934,
-      "vision_avail_high": 0.9714285714285714
-    },
-    {
-      "seed": 13,
-      "scenario": "nominal",
-      "label": "NOMINAL",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.012712157384241547,
-      "touchdown_sink": 0.40713071183959354,
-      "max_lateral_final": 0.4799697616864846,
-      "vision_avail_final": 0.9779411764705882,
-      "nav_err_final": 0.04291868025671404,
-      "max_sink": 2.88339314454445,
-      "descent_time": 29.12,
-      "gps_vision_disagree": 1.4721622046726621,
-      "vision_avail_high": 0.9813084112149533
-    },
-    {
-      "seed": 14,
-      "scenario": "nominal",
-      "label": "NOMINAL",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.015663714841947514,
-      "touchdown_sink": 0.3935981648404143,
-      "max_lateral_final": 0.4516882663662441,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.042663064453241466,
-      "max_sink": 2.8734856937378472,
-      "descent_time": 28.900000000000002,
-      "gps_vision_disagree": 1.5227267325899647,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -289,7 +247,8 @@
       "max_sink": 2.8807239049377897,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.477515229155658,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -307,7 +266,8 @@
       "max_sink": 2.8720242902430786,
       "descent_time": 28.92,
       "gps_vision_disagree": 1.44125344578605,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -325,7 +285,8 @@
       "max_sink": 2.8633117249190487,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.5200519560688228,
-      "vision_avail_high": 0.976303317535545
+      "vision_avail_high": 0.976303317535545,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -343,7 +304,8 @@
       "max_sink": 2.8752530146111432,
       "descent_time": 29.26,
       "gps_vision_disagree": 1.5186862145145097,
-      "vision_avail_high": 0.9539170506912442
+      "vision_avail_high": 0.9539170506912442,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -361,7 +323,8 @@
       "max_sink": 2.868963847908331,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.4189690259377874,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -379,7 +342,8 @@
       "max_sink": 2.8710738374214917,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.5021111678105765,
-      "vision_avail_high": 0.957345971563981
+      "vision_avail_high": 0.957345971563981,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -397,7 +361,8 @@
       "max_sink": 2.8714886277344616,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.5241536335853683,
-      "vision_avail_high": 0.981042654028436
+      "vision_avail_high": 0.981042654028436,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -415,7 +380,8 @@
       "max_sink": 2.8739685921605855,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.565142736185045,
-      "vision_avail_high": 0.976303317535545
+      "vision_avail_high": 0.976303317535545,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -433,7 +399,8 @@
       "max_sink": 2.883993976508354,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.5979058274904037,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -451,7 +418,8 @@
       "max_sink": 2.8856167835176487,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.4579781448574913,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -469,7 +437,8 @@
       "max_sink": 2.8909121758265406,
       "descent_time": 28.92,
       "gps_vision_disagree": 1.45524709482292,
-      "vision_avail_high": 0.9666666666666667
+      "vision_avail_high": 0.9666666666666667,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -487,61 +456,8 @@
       "max_sink": 2.8761968474430475,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.5933916333856217,
-      "vision_avail_high": 0.9809523809523809
-    },
-    {
-      "seed": 12,
-      "scenario": "crosswind",
-      "label": "CROSSWIND",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.033513941072014795,
-      "touchdown_sink": 0.4140578028190808,
-      "max_lateral_final": 0.22072717570531153,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.05387286599908038,
-      "max_sink": 2.8881941229951784,
-      "descent_time": 28.82,
-      "gps_vision_disagree": 1.4482723348583488,
-      "vision_avail_high": 0.9714285714285714
-    },
-    {
-      "seed": 13,
-      "scenario": "crosswind",
-      "label": "CROSSWIND",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.050072538732368686,
-      "touchdown_sink": 0.3988618935960047,
-      "max_lateral_final": 0.2734931537099475,
-      "vision_avail_final": 0.9742647058823529,
-      "nav_err_final": 0.053565469466677625,
-      "max_sink": 2.8835360145919986,
-      "descent_time": 29.240000000000002,
-      "gps_vision_disagree": 1.4672933494353109,
-      "vision_avail_high": 0.9814814814814815
-    },
-    {
-      "seed": 14,
-      "scenario": "crosswind",
-      "label": "CROSSWIND",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.03581937084231948,
-      "touchdown_sink": 0.39604803799736144,
-      "max_lateral_final": 0.27828654975205136,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.05277009598192279,
-      "max_sink": 2.873483312313488,
-      "descent_time": 28.96,
-      "gps_vision_disagree": 1.5178120830759356,
-      "vision_avail_high": 0.9716981132075472
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -559,7 +475,8 @@
       "max_sink": 2.8833107778088394,
       "descent_time": 31.54,
       "gps_vision_disagree": 1.456971650850997,
-      "vision_avail_high": 0.8735177865612648
+      "vision_avail_high": 0.8735177865612648,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -577,7 +494,8 @@
       "max_sink": 2.892611557075172,
       "descent_time": 31.560000000000002,
       "gps_vision_disagree": 1.4866153661457124,
-      "vision_avail_high": 0.9166666666666666
+      "vision_avail_high": 0.9166666666666666,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -595,7 +513,8 @@
       "max_sink": 2.866033075904903,
       "descent_time": 31.560000000000002,
       "gps_vision_disagree": 1.5044038625957312,
-      "vision_avail_high": 0.8818897637795275
+      "vision_avail_high": 0.8818897637795275,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -613,7 +532,8 @@
       "max_sink": 2.875253702553032,
       "descent_time": 31.48,
       "gps_vision_disagree": 1.564091312505976,
-      "vision_avail_high": 0.867704280155642
+      "vision_avail_high": 0.867704280155642,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -631,7 +551,8 @@
       "max_sink": 2.868572287226102,
       "descent_time": 31.580000000000002,
       "gps_vision_disagree": 1.4395478712487064,
-      "vision_avail_high": 0.8611111111111112
+      "vision_avail_high": 0.8611111111111112,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -649,7 +570,8 @@
       "max_sink": 2.8872995128491326,
       "descent_time": 31.560000000000002,
       "gps_vision_disagree": 1.525670611342232,
-      "vision_avail_high": 0.9011857707509882
+      "vision_avail_high": 0.9011857707509882,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -667,7 +589,8 @@
       "max_sink": 2.871488955981114,
       "descent_time": 31.54,
       "gps_vision_disagree": 1.5099344327942068,
-      "vision_avail_high": 0.8968253968253969
+      "vision_avail_high": 0.8968253968253969,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -685,7 +608,8 @@
       "max_sink": 2.8739696481869035,
       "descent_time": 31.52,
       "gps_vision_disagree": 1.542627375956385,
-      "vision_avail_high": 0.8849206349206349
+      "vision_avail_high": 0.8849206349206349,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -703,7 +627,8 @@
       "max_sink": 2.891951594438535,
       "descent_time": 31.560000000000002,
       "gps_vision_disagree": 1.6117450332890828,
-      "vision_avail_high": 0.857707509881423
+      "vision_avail_high": 0.857707509881423,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -721,7 +646,8 @@
       "max_sink": 2.885830264291117,
       "descent_time": 31.54,
       "gps_vision_disagree": 1.4545207425014524,
-      "vision_avail_high": 0.8814229249011858
+      "vision_avail_high": 0.8814229249011858,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -739,7 +665,8 @@
       "max_sink": 2.8980943616611623,
       "descent_time": 31.52,
       "gps_vision_disagree": 1.4604491225178222,
-      "vision_avail_high": 0.8809523809523809
+      "vision_avail_high": 0.8809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -757,61 +684,8 @@
       "max_sink": 2.878443247418001,
       "descent_time": 31.560000000000002,
       "gps_vision_disagree": 1.5767809135203004,
-      "vision_avail_high": 0.8893280632411067
-    },
-    {
-      "seed": 12,
-      "scenario": "gust",
-      "label": "GUST",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 12.343159548191093,
-      "vision_avail_final": 0.7372262773722628,
-      "nav_err_final": 0.6329768931861661,
-      "max_sink": 2.88806031999353,
-      "descent_time": 31.54,
-      "gps_vision_disagree": 1.455855593665276,
-      "vision_avail_high": 0.8888888888888888
-    },
-    {
-      "seed": 13,
-      "scenario": "gust",
-      "label": "GUST",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 12.877372865768033,
-      "vision_avail_final": 0.725925925925926,
-      "nav_err_final": 0.638915697570093,
-      "max_sink": 2.88339314454445,
-      "descent_time": 31.52,
-      "gps_vision_disagree": 1.4900697177410718,
-      "vision_avail_high": 0.90625
-    },
-    {
-      "seed": 14,
-      "scenario": "gust",
-      "label": "GUST",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 13.021510498607762,
-      "vision_avail_final": 0.7362637362637363,
-      "nav_err_final": 0.6358925324240837,
-      "max_sink": 2.8734856937378472,
-      "descent_time": 31.52,
-      "gps_vision_disagree": 1.4998932338362698,
-      "vision_avail_high": 0.9051383399209486
+      "vision_avail_high": 0.8893280632411067,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -829,7 +703,8 @@
       "max_sink": 2.884910694218888,
       "descent_time": 28.86,
       "gps_vision_disagree": 2.7695588653388854,
-      "vision_avail_high": 0.9714285714285714
+      "vision_avail_high": 0.9714285714285714,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -847,7 +722,8 @@
       "max_sink": 2.897562205680871,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 2.696391487715107,
-      "vision_avail_high": 0.9714285714285714
+      "vision_avail_high": 0.9714285714285714,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -865,7 +741,8 @@
       "max_sink": 2.8826571679713364,
       "descent_time": 28.8,
       "gps_vision_disagree": 2.6432967242368144,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -883,7 +760,8 @@
       "max_sink": 2.875252282245363,
       "descent_time": 28.94,
       "gps_vision_disagree": 2.6139774333758345,
-      "vision_avail_high": 0.95260663507109
+      "vision_avail_high": 0.95260663507109,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -901,7 +779,8 @@
       "max_sink": 2.868506883959142,
       "descent_time": 28.84,
       "gps_vision_disagree": 2.560266282103087,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -919,7 +798,8 @@
       "max_sink": 2.8947385282983276,
       "descent_time": 28.86,
       "gps_vision_disagree": 2.662638452652882,
-      "vision_avail_high": 0.9571428571428572
+      "vision_avail_high": 0.9571428571428572,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -937,7 +817,8 @@
       "max_sink": 2.8714888959040983,
       "descent_time": 28.86,
       "gps_vision_disagree": 2.5995174828645515,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -955,7 +836,8 @@
       "max_sink": 2.873969867560325,
       "descent_time": 28.88,
       "gps_vision_disagree": 2.678614797038415,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -973,7 +855,8 @@
       "max_sink": 2.8927903345343053,
       "descent_time": 28.86,
       "gps_vision_disagree": 2.6730363213332913,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -991,7 +874,8 @@
       "max_sink": 2.885830264291117,
       "descent_time": 28.86,
       "gps_vision_disagree": 2.564694553175273,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -1009,7 +893,8 @@
       "max_sink": 2.900118921259287,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 2.70744383806146,
-      "vision_avail_high": 0.9666666666666667
+      "vision_avail_high": 0.9666666666666667,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -1027,61 +912,8 @@
       "max_sink": 2.878452660377647,
       "descent_time": 28.84,
       "gps_vision_disagree": 2.643399088688986,
-      "vision_avail_high": 0.9809523809523809
-    },
-    {
-      "seed": 12,
-      "scenario": "offset_pad",
-      "label": "OFFSET_PAD",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.02458915503160893,
-      "touchdown_sink": 0.4126000840426945,
-      "max_lateral_final": 0.2642752285854702,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.04026284734628844,
-      "max_sink": 2.888056720933571,
-      "descent_time": 28.8,
-      "gps_vision_disagree": 2.6263418304633452,
-      "vision_avail_high": 0.9714285714285714
-    },
-    {
-      "seed": 13,
-      "scenario": "offset_pad",
-      "label": "OFFSET_PAD",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.006082575456188082,
-      "touchdown_sink": 0.3967365301264678,
-      "max_lateral_final": 0.4371482043778322,
-      "vision_avail_final": 0.9779411764705882,
-      "nav_err_final": 0.04339823365505733,
-      "max_sink": 2.8834892873864435,
-      "descent_time": 28.94,
-      "gps_vision_disagree": 2.549649040622555,
-      "vision_avail_high": 0.981042654028436
-    },
-    {
-      "seed": 14,
-      "scenario": "offset_pad",
-      "label": "OFFSET_PAD",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.016759953604409485,
-      "touchdown_sink": 0.39284562412017354,
-      "max_lateral_final": 0.3105848116934438,
-      "vision_avail_final": 0.9779411764705882,
-      "nav_err_final": 0.042668551278728414,
-      "max_sink": 2.8833280930980014,
-      "descent_time": 28.86,
-      "gps_vision_disagree": 2.547432569952451,
-      "vision_avail_high": 0.9714285714285714
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -1099,7 +931,8 @@
       "max_sink": 2.883276022828265,
       "descent_time": 28.86,
       "gps_vision_disagree": 3.6591353043686627,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -1117,7 +950,8 @@
       "max_sink": 2.8923997788453444,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 3.5902341253703627,
-      "vision_avail_high": 0.9714285714285714
+      "vision_avail_high": 0.9714285714285714,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -1135,7 +969,8 @@
       "max_sink": 2.865832181000508,
       "descent_time": 28.82,
       "gps_vision_disagree": 3.509025291875191,
-      "vision_avail_high": 0.976303317535545
+      "vision_avail_high": 0.976303317535545,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -1153,7 +988,8 @@
       "max_sink": 2.8752537061611303,
       "descent_time": 29.16,
       "gps_vision_disagree": 3.484497589411435,
-      "vision_avail_high": 0.9534883720930233
+      "vision_avail_high": 0.9534883720930233,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -1171,7 +1007,8 @@
       "max_sink": 2.868577353884397,
       "descent_time": 28.84,
       "gps_vision_disagree": 3.4353299550752308,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -1189,7 +1026,8 @@
       "max_sink": 2.8872204070626077,
       "descent_time": 28.88,
       "gps_vision_disagree": 3.5387452242238755,
-      "vision_avail_high": 0.9571428571428572
+      "vision_avail_high": 0.9571428571428572,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -1207,7 +1045,8 @@
       "max_sink": 2.8714889563934998,
       "descent_time": 28.86,
       "gps_vision_disagree": 3.4669176579887417,
-      "vision_avail_high": 0.9809523809523809
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -1225,7 +1064,8 @@
       "max_sink": 2.87396964232834,
       "descent_time": 28.88,
       "gps_vision_disagree": 3.551989699922335,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -1243,7 +1083,8 @@
       "max_sink": 2.891910845292018,
       "descent_time": 28.86,
       "gps_vision_disagree": 3.543725632067781,
-      "vision_avail_high": 0.9761904761904762
+      "vision_avail_high": 0.9761904761904762,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -1261,7 +1102,8 @@
       "max_sink": 2.885830264291117,
       "descent_time": 28.86,
       "gps_vision_disagree": 3.4395468702016276,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9715639810426541,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -1279,7 +1121,8 @@
       "max_sink": 2.8980307568224526,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 3.5926201792632306,
-      "vision_avail_high": 0.9666666666666667
+      "vision_avail_high": 0.9666666666666667,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -1297,61 +1140,8 @@
       "max_sink": 2.8784270235396807,
       "descent_time": 28.84,
       "gps_vision_disagree": 3.4908048150469386,
-      "vision_avail_high": 0.9809523809523809
-    },
-    {
-      "seed": 12,
-      "scenario": "gps_bias",
-      "label": "GPS_BIAS",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.024804414790363636,
-      "touchdown_sink": 0.41260008404273824,
-      "max_lateral_final": 0.3880390873958012,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.040282162891325905,
-      "max_sink": 2.8880608181711374,
-      "descent_time": 28.8,
-      "gps_vision_disagree": 3.508208890313563,
-      "vision_avail_high": 0.9714285714285714
-    },
-    {
-      "seed": 13,
-      "scenario": "gps_bias",
-      "label": "GPS_BIAS",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.011054602348825786,
-      "touchdown_sink": 0.4071307118397117,
-      "max_lateral_final": 0.47804985821357837,
-      "vision_avail_final": 0.9779411764705882,
-      "nav_err_final": 0.04303671124313546,
-      "max_sink": 2.8833929342286275,
-      "descent_time": 29.12,
-      "gps_vision_disagree": 3.4119404345697752,
-      "vision_avail_high": 0.9813084112149533
-    },
-    {
-      "seed": 14,
-      "scenario": "gps_bias",
-      "label": "GPS_BIAS",
-      "outcome": "LANDED",
-      "passed": true,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.017617722553641874,
-      "touchdown_sink": 0.3935981648405007,
-      "max_lateral_final": 0.44990797784874237,
-      "vision_avail_final": 0.977859778597786,
-      "nav_err_final": 0.042708790409923834,
-      "max_sink": 2.8734856920998784,
-      "descent_time": 28.900000000000002,
-      "gps_vision_disagree": 3.3948844001154272,
-      "vision_avail_high": 0.9715639810426541
+      "vision_avail_high": 0.9809523809523809,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -1369,7 +1159,8 @@
       "max_sink": 2.8756853482321527,
       "descent_time": 28.88,
       "gps_vision_disagree": 1.621951128333434,
-      "vision_avail_high": 0.3080568720379147
+      "vision_avail_high": 0.3080568720379147,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -1387,7 +1178,8 @@
       "max_sink": 2.891870266574276,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.4809871197621904,
-      "vision_avail_high": 0.3412322274881517
+      "vision_avail_high": 0.3412322274881517,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -1405,7 +1197,8 @@
       "max_sink": 2.8754953230745466,
       "descent_time": 28.84,
       "gps_vision_disagree": 1.5354517716191909,
-      "vision_avail_high": 0.36018957345971564
+      "vision_avail_high": 0.36018957345971564,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -1423,7 +1216,8 @@
       "max_sink": 2.869479973638018,
       "descent_time": 29.12,
       "gps_vision_disagree": 1.4010860173414366,
-      "vision_avail_high": 0.35514018691588783
+      "vision_avail_high": 0.35514018691588783,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -1441,7 +1235,8 @@
       "max_sink": 2.8727074565091333,
       "descent_time": 28.8,
       "gps_vision_disagree": 1.5223075686413141,
-      "vision_avail_high": 0.3333333333333333
+      "vision_avail_high": 0.3333333333333333,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -1459,7 +1254,8 @@
       "max_sink": 2.883991367729352,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.3538438504101393,
-      "vision_avail_high": 0.3238095238095238
+      "vision_avail_high": 0.3238095238095238,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -1477,7 +1273,8 @@
       "max_sink": 2.8783715312649103,
       "descent_time": 28.88,
       "gps_vision_disagree": 1.5699443531288608,
-      "vision_avail_high": 0.35714285714285715
+      "vision_avail_high": 0.35714285714285715,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -1495,7 +1292,8 @@
       "max_sink": 2.885884638043064,
       "descent_time": 28.900000000000002,
       "gps_vision_disagree": 1.4897824008158473,
-      "vision_avail_high": 0.29523809523809524
+      "vision_avail_high": 0.29523809523809524,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -1513,7 +1311,8 @@
       "max_sink": 2.8855165459348915,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.5460164934377236,
-      "vision_avail_high": 0.3904761904761905
+      "vision_avail_high": 0.3904761904761905,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -1531,7 +1330,8 @@
       "max_sink": 2.8859451045857827,
       "descent_time": 28.8,
       "gps_vision_disagree": 1.5875334499538358,
-      "vision_avail_high": 0.3238095238095238
+      "vision_avail_high": 0.3238095238095238,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -1549,7 +1349,8 @@
       "max_sink": 2.8933159401440665,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.5587471006933817,
-      "vision_avail_high": 0.3523809523809524
+      "vision_avail_high": 0.3523809523809524,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -1567,61 +1368,8 @@
       "max_sink": 2.869023425227152,
       "descent_time": 28.86,
       "gps_vision_disagree": 1.4116553933537246,
-      "vision_avail_high": 0.32857142857142857
-    },
-    {
-      "seed": 12,
-      "scenario": "low_light",
-      "label": "LOW_LIGHT",
-      "outcome": "LANDED",
-      "passed": false,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.0771057600421769,
-      "touchdown_sink": 0.37881286964318844,
-      "max_lateral_final": 0.41485394963437017,
-      "vision_avail_final": 0.35661764705882354,
-      "nav_err_final": 0.06834172761032148,
-      "max_sink": 2.895280362059192,
-      "descent_time": 28.86,
-      "gps_vision_disagree": 1.5041263030898897,
-      "vision_avail_high": 0.3238095238095238
-    },
-    {
-      "seed": 13,
-      "scenario": "low_light",
-      "label": "LOW_LIGHT",
-      "outcome": "LANDED",
-      "passed": false,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.05783524859344665,
-      "touchdown_sink": 0.3628640360154378,
-      "max_lateral_final": 0.477929728316029,
-      "vision_avail_final": 0.28413284132841327,
-      "nav_err_final": 0.07887338655728927,
-      "max_sink": 2.8850179454045897,
-      "descent_time": 29.12,
-      "gps_vision_disagree": 1.420586693895723,
-      "vision_avail_high": 0.3674418604651163
-    },
-    {
-      "seed": 14,
-      "scenario": "low_light",
-      "label": "LOW_LIGHT",
-      "outcome": "LANDED",
-      "passed": false,
-      "landed": 1.0,
-      "go_around": 0.0,
-      "touchdown_lateral": 0.09318832367094436,
-      "touchdown_sink": 0.4040141867638241,
-      "max_lateral_final": 0.5434842818913028,
-      "vision_avail_final": 0.34686346863468637,
-      "nav_err_final": 0.06150726713652857,
-      "max_sink": 2.8774743533538425,
-      "descent_time": 28.900000000000002,
-      "gps_vision_disagree": 1.5484334935806234,
-      "vision_avail_high": 0.33175355450236965
+      "vision_avail_high": 0.32857142857142857,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -1639,7 +1387,8 @@
       "max_sink": 2.8833107778088394,
       "descent_time": 31.76,
       "gps_vision_disagree": 1.4597383842460108,
-      "vision_avail_high": 0.8102766798418972
+      "vision_avail_high": 0.8102766798418972,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -1657,7 +1406,8 @@
       "max_sink": 2.892611557075172,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.4735989866526877,
-      "vision_avail_high": 0.8063241106719368
+      "vision_avail_high": 0.8063241106719368,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -1675,7 +1425,8 @@
       "max_sink": 2.866033075904903,
       "descent_time": 31.76,
       "gps_vision_disagree": 1.4998308896620733,
-      "vision_avail_high": 0.8142292490118577
+      "vision_avail_high": 0.8142292490118577,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -1693,7 +1444,8 @@
       "max_sink": 2.875253702553032,
       "descent_time": 31.7,
       "gps_vision_disagree": 1.53110792726606,
-      "vision_avail_high": 0.7976653696498055
+      "vision_avail_high": 0.7976653696498055,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -1711,7 +1463,8 @@
       "max_sink": 2.868572287226102,
       "descent_time": 31.7,
       "gps_vision_disagree": 1.4375082450667676,
-      "vision_avail_high": 0.8174603174603174
+      "vision_avail_high": 0.8174603174603174,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -1729,7 +1482,8 @@
       "max_sink": 2.8872995128491326,
       "descent_time": 31.76,
       "gps_vision_disagree": 1.4840662008712677,
-      "vision_avail_high": 0.7976190476190477
+      "vision_avail_high": 0.7976190476190477,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -1747,7 +1501,8 @@
       "max_sink": 2.871488955981114,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.5178094335297778,
-      "vision_avail_high": 0.8142292490118577
+      "vision_avail_high": 0.8142292490118577,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -1765,7 +1520,8 @@
       "max_sink": 2.8739696481869035,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.556221402009572,
-      "vision_avail_high": 0.8102766798418972
+      "vision_avail_high": 0.8102766798418972,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -1783,7 +1539,8 @@
       "max_sink": 2.891951594438535,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.6064476085702977,
-      "vision_avail_high": 0.8102766798418972
+      "vision_avail_high": 0.8102766798418972,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -1801,7 +1558,8 @@
       "max_sink": 2.885830264291117,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.4473046635082807,
-      "vision_avail_high": 0.8070866141732284
+      "vision_avail_high": 0.8070866141732284,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -1819,7 +1577,8 @@
       "max_sink": 2.8980943616611623,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.486348777457134,
-      "vision_avail_high": 0.8055555555555556
+      "vision_avail_high": 0.8055555555555556,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -1837,61 +1596,8 @@
       "max_sink": 2.878443247418001,
       "descent_time": 31.740000000000002,
       "gps_vision_disagree": 1.5750233196271826,
-      "vision_avail_high": 0.8142292490118577
-    },
-    {
-      "seed": 12,
-      "scenario": "vision_dropout",
-      "label": "VISION_DROPOUT",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 1.5271420952309,
-      "vision_avail_final": 0.6690647482014388,
-      "nav_err_final": 0.2805132857618332,
-      "max_sink": 2.88806031999353,
-      "descent_time": 31.76,
-      "gps_vision_disagree": 1.4867604577460218,
-      "vision_avail_high": 0.8095238095238095
-    },
-    {
-      "seed": 13,
-      "scenario": "vision_dropout",
-      "label": "VISION_DROPOUT",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 0.9101136766440694,
-      "vision_avail_final": 0.6593406593406593,
-      "nav_err_final": 0.20519513820441343,
-      "max_sink": 2.88339314454445,
-      "descent_time": 31.720000000000002,
-      "gps_vision_disagree": 1.47472366507539,
-      "vision_avail_high": 0.8203125
-    },
-    {
-      "seed": 14,
-      "scenario": "vision_dropout",
-      "label": "VISION_DROPOUT",
-      "outcome": "GO_AROUND",
-      "passed": false,
-      "landed": 0.0,
-      "go_around": 1.0,
-      "touchdown_lateral": NaN,
-      "touchdown_sink": NaN,
-      "max_lateral_final": 0.7919450563283306,
-      "vision_avail_final": 0.6702898550724637,
-      "nav_err_final": 0.18777504148521343,
-      "max_sink": 2.8734856937378472,
-      "descent_time": 31.740000000000002,
-      "gps_vision_disagree": 1.5048701864004883,
-      "vision_avail_high": 0.8070866141732284
+      "vision_avail_high": 0.8142292490118577,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 0,
@@ -1909,7 +1615,8 @@
       "max_sink": 2.8808864984538904,
       "descent_time": 29.32,
       "gps_vision_disagree": 1.4374097139860857,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 1,
@@ -1927,7 +1634,8 @@
       "max_sink": 2.8631265854595376,
       "descent_time": 29.22,
       "gps_vision_disagree": 1.343622635937273,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 2,
@@ -1945,7 +1653,8 @@
       "max_sink": 2.8753182675114304,
       "descent_time": 29.34,
       "gps_vision_disagree": 1.465172251547061,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 3,
@@ -1963,7 +1672,8 @@
       "max_sink": 2.8734831377772316,
       "descent_time": 30.240000000000002,
       "gps_vision_disagree": 1.6767050817513298,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 4,
@@ -1981,7 +1691,8 @@
       "max_sink": 2.880215660541051,
       "descent_time": 29.14,
       "gps_vision_disagree": 1.4586836591198002,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 5,
@@ -1999,7 +1710,8 @@
       "max_sink": 2.883576996477891,
       "descent_time": 29.2,
       "gps_vision_disagree": 1.49718880194896,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 6,
@@ -2017,7 +1729,8 @@
       "max_sink": 2.9000158040239503,
       "descent_time": 29.14,
       "gps_vision_disagree": 1.4863429078695487,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 7,
@@ -2035,7 +1748,8 @@
       "max_sink": 2.886266308875308,
       "descent_time": 29.42,
       "gps_vision_disagree": 1.328527333691544,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 8,
@@ -2053,7 +1767,8 @@
       "max_sink": 2.8737285732247866,
       "descent_time": 29.22,
       "gps_vision_disagree": 1.3478832302773356,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 9,
@@ -2071,7 +1786,8 @@
       "max_sink": 2.8742657963937748,
       "descent_time": 29.28,
       "gps_vision_disagree": 1.4999295755647548,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 10,
@@ -2089,7 +1805,8 @@
       "max_sink": 2.861474534550756,
       "descent_time": 29.080000000000002,
       "gps_vision_disagree": 1.4360782568058483,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
       "seed": 11,
@@ -2107,123 +1824,570 @@
       "max_sink": 2.8635852405949183,
       "descent_time": 29.02,
       "gps_vision_disagree": 1.6220950928985776,
-      "vision_avail_high": 0.0
+      "vision_avail_high": 0.0,
+      "touchdown_radius": 0.5
     },
     {
-      "seed": 12,
-      "scenario": "late_acquire",
-      "label": "LATE_ACQUIRE",
+      "seed": 0,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
       "outcome": "LANDED",
       "passed": true,
       "landed": 1.0,
       "go_around": 0.0,
-      "touchdown_lateral": 0.035057077439420235,
-      "touchdown_sink": 0.34708468967192874,
-      "max_lateral_final": 1.3262506490411152,
-      "vision_avail_final": 0.8941605839416058,
-      "nav_err_final": 0.11229840626065324,
-      "max_sink": 2.880048656844286,
-      "descent_time": 29.240000000000002,
-      "gps_vision_disagree": 1.4564836995583694,
-      "vision_avail_high": 0.0
+      "touchdown_lateral": 0.016553691135104846,
+      "touchdown_sink": 0.40609942516917497,
+      "max_lateral_final": 0.34834127771174644,
+      "vision_avail_final": 0.9816176470588235,
+      "nav_err_final": 0.045804641342444156,
+      "max_sink": 2.9443152379943185,
+      "descent_time": 30.0,
+      "gps_vision_disagree": 1.4901031225556747,
+      "vision_avail_high": 0.9737991266375546,
+      "touchdown_radius": 0.5
     },
     {
-      "seed": 13,
-      "scenario": "late_acquire",
-      "label": "LATE_ACQUIRE",
+      "seed": 1,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
       "outcome": "LANDED",
       "passed": true,
       "landed": 1.0,
       "go_around": 0.0,
-      "touchdown_lateral": 0.04052822780540754,
-      "touchdown_sink": 0.36661358120720133,
-      "max_lateral_final": 0.6714568608868459,
-      "vision_avail_final": 0.8786764705882353,
-      "nav_err_final": 0.09112202562231358,
-      "max_sink": 2.8521911457814406,
-      "descent_time": 29.72,
-      "gps_vision_disagree": 1.3561752596084053,
-      "vision_avail_high": 0.0
+      "touchdown_lateral": 0.023832913956850246,
+      "touchdown_sink": 0.36477712732593986,
+      "max_lateral_final": 0.387405681387442,
+      "vision_avail_final": 0.9633699633699634,
+      "nav_err_final": 0.04799597036532126,
+      "max_sink": 2.9508772148503475,
+      "descent_time": 30.060000000000002,
+      "gps_vision_disagree": 1.4517863972719816,
+      "vision_avail_high": 0.9694323144104804,
+      "touchdown_radius": 0.5
     },
     {
-      "seed": 14,
-      "scenario": "late_acquire",
-      "label": "LATE_ACQUIRE",
+      "seed": 2,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
       "outcome": "LANDED",
       "passed": true,
       "landed": 1.0,
       "go_around": 0.0,
-      "touchdown_lateral": 0.014484012997011946,
-      "touchdown_sink": 0.3975258941648265,
-      "max_lateral_final": 0.8806699509096944,
-      "vision_avail_final": 0.875,
-      "nav_err_final": 0.10564268404718935,
-      "max_sink": 2.879328694151453,
-      "descent_time": 29.36,
-      "gps_vision_disagree": 1.599291899355262,
-      "vision_avail_high": 0.0
+      "touchdown_lateral": 0.016897808346990364,
+      "touchdown_sink": 0.4020022059769068,
+      "max_lateral_final": 0.3215458884630674,
+      "vision_avail_final": 0.959409594095941,
+      "nav_err_final": 0.052247156748021814,
+      "max_sink": 2.9162734140465645,
+      "descent_time": 29.94,
+      "gps_vision_disagree": 1.5185186805396491,
+      "vision_avail_high": 0.9694323144104804,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 3,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.0077060825635752225,
+      "touchdown_sink": 0.3876102077577407,
+      "max_lateral_final": 0.358641640625805,
+      "vision_avail_final": 0.9705882352941176,
+      "nav_err_final": 0.05077189986741144,
+      "max_sink": 2.924788614935449,
+      "descent_time": 30.54,
+      "gps_vision_disagree": 1.4988778264636036,
+      "vision_avail_high": 0.9495798319327731,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 4,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.008897599965793451,
+      "touchdown_sink": 0.3703303953228315,
+      "max_lateral_final": 0.3524893659959112,
+      "vision_avail_final": 0.988929889298893,
+      "nav_err_final": 0.04956456799505882,
+      "max_sink": 2.9597584265715207,
+      "descent_time": 29.98,
+      "gps_vision_disagree": 1.426848260040822,
+      "vision_avail_high": 0.982532751091703,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 5,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.03309655982009778,
+      "touchdown_sink": 0.3861116737471766,
+      "max_lateral_final": 0.31869516826185895,
+      "vision_avail_final": 0.9705882352941176,
+      "nav_err_final": 0.05004164560643539,
+      "max_sink": 2.9469423608180025,
+      "descent_time": 30.04,
+      "gps_vision_disagree": 1.5381478220275344,
+      "vision_avail_high": 0.9606986899563319,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 6,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.02340733720626441,
+      "touchdown_sink": 0.3863929201518535,
+      "max_lateral_final": 0.3368915791373376,
+      "vision_avail_final": 0.9742647058823529,
+      "nav_err_final": 0.04453503107407673,
+      "max_sink": 2.9340436738298012,
+      "descent_time": 30.0,
+      "gps_vision_disagree": 1.524505252784388,
+      "vision_avail_high": 0.982532751091703,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 7,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.020836480957752077,
+      "touchdown_sink": 0.40274940153785843,
+      "max_lateral_final": 0.351410144115845,
+      "vision_avail_final": 0.9669117647058824,
+      "nav_err_final": 0.046623635977717744,
+      "max_sink": 2.97248749432365,
+      "descent_time": 30.04,
+      "gps_vision_disagree": 1.5561371540336304,
+      "vision_avail_high": 0.9737991266375546,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 8,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.027723338188930934,
+      "touchdown_sink": 0.38053818829211694,
+      "max_lateral_final": 0.30327306713560576,
+      "vision_avail_final": 0.9705882352941176,
+      "nav_err_final": 0.0513373172411278,
+      "max_sink": 2.9645064349857027,
+      "descent_time": 30.0,
+      "gps_vision_disagree": 1.580132724755929,
+      "vision_avail_high": 0.9781659388646288,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 9,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.03864693458475586,
+      "touchdown_sink": 0.39324004792329714,
+      "max_lateral_final": 0.3272854598173232,
+      "vision_avail_final": 0.9632352941176471,
+      "nav_err_final": 0.05171987215441945,
+      "max_sink": 2.980736431124538,
+      "descent_time": 29.98,
+      "gps_vision_disagree": 1.4639092941281477,
+      "vision_avail_high": 0.9736842105263158,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 10,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.03761284617735242,
+      "touchdown_sink": 0.3957719182481393,
+      "max_lateral_final": 0.31710250403879936,
+      "vision_avail_final": 0.9558823529411765,
+      "nav_err_final": 0.04818490573446081,
+      "max_sink": 2.964259496322817,
+      "descent_time": 30.04,
+      "gps_vision_disagree": 1.4900646281234722,
+      "vision_avail_high": 0.9694323144104804,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 11,
+      "scenario": "degraded_vehicle",
+      "label": "DEGRADED_VEHICLE",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.020868415484558804,
+      "touchdown_sink": 0.37951714239557577,
+      "max_lateral_final": 0.36070818262573784,
+      "vision_avail_final": 0.948339483394834,
+      "nav_err_final": 0.04911302993580934,
+      "max_sink": 2.9770795471960128,
+      "descent_time": 29.96,
+      "gps_vision_disagree": 1.5963373235772578,
+      "vision_avail_high": 0.9781659388646288,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 0,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.023781031059246418,
+      "touchdown_sink": 0.388856034434925,
+      "max_lateral_final": 0.4625979142566729,
+      "vision_avail_final": 0.9411764705882353,
+      "nav_err_final": 0.04246886421974378,
+      "max_sink": 2.8694700640194664,
+      "descent_time": 29.7,
+      "gps_vision_disagree": 1.5401781352689008,
+      "vision_avail_high": 0.8258928571428571,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 1,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.0074444730995488,
+      "touchdown_sink": 0.3653927070260385,
+      "max_lateral_final": 0.512693576454905,
+      "vision_avail_final": 0.959409594095941,
+      "nav_err_final": 0.03960595672868591,
+      "max_sink": 2.872891766187487,
+      "descent_time": 29.54,
+      "gps_vision_disagree": 1.474902704457375,
+      "vision_avail_high": 0.8378378378378378,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 2,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.02190057956132018,
+      "touchdown_sink": 0.37523775033187945,
+      "max_lateral_final": 0.48317857251871965,
+      "vision_avail_final": 0.948339483394834,
+      "nav_err_final": 0.04223336896026901,
+      "max_sink": 2.881111680138376,
+      "descent_time": 29.580000000000002,
+      "gps_vision_disagree": 1.5686614479077523,
+      "vision_avail_high": 0.852017937219731,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 3,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.04259873185812595,
+      "touchdown_sink": 0.39143414398863063,
+      "max_lateral_final": 0.465985552996248,
+      "vision_avail_final": 0.933579335793358,
+      "nav_err_final": 0.047800350787607845,
+      "max_sink": 2.874865935282912,
+      "descent_time": 30.080000000000002,
+      "gps_vision_disagree": 1.479888594695213,
+      "vision_avail_high": 0.7965367965367965,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 4,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.028396969730872693,
+      "touchdown_sink": 0.3657619849436842,
+      "max_lateral_final": 0.4971371018703777,
+      "vision_avail_final": 0.948339483394834,
+      "nav_err_final": 0.04312632661133891,
+      "max_sink": 2.8971062512695003,
+      "descent_time": 29.5,
+      "gps_vision_disagree": 1.43743950122621,
+      "vision_avail_high": 0.8642533936651584,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 5,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.014323976057763116,
+      "touchdown_sink": 0.38550565843629214,
+      "max_lateral_final": 0.47194279238452214,
+      "vision_avail_final": 0.9520295202952029,
+      "nav_err_final": 0.04173014324039582,
+      "max_sink": 2.886766198221627,
+      "descent_time": 29.560000000000002,
+      "gps_vision_disagree": 1.560063319772758,
+      "vision_avail_high": 0.8288288288288288,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 6,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.016134507742314702,
+      "touchdown_sink": 0.36579255795223636,
+      "max_lateral_final": 0.47249260918685726,
+      "vision_avail_final": 0.966789667896679,
+      "nav_err_final": 0.04170353705305621,
+      "max_sink": 2.8717815533302016,
+      "descent_time": 29.54,
+      "gps_vision_disagree": 1.6178003832561931,
+      "vision_avail_high": 0.8378378378378378,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 7,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.006578583988553298,
+      "touchdown_sink": 0.3854007217618654,
+      "max_lateral_final": 0.5028807047688432,
+      "vision_avail_final": 0.9338235294117647,
+      "nav_err_final": 0.044813848955653206,
+      "max_sink": 2.8794341192648236,
+      "descent_time": 29.54,
+      "gps_vision_disagree": 1.4652783540761896,
+      "vision_avail_high": 0.8552036199095022,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 8,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.0036736568713119128,
+      "touchdown_sink": 0.4039040694555998,
+      "max_lateral_final": 0.45097440441736697,
+      "vision_avail_final": 0.974169741697417,
+      "nav_err_final": 0.041544564019858905,
+      "max_sink": 2.8765885372667372,
+      "descent_time": 29.5,
+      "gps_vision_disagree": 1.5156930071462036,
+      "vision_avail_high": 0.8506787330316742,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 9,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.020694515459881154,
+      "touchdown_sink": 0.3822726484381931,
+      "max_lateral_final": 0.48969172526527677,
+      "vision_avail_final": 0.959409594095941,
+      "nav_err_final": 0.041181278128106256,
+      "max_sink": 2.87152703531731,
+      "descent_time": 29.400000000000002,
+      "gps_vision_disagree": 1.4951017509350368,
+      "vision_avail_high": 0.8636363636363636,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 10,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.041078353001176605,
+      "touchdown_sink": 0.3762817087940354,
+      "max_lateral_final": 0.5115894603377871,
+      "vision_avail_final": 0.948339483394834,
+      "nav_err_final": 0.04249258656322796,
+      "max_sink": 2.8811651727131946,
+      "descent_time": 29.44,
+      "gps_vision_disagree": 1.5710666547585883,
+      "vision_avail_high": 0.8409090909090909,
+      "touchdown_radius": 0.5
+    },
+    {
+      "seed": 11,
+      "scenario": "narrow_fov",
+      "label": "NARROW_FOV",
+      "outcome": "LANDED",
+      "passed": true,
+      "landed": 1.0,
+      "go_around": 0.0,
+      "touchdown_lateral": 0.03731653841870189,
+      "touchdown_sink": 0.3918503844332763,
+      "max_lateral_final": 0.5215214734099273,
+      "vision_avail_final": 0.9520295202952029,
+      "nav_err_final": 0.04325804827332627,
+      "max_sink": 2.8792895544372077,
+      "descent_time": 29.3,
+      "gps_vision_disagree": 1.5944046382564603,
+      "vision_avail_high": 0.8577981651376146,
+      "touchdown_radius": 0.5
     }
   ],
   "cep": {
     "nominal": {
-      "n": 15,
-      "cep50": 0.02275282333532196,
-      "cep95": 0.036088268503507416,
-      "ellipse_a": 0.021047731979166255,
-      "ellipse_b": 0.011608579292520066,
-      "ellipse_angle": 1.9466411358679798,
-      "mean_x": -0.0003970533361919169,
-      "mean_y": 0.0023772717252843255
+      "n": 12,
+      "cep50": 0.02266517060931974,
+      "cep95": 0.03670473131919524,
+      "bias": 0.004868433188565142,
+      "cep50_pad": 0.024196330036888626,
+      "cep95_pad": 0.035885114502434444,
+      "ellipse_a": 0.02327564678978007,
+      "ellipse_b": 0.009266983719210108,
+      "ellipse_angle": 1.952990503484589,
+      "mean_x": 0.0017595914596066195,
+      "mean_y": 0.004539325897840119
     },
     "crosswind": {
-      "n": 15,
-      "cep50": 0.01664623062537414,
-      "cep95": 0.03626085442466506,
-      "ellipse_a": 0.01973623047686599,
-      "ellipse_b": 0.01125145859723659,
-      "ellipse_angle": 1.8852879495663224,
-      "mean_x": 0.03225180285983641,
-      "mean_y": -0.017662862577018146
+      "n": 12,
+      "cep50": 0.01765389182997105,
+      "cep95": 0.03494040664917962,
+      "bias": 0.03698220462184124,
+      "cep50_pad": 0.04069392322345981,
+      "cep95_pad": 0.0624660956241592,
+      "ellipse_a": 0.02177881133223811,
+      "ellipse_b": 0.009365192136373044,
+      "ellipse_angle": 1.9259719807449647,
+      "mean_x": 0.033719495514831783,
+      "mean_y": -0.015188123021524913
     },
     "offset_pad": {
-      "n": 15,
-      "cep50": 0.021409789790497926,
-      "cep95": 0.03601659825999749,
-      "ellipse_a": 0.0202735951190967,
-      "ellipse_b": 0.011454431600446121,
-      "ellipse_angle": 1.9380674495713388,
-      "mean_x": -0.00226817700458198,
-      "mean_y": 0.0028105943697389908
+      "n": 12,
+      "cep50": 0.021333800939036262,
+      "cep95": 0.03664825685434865,
+      "bias": 0.0046673472856316785,
+      "cep50_pad": 0.022401074875403014,
+      "cep95_pad": 0.035851623708749975,
+      "ellipse_a": 0.02275476366364776,
+      "ellipse_b": 0.009081832222343588,
+      "ellipse_angle": 1.9646963470106842,
+      "mean_x": 0.000850442703961877,
+      "mean_y": 0.004589213210559236
     },
     "gps_bias": {
-      "n": 15,
-      "cep50": 0.022833068573656516,
-      "cep95": 0.03608611564582386,
-      "ellipse_a": 0.021100988290003463,
-      "ellipse_b": 0.011644796682990849,
-      "ellipse_angle": 1.95109652457746,
-      "mean_x": -0.001794240334666331,
-      "mean_y": 0.0034949444479959726
+      "n": 12,
+      "cep50": 0.022630382720894224,
+      "cep95": 0.036633852909327136,
+      "bias": 0.0056529274782990396,
+      "cep50_pad": 0.02414578881111849,
+      "cep95_pad": 0.03582477429169244,
+      "ellipse_a": 0.023322501256797468,
+      "ellipse_b": 0.009287365914236005,
+      "ellipse_angle": 1.9550672304005206,
+      "mean_x": 0.00038381573058317195,
+      "mean_y": 0.005639882495217897
     },
     "low_light": {
-      "n": 15,
-      "cep50": 0.06412385820780657,
-      "cep95": 0.10555291537670697,
-      "ellipse_a": 0.059198457480037776,
-      "ellipse_b": 0.042229054803514944,
-      "ellipse_angle": 1.4346982621740565,
-      "mean_x": 0.0047621637796755835,
-      "mean_y": -0.008797533508576186
+      "n": 12,
+      "cep50": 0.044265735291148335,
+      "cep95": 0.10519158751973784,
+      "bias": 0.02765001091260392,
+      "cep50_pad": 0.06301949877252963,
+      "cep95_pad": 0.10944747900592294,
+      "ellipse_a": 0.05370847283253883,
+      "ellipse_b": 0.03890603179023362,
+      "ellipse_angle": 1.1333318605689067,
+      "mean_x": 0.006907737541529205,
+      "mean_y": -0.026773237860304902
     },
     "late_acquire": {
-      "n": 15,
-      "cep50": 0.024728134492487445,
-      "cep95": 0.04389201747884837,
-      "ellipse_a": 0.02100710069161305,
-      "ellipse_b": 0.017208444780363392,
-      "ellipse_angle": 1.013280542963189,
-      "mean_x": 0.004148049707967648,
-      "mean_y": -0.008063686836532035
+      "n": 12,
+      "cep50": 0.02391827575507336,
+      "cep95": 0.040437444330928066,
+      "bias": 0.007973081660826883,
+      "cep50_pad": 0.02113052019968257,
+      "cep95_pad": 0.043270912577733134,
+      "ellipse_a": 0.02245388915552293,
+      "ellipse_b": 0.014036746869156581,
+      "ellipse_angle": 1.336099110302405,
+      "mean_x": 0.0051350822347650815,
+      "mean_y": -0.006099259103564466
+    },
+    "degraded_vehicle": {
+      "n": 12,
+      "cep50": 0.016854376877657694,
+      "cep95": 0.03476646109849785,
+      "bias": 0.012012259226878473,
+      "cep50_pad": 0.022137876345411606,
+      "cep95_pad": 0.03807818596068397,
+      "ellipse_a": 0.02036707778144134,
+      "ellipse_b": 0.010275394918167062,
+      "ellipse_angle": 3.0143394258952023,
+      "mean_x": 0.005563809098475679,
+      "mean_y": -0.010646050913340884
+    },
+    "narrow_fov": {
+      "n": 12,
+      "cep50": 0.01951298714873334,
+      "cep95": 0.04154543088734275,
+      "bias": 0.005406642274380869,
+      "cep50_pad": 0.021297547510600666,
+      "cep95_pad": 0.04176252348680381,
+      "ellipse_a": 0.02183410101103566,
+      "ellipse_b": 0.014004330795754766,
+      "ellipse_angle": -2.727148276947603,
+      "mean_x": -0.0014632995692715185,
+      "mean_y": 0.005204856871585628
     }
   }
 }

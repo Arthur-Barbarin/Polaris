@@ -1,37 +1,45 @@
 {
-  "overall_accuracy": 0.8916666666666667,
+  "overall_accuracy": 0.9,
   "per_class": {
     "NOMINAL": [
-      8,
-      15
+      0,
+      12
     ],
     "CROSSWIND": [
-      9,
-      15
+      12,
+      12
     ],
     "GUST": [
-      15,
-      15
+      12,
+      12
     ],
     "OFFSET_PAD": [
-      15,
-      15
+      12,
+      12
     ],
     "GPS_BIAS": [
-      15,
-      15
+      12,
+      12
     ],
     "LOW_LIGHT": [
-      15,
-      15
+      12,
+      12
     ],
     "VISION_DROPOUT": [
-      15,
-      15
+      12,
+      12
     ],
     "LATE_ACQUIRE": [
-      15,
-      15
+      12,
+      12
+    ],
+    "DEGRADED_VEHICLE": [
+      12,
+      12
+    ],
+    "NARROW_FOV": [
+      12,
+      12
     ]
   }
 }

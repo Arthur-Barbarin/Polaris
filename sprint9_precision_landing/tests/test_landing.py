@@ -128,10 +128,56 @@ def test_touchdown_error_grows_with_wind():
     assert e2.touchdown_lateral > e0.touchdown_lateral
 
 
+# ------------------------------------------------- post-audit regression guards
+def test_cep_reports_accuracy_not_just_precision():
+    """CEP about the pad must expose the steady-wind touchdown bias that CEP
+    about the sample mean hides."""
+    from polaris_pl import Scenario
+    pts = []
+    for s in range(30):
+        log = simulate(Scenario("cw", "CW", wind=(1.6, -1.0)), seed=s, dt=0.02)
+        if log.outcome == "LANDED":
+            pts.append([log.touchdown_x, log.touchdown_y])
+    c = cep(np.array(pts))
+    assert c.bias > 0.02                       # a real standing offset exists
+    assert c.cep50_pad > 1.3 * c.cep50         # accuracy is worse than precision
+
+
+def test_touchdown_radius_drives_the_card():
+    """The pad's acceptance radius is load-bearing, not decorative."""
+    from polaris_pl import Scenario
+    from polaris_pl.pad import LandingPad
+    base = compute_metrics(simulate(Scenario("n", "N"), seed=0, dt=0.02))
+    td = base.touchdown_lateral
+    tight = grade(compute_metrics(simulate(
+        Scenario("n", "N", pad=LandingPad(touchdown_radius_m=td * 0.5)), seed=0, dt=0.02)))
+    loose = grade(compute_metrics(simulate(
+        Scenario("n", "N", pad=LandingPad(touchdown_radius_m=td * 2.0)), seed=0, dt=0.02)))
+    assert tight.outcome == "FAIL" and loose.outcome == "PASS"
+
+
+def test_airframe_is_injectable_and_matters():
+    """simulate() must accept an airframe, and it must change behaviour."""
+    from polaris_pl import Multirotor, Scenario
+    sluggish = Multirotor(tilt_max=np.radians(12), tau_a=0.6)
+    d = compute_metrics(simulate(Scenario("w", "W", wind=(1.5, 0.0)), seed=0,
+                                 dt=0.02, vehicle=sluggish))
+    n = compute_metrics(simulate(Scenario("w", "W", wind=(1.5, 0.0)), seed=0, dt=0.02))
+    assert d.max_lateral_final > n.max_lateral_final    # sluggish tracks worse
+
+
+def test_narrow_fov_reduces_high_altitude_vision():
+    """The camera FOV limit must actually gate, not be inert."""
+    from polaris_pl.faults import narrow_fov, nominal
+    nf = compute_metrics(simulate(narrow_fov(), seed=0, dt=0.02))
+    nom = compute_metrics(simulate(nominal(), seed=0, dt=0.02))
+    assert nf.vision_avail_high < nom.vision_avail_high - 0.05
+
+
 def test_triage_separates_modes():
     mets = []
     for fn in ALL_SCENARIOS.values():
         for seed in range(8):
             mets.append(compute_metrics(simulate(fn(), seed=seed, dt=0.02)))
-    tri = LandingTriage(n_components=6, n_clusters=16).fit(mets)
+    tri = LandingTriage(n_components=6, n_clusters=18).fit(mets)
     assert LandingTriage.accuracy(tri.predict(mets)) > 0.8

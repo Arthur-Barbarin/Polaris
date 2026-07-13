@@ -50,12 +50,14 @@ class ApproachLog:
     vision_avail_high: float    # fraction detected above the final-approach ht
     gps_vision_disagree: float  # mean |GPS - vision| horizontal offset [m]
     pad_xy: tuple
+    touchdown_radius: float     # pad acceptance radius [m] (drives the card)
 
 
 def simulate(scenario: Scenario, seed: int = 0, dt: float = 0.02,
-             t_max: float = 40.0) -> ApproachLog:
+             t_max: float = 40.0, vehicle: Multirotor | None = None) -> ApproachLog:
     rng = np.random.default_rng(seed)
-    mr = Multirotor()
+    # Airframe precedence: explicit arg > scenario override > default.
+    mr = vehicle or scenario.vehicle or Multirotor()
     pad = scenario.pad
 
     # Initial geometry with per-run dispersion on the entry offset.
@@ -164,5 +166,5 @@ def simulate(scenario: Scenario, seed: int = 0, dt: float = 0.02,
         touchdown_sink=td_sink, vision_avail_final=vis_final,
         vision_avail_high=((n_high_seen / n_high) if n_high else 0.0),
         gps_vision_disagree=(disagree_sum / disagree_n) if disagree_n else 0.0,
-        pad_xy=(pad.x, pad.y),
+        pad_xy=(pad.x, pad.y), touchdown_radius=pad.touchdown_radius_m,
     )

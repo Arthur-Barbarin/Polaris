@@ -19,11 +19,12 @@ from sklearn.preprocessing import StandardScaler
 
 from .testcards import LandingMetrics
 
+# max_sink was dropped: it is schedule-limited to ~2.88 m/s on every run
+# (std ~0.01), so it carried no discriminative signal for triage.
 FEATURES = (
     "max_lateral_final",
     "vision_avail_final",
     "nav_err_final",
-    "max_sink",
     "descent_time",
     "gps_vision_disagree",
     "vision_avail_high",
@@ -34,25 +35,37 @@ FEATURES = (
 @dataclass
 class CEP:
     n: int
-    cep50: float
+    cep50: float          # about the sample mean -> PRECISION
     cep95: float
     mean_x: float
     mean_y: float
+    bias: float           # |mean touchdown offset from the pad| -> systematic error
+    cep50_pad: float      # about the pad origin -> ACCURACY (bias + scatter)
+    cep95_pad: float
     ellipse_a: float      # 1-sigma semi-major [m]
     ellipse_b: float      # 1-sigma semi-minor [m]
     ellipse_angle: float  # [rad]
 
 
 def cep(points: np.ndarray) -> CEP:
-    """points: (N,2) touchdown offsets from the pad [m] (landed runs only)."""
+    """points: (N,2) touchdown offsets from the pad [m] (landed runs only).
+
+    Reports BOTH precision (CEP about the sample mean) and accuracy (CEP about
+    the pad origin) plus the mean bias, so a steady-wind touchdown offset is
+    not hidden by measuring scatter about a displaced mean.
+    """
     pts = np.asarray(points, dtype=float)
     pts = pts[~np.isnan(pts).any(axis=1)]
     if len(pts) == 0:
-        return CEP(0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        return CEP(0, *([np.nan] * 9))
     mean = pts.mean(axis=0)
-    r = np.hypot(pts[:, 0] - mean[0], pts[:, 1] - mean[1])
-    cep50 = float(np.median(r))
-    cep95 = float(np.percentile(r, 95))
+    r_mean = np.hypot(pts[:, 0] - mean[0], pts[:, 1] - mean[1])
+    r_pad = np.hypot(pts[:, 0], pts[:, 1])
+    cep50 = float(np.median(r_mean))
+    cep95 = float(np.percentile(r_mean, 95))
+    cep50_pad = float(np.median(r_pad))
+    cep95_pad = float(np.percentile(r_pad, 95))
+    bias = float(np.hypot(mean[0], mean[1]))
     if len(pts) >= 2:
         cov = np.cov(pts.T)
         w, V = np.linalg.eigh(cov)
@@ -63,13 +76,13 @@ def cep(points: np.ndarray) -> CEP:
     else:
         a = b = angle = 0.0
     return CEP(len(pts), cep50, cep95, float(mean[0]), float(mean[1]),
-              float(a), float(b), angle)
+              bias, cep50_pad, cep95_pad, float(a), float(b), angle)
 
 
 def _feature_row(m: LandingMetrics) -> List[float]:
     nav = m.nav_err_final if not np.isnan(m.nav_err_final) else 1.0
     return [m.max_lateral_final, m.vision_avail_final, nav,
-            m.max_sink, m.descent_time, m.gps_vision_disagree,
+            m.descent_time, m.gps_vision_disagree,
             m.vision_avail_high, 1.0 if m.go_around else 0.0]
 
 

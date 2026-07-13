@@ -40,6 +40,7 @@ class LandingMetrics:
     descent_time: float
     gps_vision_disagree: float
     vision_avail_high: float
+    touchdown_radius: float
 
     def as_dict(self) -> dict:
         return {k: (float(v) if isinstance(v, (int, float, np.floating)) else v)
@@ -71,6 +72,7 @@ def compute_metrics(log: ApproachLog) -> LandingMetrics:
         descent_time=float(log.t[-1]),
         gps_vision_disagree=float(log.gps_vision_disagree),
         vision_avail_high=float(log.vision_avail_high),
+        touchdown_radius=float(log.touchdown_radius),
     )
 
 
@@ -130,11 +132,14 @@ def grade(m: LandingMetrics, criteria: List[Criterion] | None = None) -> Landing
     all_pass = True
     for c in criteria:
         val = getattr(m, c.metric)
+        # The touchdown-accuracy card uses the pad's own acceptance radius, so
+        # a bigger/smaller pad changes what counts as a good landing.
+        bound = m.touchdown_radius if c.metric == "touchdown_lateral" else c.bound
         if c.unit.startswith(">="):
-            ok = (not np.isnan(val)) and val >= c.bound
+            ok = (not np.isnan(val)) and val >= bound
         else:
-            ok = (not np.isnan(val)) and val <= c.bound
+            ok = (not np.isnan(val)) and val <= bound
         all_pass = all_pass and ok
-        results.append(CardResult(c.name, float(val), c.bound, c.unit, ok))
+        results.append(CardResult(c.name, float(val), bound, c.unit, ok))
     return LandingReport(m.scenario, m.label, CARD_VERSION,
                          "PASS" if all_pass else "FAIL", all_pass, results, m)
