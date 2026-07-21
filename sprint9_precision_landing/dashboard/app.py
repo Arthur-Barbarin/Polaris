@@ -104,10 +104,16 @@ with tabs[0]:
             st.metric("Go-around reason", log.go_around_reason)
         st.metric("Vision on final [%]", f"{100*metrics.vision_avail_final:.0f}")
     st.subheader("Vision availability & lateral error")
-    df = pd.DataFrame({"t": log.t, "altitude [m]": log.z,
-                       "lateral error (true) [m]": log.lateral_true,
-                       "vision valid": log.vision_valid.astype(int)}).set_index("t")
-    st.line_chart(df[["lateral error (true) [m]", "vision valid"]])
+    df_raw = pd.DataFrame({"t": log.t,
+                           "lateral error (true) [m]": log.lateral_true,
+                           "vision valid": log.vision_valid.astype(int)}).set_index("t")
+    col_err, col_vis = st.columns(2)
+    with col_err:
+        st.caption("Lateral error (m)")
+        st.line_chart(df_raw[["lateral error (true) [m]"]], color=["#1f77b4"])
+    with col_vis:
+        st.caption("Vision valid (1 = lock, 0 = lost)")
+        st.line_chart(df_raw[["vision valid"]], color=["#ff7f0e"])
 
 # -------------------------------------------------------------- Test Cards tab
 with tabs[1]:
