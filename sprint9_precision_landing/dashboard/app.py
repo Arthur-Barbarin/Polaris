@@ -104,13 +104,11 @@ with tabs[0]:
             st.metric("Go-around reason", log.go_around_reason)
         st.metric("Vision on final [%]", f"{100*metrics.vision_avail_final:.0f}")
     st.subheader("Lateral error during approach")
-    # Downsample dense timeseries (dt=0.02 → ~1500 pts) to avoid rendering issues
-    step = max(1, len(log.t) // 300)
-    df_err = pd.DataFrame({
-        "time [s]": log.t[::step],
-        "lateral error [m]": log.lateral_true[::step],
-    })
-    st.line_chart(df_err, x="time [s]", y="lateral error [m]", color=["#1f77b4"])
+    fig_le, ax_le = plt.subplots(figsize=(10, 3))
+    ax_le.plot(log.t, log.lateral_true, lw=1.4)
+    ax_le.set_xlabel("t [s]"); ax_le.set_ylabel("lateral error [m]")
+    ax_le.set_ylim(bottom=0)
+    st.pyplot(fig_le)
 
 # -------------------------------------------------------------- Test Cards tab
 with tabs[1]:
