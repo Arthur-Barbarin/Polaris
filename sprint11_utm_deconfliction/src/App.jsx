@@ -16,13 +16,14 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [running, setRunning] = useState(true);
   const [speedMult, setSpeedMult] = useState(6);
+  const [popupRange, setPopupRange] = useState(1200);
 
   const region = REGIONS[regionId];
   const REF = region.ref;
 
   const [vehicles, setVehicles] = useState([]);
   const [conflictLines, setConflictLines] = useState([]);
-  const [stats, setStats] = useState({ losEvents: 0, conflictsResolved: 0, minSep: Infinity, maneuvers: 0 });
+  const [stats, setStats] = useState({ minSep: Infinity, encounters: 0, resolved: 0, los: 0, last: null });
 
   const simRef = useRef(null);
 
@@ -83,8 +84,8 @@ export default function App() {
         <div className="live-metrics">
           <Metric label="airborne" value={airborne} />
           <Metric label="min sep (m)" value={minSep} warn={stats.minSep < SEP.los_horiz_m} />
-          <Metric label="conflicts resolved" value={stats.conflictsResolved} accent />
-          <Metric label="loss-of-sep" value={stats.losEvents} warn={stats.losEvents > 0} />
+          <Metric label="intruders avoided" value={stats.resolved} accent />
+          <Metric label="loss-of-sep" value={stats.los} warn={stats.los > 0} />
         </div>
       </header>
 
@@ -123,15 +124,40 @@ export default function App() {
               <input type="range" min="1" max="20" step="1" value={speedMult}
                      onChange={(e) => setSpeedMult(+e.target.value)} />
             </div>
+            <div className="ctl">
+              <label>Intruder pop-up range — {popupRange} m {popupRange <= 600 ? "(late — hard)" : popupRange >= 1600 ? "(early — easy)" : ""}</label>
+              <input type="range" min="300" max="2200" step="100" value={popupRange}
+                     onChange={(e) => setPopupRange(+e.target.value)} />
+            </div>
             <div className="btnrow">
               <button className="btn" onClick={() => setRunning((r) => !r)}>
                 {running ? "❚❚ Pause" : "▶ Play"}
               </button>
-              <button className="btn danger" onClick={() => simRef.current && injectConflict(simRef.current, SEP)}>
-                ⚠ Inject conflict
+              <button className="btn danger"
+                      onClick={() => simRef.current && injectConflict(simRef.current, { rangeM: popupRange, speed: 55 }, SEP)}>
+                ⚠ Inject intruder
               </button>
-              <button className="btn ghost" onClick={() => setSeed((s) => s + 1)}>↻ Reseed</button>
+              <button className="btn ghost" onClick={() => setSeed((s) => s + 1)}>↻ New scenario #{seed}</button>
             </div>
+          </div>
+
+          <div className="planbox">
+            <h3>Tactical detect &amp; avoid · {stats.resolved} avoided / {stats.los} loss-of-sep</h3>
+            {stats.last ? (
+              <div className={`encounter ${stats.last.outcome === "resolved" ? "ok" : "bad"}`}>
+                Last intruder: popped up at <b>{stats.last.range} m</b> →{" "}
+                <b>{stats.last.tcpa.toFixed(1)} s</b> to closest approach →{" "}
+                <b>{stats.last.outcome}</b> (min sep {stats.last.minSep} m)
+              </div>
+            ) : (
+              <p className="fine" style={{ marginTop: 2 }}>
+                Click "Inject intruder" to spawn a non-cooperative aircraft on a head-on
+                course. It's detected at the pop-up range you set. The give-way eVTOL takes
+                ~{"2.5"} s to react, then opens separation at a bounded rate — so a late
+                (short-range) pop-up can leave too little time, and separation is lost.
+                That threshold is the safety envelope.
+              </p>
+            )}
           </div>
 
           <div className="planbox">

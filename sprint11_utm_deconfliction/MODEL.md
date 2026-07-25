@@ -88,6 +88,34 @@ searches an ordered maneuver set and takes the first that restores
 In the live sim, velocity is recovered by finite-difference of position, so each
 maneuver is automatically reflected in the next step's conflict prediction.
 
+### 3.1 The recovery envelope (why avoidance can fail)
+
+A resolution is **not free**. The give-way vehicle takes `react_s = 2.5 s` to
+detect and commit, and then opens lateral separation at a bounded rate
+`lat_rate_ms = 22 m/s` (it cannot teleport sideways). So the separation it can
+build by the closest point of approach is roughly
+
+$$\Delta y \;\approx\; \text{lat\_rate}\times\big(t_{\text{CPA}} - t_{\text{react}}\big),\qquad
+  t_{\text{CPA}} = \frac{R_{\text{pop-up}}}{v_{\text{closure}}}$$
+
+To recover well clear it needs `Δy ≥ H_DWC = 150 m`, i.e.
+`t_CPA ≳ H_DWC/lat_rate + react ≈ 9 s`. A **non-cooperative intruder detected at
+short range** ("pop-up") gives a small `t_CPA`, so the maneuver cannot finish in
+time and separation is lost. This is the whole point of the tactical demo: it has
+a computable **safety envelope**, and the "Inject intruder" control lets you set
+the pop-up range and watch it cross from *resolved* to *loss of separation*.
+
+**Outcome classification.** For each injected intruder we track the minimum
+achieved separation against its target and label the encounter **loss of
+separation** iff horizontal `< 60 m` and vertical `< 15 m` at closest approach
+(a genuine near-mid-air-collision-like breach), else **resolved**.
+
+**Verification (§3b).** With a head-on non-cooperative intruder at closure
+≈ 110 m/s and seed 7: pop-up at **300 m → loss of separation** (min ≈ 3 m,
+`t_CPA` ≈ 3.8 s), **700 m** is borderline-resolved (min ≈ 66 m), **1400 m →
+resolved** (min ≈ 173 m). The crossover sits near **600 m** for these dynamics —
+move `react_s` or `lat_rate_ms` in `data/airspace.js` and the envelope shifts.
+
 ---
 
 ## 4. Strategic deconfliction (pre-departure)

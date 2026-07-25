@@ -21,11 +21,15 @@ operations — and shows you the fleet size at which the airspace saturates.
    and the **capacity-scaling chart** trace conflicts and mean delay against
    fleet size until it hits the **capacity knee** — the number to put in front
    of a vertiport operator.
-2. **Click "Inject conflict."** A non-cooperative intruder is spawned on a
-   head-on course with a live aircraft. The tactical layer predicts the loss of
-   well clear, the cooperative vehicle executes a resolution maneuver (speed
-   brake, altitude step, or a right-hand offset), and the "conflicts resolved"
-   counter ticks up — in front of you, not in a screenshot.
+2. **Set the "Intruder pop-up range" slider, then click "Inject intruder."** A
+   non-cooperative aircraft is spawned head-on and detected at that range. The
+   give-way eVTOL takes ~2.5 s to react, then opens separation at a bounded rate.
+   With an **early** (long-range) pop-up it resolves comfortably; drag the slider
+   **short** (≈ 500 m) and there isn't enough time — separation is genuinely lost.
+   The readout shows the range, the time-to-closest-approach, the outcome, and the
+   minimum separation achieved. That crossover (~600 m for the default dynamics)
+   is the **safety envelope** — a system that shows its own limits, not one that
+   always wins.
 
 ---
 

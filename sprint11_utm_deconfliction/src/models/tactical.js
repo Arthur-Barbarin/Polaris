@@ -48,26 +48,26 @@ export function resolve(give, keep, sep = SEP) {
   const speed = norm(give.vel) || give.speed || 1;
   const dir = { x: give.vel.x / speed, y: give.vel.y / speed };
 
-  // 1) Speed brake to 65% (recover HMD in the along-track sense).
-  const braked = { x: dir.x * speed * 0.65, y: dir.y * speed * 0.65 };
-  if (trialHmd(give.pos, braked, keep) >= sep.daa_hmd_m)
-    return { type: "speed", vel: braked, ok: true };
-
-  // 2) Vertical: step one layer away from the intruder.
-  const dAlt = give.alt <= keep.alt ? -sep.daa_vert_m : sep.daa_vert_m;
-  // vertical alone restores well clear if it opens vertical separation past
-  // the threshold (checked in the sim as the maneuver completes).
-  const vertGiveOk = Math.abs(give.alt + dAlt - keep.alt) >= sep.daa_vert_m;
-  if (vertGiveOk) return { type: "vertical", dAlt, vel: give.vel, ok: true };
-
-  // 3) Horizontal offset: search right turns until HMD recovers.
-  for (const deg of [15, 25, 35, 45, 60]) {
+  // 1) Horizontal offset (visible on the map, mirrors VFR right-of-way):
+  // search right turns until the predicted HMD recovers.
+  for (const deg of [20, 30, 45, 60, 75]) {
     const turned = rot(give.vel, deg);
     if (trialHmd(give.pos, turned, keep) >= sep.daa_hmd_m)
       return { type: "heading", vel: turned, ok: true };
   }
+
+  // 2) Vertical: step one layer away from the intruder.
+  const dAlt = give.alt <= keep.alt ? -sep.daa_vert_m : sep.daa_vert_m;
+  if (Math.abs(give.alt + dAlt - keep.alt) >= sep.daa_vert_m)
+    return { type: "vertical", dAlt, vel: give.vel, ok: true };
+
+  // 3) Speed brake as a last resort.
+  const braked = { x: dir.x * speed * 0.6, y: dir.y * speed * 0.6 };
+  if (trialHmd(give.pos, braked, keep) >= sep.daa_hmd_m)
+    return { type: "speed", vel: braked, ok: true };
+
   // Fallback: hardest turn even if it doesn't fully clear.
-  return { type: "heading", vel: rot(give.vel, 60), ok: false };
+  return { type: "heading", vel: rot(give.vel, 75), ok: false };
 }
 
 // Scan all airborne pairs. Returns predicted conflicts and current LoS events.

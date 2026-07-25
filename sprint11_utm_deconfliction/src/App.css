@@ -76,6 +76,9 @@ body {
 .pval.accent { color: var(--accent); }
 .pval.warn { color: var(--danger); }
 .fine { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+.encounter { font-size: 12px; line-height: 1.5; border-radius: 8px; padding: 8px 10px; border: 1px solid var(--line); }
+.encounter.ok { background: rgba(56, 189, 248, 0.08); border-color: #0e7490; color: #cbd5e1; }
+.encounter.bad { background: rgba(244, 63, 94, 0.12); border-color: var(--danger); color: #fecdd3; }
 
 .chart-wrap { margin: 4px -6px 0; }
 .honesty { font-size: 11px; color: var(--muted); line-height: 1.55; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }

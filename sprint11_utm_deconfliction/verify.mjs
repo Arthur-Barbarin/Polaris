@@ -8,6 +8,7 @@ import { cpaHoriz, tauMod, haversine_m, toENU } from "./src/models/geo.js";
 import { predictPair, resolve } from "./src/models/tactical.js";
 import { generateFleet, scalingSweep } from "./src/models/fleet.js";
 import { deconflict, minSep, buildIntent } from "./src/models/strategic.js";
+import { buildSim, step, injectConflict } from "./src/models/sim.js";
 
 const fmt = (x, n = 1) => (x == null ? "—" : Number(x).toFixed(n));
 const line = (l, v) => console.log(l.padEnd(46), v);
@@ -61,6 +62,26 @@ console.log("\n=== 3. Well-clear prediction + resolution ===");
   const B2 = { ...B, alt: 360 + SEP.daa_vert_m + 5 };
   check("layer-separated => no violation", predictPair(A, B2, SEP).wellClearViolation === false,
         `vert=${fmt(Math.abs(A.alt - B2.alt))} m`);
+}
+
+console.log("\n=== 3b. Tactical envelope: late pop-up => loss of separation ===");
+{
+  const runAt = (range) => {
+    const flights = generateFleet(60, 7, 600);
+    const { assignments } = deconflict(flights, REF);
+    const sim = buildSim(assignments, REF);
+    for (let k = 0; k < 200 && sim.agents.filter((a) => a.airborne).length < 6; k++) step(sim, 1.0);
+    if (!injectConflict(sim, { rangeM: range, speed: 55 })) return null;
+    for (let k = 0; k < 400 && sim.stats.encounters === 0; k++) step(sim, 0.25);
+    return sim.stats.last;
+  };
+  const near = runAt(300), mid = runAt(700), far = runAt(1400);
+  line("pop-up 300 m:", `${near.tcpa.toFixed(1)} s → ${near.outcome} (min ${near.minSep} m)`);
+  line("pop-up 700 m:", `${mid.tcpa.toFixed(1)} s → ${mid.outcome} (min ${mid.minSep} m)`);
+  line("pop-up 1400 m:", `${far.tcpa.toFixed(1)} s → ${far.outcome} (min ${far.minSep} m)`);
+  check("late pop-up (300 m) => loss of sep", near.outcome === "LOSS OF SEP", `min ${near.minSep} m`);
+  check("early pop-up (1400 m) => resolved", far.outcome === "resolved", `min ${far.minSep} m`);
+  check("envelope is monotone (near ≤ far min sep)", near.minSep <= far.minSep, `${near.minSep} ≤ ${far.minSep}`);
 }
 
 console.log("\n=== 4. Strategic intent + minSep ===");

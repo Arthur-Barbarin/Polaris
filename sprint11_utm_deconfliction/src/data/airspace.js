@@ -32,6 +32,17 @@ export const SEP = {
 // conflict risk. Values are illustrative UAM corridor bands.
 export const ALT_LAYERS = [300, 330, 360, 390, 420, 450];
 
+// Tactical maneuver dynamics — what gives the detect-and-avoid an ENVELOPE.
+// A resolution is not instantaneous: the give-way vehicle takes `react_s` to
+// detect + commit, then opens lateral separation at `lat_rate_ms` (a bounded
+// maneuver rate). So whether an encounter is resolved depends on how much time
+// remains to the closest point of approach when the intruder is detected —
+// which is exactly what a real "well-clear recovery" envelope looks like.
+export const TACT = {
+  react_s: 2.5,       // detect + commit latency before the maneuver starts
+  lat_rate_ms: 22,    // rate at which lateral separation can be opened (m/s)
+};
+
 // Vertiport pad throughput. A pad can only launch one operation every
 // `service_s`; concurrent demand at a hub therefore queues into departure
 // delays. Vertiport pad throughput is the constraint most widely cited (NASA
