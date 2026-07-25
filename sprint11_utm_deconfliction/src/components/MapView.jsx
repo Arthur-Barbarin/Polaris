@@ -1,6 +1,6 @@
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, Polyline, Tooltip, Marker } from "react-leaflet";
+import { useEffect } from "react";
 import L from "leaflet";
-import { VERTIPORTS } from "../data/vertiports.js";
 
 const vpIcon = (v) =>
   L.divIcon({
@@ -22,15 +22,25 @@ function aircraftIcon(a) {
   });
 }
 
-export default function MapView({ vehicles, conflicts, assignments }) {
+// Recenter the map when the region changes.
+function Recenter({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center[0], center[1], zoom]);
+  return null;
+}
+
+export default function MapView({ vehicles, conflicts, assignments, vertiports, center, zoom }) {
   return (
     <MapContainer
-      center={[48.86, 2.35]}
-      zoom={10}
+      center={center}
+      zoom={zoom}
       style={{ height: "100%", width: "100%", background: "#0b1020" }}
       zoomControl={true}
       preferCanvas={true}
     >
+      <Recenter center={center} zoom={zoom} />
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; OpenStreetMap &copy; CARTO'
@@ -49,7 +59,7 @@ export default function MapView({ vehicles, conflicts, assignments }) {
       ))}
 
       {/* vertiports */}
-      {VERTIPORTS.map((v) => (
+      {vertiports.map((v) => (
         <Marker key={v.id} position={[v.lat, v.lng]} icon={vpIcon(v)}>
           <Tooltip direction="top">{v.name}</Tooltip>
         </Marker>

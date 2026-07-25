@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapView from "./components/MapView.jsx";
 import ScalingChart from "./components/ScalingChart.jsx";
-import { REF } from "./data/vertiports.js";
+import { REGIONS } from "./data/vertiports.js";
 import { generateFleet, scalingSweep } from "./models/fleet.js";
 import { deconflict } from "./models/strategic.js";
 import { buildSim, step, viewModel, injectConflict } from "./models/sim.js";
@@ -11,10 +11,14 @@ import { SEP } from "./data/airspace.js";
 const SWEEP_SIZES = [10, 20, 30, 40, 50, 60, 80, 100, 120, 150];
 
 export default function App() {
+  const [regionId, setRegionId] = useState("paris");
   const [fleetSize, setFleetSize] = useState(40);
   const [seed, setSeed] = useState(42);
   const [running, setRunning] = useState(true);
   const [speedMult, setSpeedMult] = useState(6);
+
+  const region = REGIONS[regionId];
+  const REF = region.ref;
 
   const [vehicles, setVehicles] = useState([]);
   const [conflictLines, setConflictLines] = useState([]);
@@ -24,12 +28,12 @@ export default function App() {
 
   // strategic plan (recomputed on fleet/seed change)
   const plan = useMemo(() => {
-    const flights = generateFleet(fleetSize, seed);
+    const flights = generateFleet(fleetSize, seed, 600, region.vertiports);
     return deconflict(flights, REF);
-  }, [fleetSize, seed]);
+  }, [fleetSize, seed, regionId]);
 
-  // capacity sweep (fixed sizes; cheap enough to recompute on seed change)
-  const sweep = useMemo(() => scalingSweep(REF, SWEEP_SIZES, seed), [seed]);
+  // capacity sweep (fixed sizes; cheap enough to recompute on seed/region change)
+  const sweep = useMemo(() => scalingSweep(REF, SWEEP_SIZES, seed, region.vertiports), [seed, regionId]);
 
   // (re)build the live sim whenever the plan changes
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function App() {
         <div>
           <div className="brand">POLARIS · Sprint 11</div>
           <h1>UTM Fleet Deconfliction Studio</h1>
-          <div className="sub">Paris eVTOL corridor network · strategic 4D intent + live tactical detect-and-avoid</div>
+          <div className="sub">{region.name} · strategic 4D intent + live tactical detect-and-avoid</div>
         </div>
         <div className="live-metrics">
           <Metric label="airborne" value={airborne} />
@@ -86,7 +90,8 @@ export default function App() {
 
       <div className="body">
         <div className="mapcol">
-          <MapView vehicles={vehicles} conflicts={conflictLines} assignments={plan.assignments} />
+          <MapView vehicles={vehicles} conflicts={conflictLines} assignments={plan.assignments}
+                   vertiports={region.vertiports} center={region.center} zoom={region.zoom} />
           <div className="maplegend">
             <span><i className="tri" style={{ color: "#38bdf8" }}>▲</i> cooperative eVTOL</span>
             <span><i className="tri" style={{ color: "#ef4444" }}>▲</i> non-cooperative intruder</span>
@@ -97,7 +102,19 @@ export default function App() {
         <aside className="panel">
           <div className="controls">
             <div className="ctl">
-              <label>Fleet size — {fleetSize} simultaneous operations</label>
+              <label>Region</label>
+              <div className="segmented">
+                {Object.values(REGIONS).map((r) => (
+                  <button key={r.id}
+                          className={`seg ${regionId === r.id ? "on" : ""}`}
+                          onClick={() => setRegionId(r.id)}>
+                    {r.id === "paris" ? "Paris" : "Dallas–Fort Worth"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="ctl">
+              <label>Fleet size — {fleetSize} operations in the demand window</label>
               <input type="range" min="5" max="150" step="5" value={fleetSize}
                      onChange={(e) => setFleetSize(+e.target.value)} />
             </div>

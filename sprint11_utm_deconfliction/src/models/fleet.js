@@ -7,15 +7,15 @@ import { deconflict } from "./strategic.js";
 
 // Generate N flights with reproducible pseudo-random OD pairs, vehicle types
 // and departures over a scheduling window. Seeded => byte-for-byte repeatable.
-export function generateFleet(n, seed = 42, windowSec = 600) {
+export function generateFleet(n, seed = 42, windowSec = 600, vertiports = VERTIPORTS) {
   const rng = makeRng(seed);
   const pick = (arr) => arr[Math.floor(rng() * arr.length)];
   const flights = [];
   let guard = 0;
   while (flights.length < n && guard < n * 50) {
     guard++;
-    const o = pick(VERTIPORTS);
-    let d = pick(VERTIPORTS);
+    const o = pick(vertiports);
+    let d = pick(vertiports);
     if (d.id === o.id) continue;
     // reject implausibly long hops (> 45 km) — outside urban eVTOL range
     if (haversine_m(o, d) > 45000) continue;
@@ -38,9 +38,9 @@ export function generateFleet(n, seed = 42, windowSec = 600) {
 
 // Sweep fleet size and record how strategic deconfliction copes. Returns rows
 // suitable for a conflicts-vs-fleet chart, plus the identified capacity knee.
-export function scalingSweep(ref, sizes, seed = 42) {
+export function scalingSweep(ref, sizes, seed = 42, vertiports = VERTIPORTS) {
   const rows = sizes.map((n) => {
-    const flights = generateFleet(n, seed);
+    const flights = generateFleet(n, seed, 600, vertiports);
     const { metrics } = deconflict(flights, ref);
     return {
       n,

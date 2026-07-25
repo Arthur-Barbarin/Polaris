@@ -64,6 +64,10 @@ body {
 .btn.danger { background: var(--danger); color: #2a0512; }
 .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); flex: 0 0 auto; }
 .btn:hover { filter: brightness(1.1); }
+.segmented { display: flex; gap: 4px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+.seg { flex: 1; background: transparent; color: var(--muted); border: none; border-radius: 6px; padding: 7px 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.seg.on { background: var(--accent); color: #04263a; }
+.seg:hover:not(.on) { color: var(--text); }
 
 .planbox { margin-top: 18px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
 .planbox h3 { margin: 0 0 8px; font-size: 13px; color: var(--text); }
