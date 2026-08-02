@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+# Generated reports (the two curated samples are committed explicitly)
+reports/findings_2*.md
