@@ -112,15 +112,3 @@ This sprint closes the three highest-impact gaps in my portfolio against Apple's
 3. **Hardware-style test automation** — pytest framework driving the cell through a SCPI-like instrument interface, identical to what runs on a real lab bench. Required across HSV / HSE / EE Design.
 
 The triage pipeline reuses the **PCA + GMM** anomaly detection from Sprint 3 (Fleet Energy & Battery Risk Studio), extending the previous ML-based SoH work onto a physics-based equivalent-circuit foundation.
-
-## CV bullets
-
-- Built an end-to-end battery validation testbench combining a **C++ 2nd-order Thévenin equivalent-circuit cell model** (temperature-dependent via Arrhenius, sqrt-cycle aging with mode-specific multipliers) with a **Python / pytest automation framework** running HPPC, OCV-SOC, and CC-CV cycling DoE sweeps.
-- Implemented and benchmarked three SOC estimation algorithms — coulomb counting, **Extended Kalman Filter in C++**, and an ML-augmented residual estimator (Random Forest fit on held-out EKF residuals) — quantifying error envelopes across temperature, current-shunt bias, and initial-guess error. **EKF reduced RMS SOC error by 90 % on average** vs coulomb counting; the ML residual layer matched the EKF and beat it in conditions with residual structure (hot, bad-guess).
-- Designed a **virtual SCPI instrument server** so the Python test framework drives the C++ cell model through the same TCP/SCPI interface used for real Keysight / Arbin / Chroma equipment, enabling regression testing of gas-gauging algorithms without hardware.
-- Developed an automated **failure-triage pipeline** (StandardScaler → PCA → Gaussian Mixture) that bucketizes 60-cycle accelerated-aging traces into five degradation modes — lithium plating, SEI growth, internal short, electrolyte depletion, healthy — at **95 % in-sample accuracy**, with per-scenario RUL projections.
-- Wrote a flat **C ABI** for the cell model + EKF and a Python `ctypes` binding layer; the same shared library is callable from C++, Python, and any FFI-capable language.
-
-## Apple JD keyword coverage
-
-C/C++, Python, pytest, Shell, equivalent-circuit model, Thévenin, gas gauging, SOC estimation, SOH, RUL, Extended Kalman Filter, coulomb counting, HPPC, OCV-SOC, CC-CV, DoE, cycle-life, failure analysis, failure triage / bucketization, anomaly detection, PCA, GMM, SCPI, source meter, data logger, thermal chamber, virtual instrument, regression testing, lifecycle testing, Li-ion, NMC.
