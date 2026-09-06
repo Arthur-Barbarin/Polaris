@@ -1,0 +1,9 @@
+--- S7 tail ---
+UTC 2026-09-06T18:37:28Z
+### S7: python -m pytest -ra -q (native path loaded) ###
+..................                                                       [100%]
+=== S8 ===
+UTC 2026-09-06T18:37:35Z
+### S8: python -m pytest -ra -q (native path loaded) ###
+............................                                             [100%]
+28 passed in 32.03s

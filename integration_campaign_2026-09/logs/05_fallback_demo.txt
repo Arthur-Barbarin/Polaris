@@ -1,0 +1,19 @@
+UTC 2026-09-06T18:38:51Z
+### Simulating the macOS loader condition (platform.system() -> 'Darwin').
+### The loader then looks for libpolaris_*.dylib, which the repo does not contain.
+
+--- S7 loader state under the simulated condition ---
+platform.system() = Darwin
+S7 lib_path        = None
+S7 native_available= False
+
+--- S7 suite under the simulated condition (no warning, no skip) ---
+..................                                                       [100%]
+EXIT=0
+
+--- S8 suite under the simulated condition ---
+.................                                                        [100%]
+=========================== short test summary info ============================
+SKIPPED [1] ../../../../funny-adoring-dirac/mnt/Polaris_sprint/sprint8_flight_test_harness/tests/test_native_parity.py:25: libpolaris_ft not built (run: cd cpp && make)
+17 passed, 1 skipped in 17.86s
+EXIT=0

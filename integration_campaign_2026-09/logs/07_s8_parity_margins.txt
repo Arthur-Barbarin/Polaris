@@ -1,0 +1,14 @@
+native_available: True
+single RK4 step   worst abs deviation = 1.136868e-13   (assert < 1e-9)
+autopilot command worst abs deviation = 7.771561e-16   (assert < 1e-12)
+
+full closed-loop flights, dt=0.05, seed=3   (assert max pos < 1.0 m, len delta <= 2)
+  scenario                      max |pos| (m)  len delta  verdict py/native
+  nominal                        2.318766e-12          0  PASS/PASS
+  wind_step                      2.448889e-12          0  FAIL/FAIL
+  wind_shear                     1.364242e-12          0  FAIL/FAIL
+  gps_dropout                    1.364242e-12          0  FAIL/FAIL
+  airspeed_bias                  1.639615e-12          0  FAIL/FAIL
+  aileron_loss                   2.572439e-12          0  FAIL/FAIL
+  elevator_loss                  2.318766e-12          0  FAIL/FAIL
+  thrust_loss                    8.198074e-13          0  FAIL/FAIL

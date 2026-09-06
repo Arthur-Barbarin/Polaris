@@ -1,0 +1,30 @@
+UTC 2026-09-06T18:36:23Z
+=== host ===
+Linux 6.8.0-136-generic aarch64
+Python 3.10.12
+=== pre-existing artifacts (as found) ===
+sprint7_battery_testbench/build:
+total 40
+drwx------  6 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   192 Jul 21 02:23 .
+drwx------ 14 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   448 Jun 29 23:35 ..
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  6328 Jun 29 23:13 c_api.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  6200 Jun 29 23:19 cell_model.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  3376 Jun 29 23:33 ekf_soc.o
+-rwx------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 19360 Jun 29 23:33 libpolaris_bms.so
+
+sprint8_flight_test_harness/build:
+total 28
+drwx------  5 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   160 Jul  3 00:15 .
+drwx------ 13 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   416 Jul  3 00:21 ..
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  2712 Jul  3 00:15 c_api.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  5312 Jul  3 00:15 flight_core.o
+-rwx------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 13248 Jul  3 00:15 libpolaris_ft.so
+ef25810cbb2e5f6f8aaf566b0f5e541e  sprint7_battery_testbench/build/libpolaris_bms.so
+aa89fc6f2846f6ecf68db4853c06f40d  sprint8_flight_test_harness/build/libpolaris_ft.so
+sprint7_battery_testbench/build/libpolaris_bms.so:  ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=aae4fd957ef8b264044485657ba39da301d4b67b, not stripped
+sprint8_flight_test_harness/build/libpolaris_ft.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=87aa26d364dc79e6fe42b662d3f68ed9c3f148ab, not stripped
+=== native_available BEFORE rebuild ===
+S7 native_available = True
+S7 lib_path = /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint7_battery_testbench/build/libpolaris_bms.so
+S8 native_available = True
+S8 lib_path = /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint8_flight_test_harness/build/libpolaris_ft.so

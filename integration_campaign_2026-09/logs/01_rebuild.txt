@@ -1,0 +1,77 @@
+UTC 2026-09-06T18:36:32Z
+### S7: cd sprint7_battery_testbench/cpp && make clean && make
+rm -rf ../build
+rm: cannot remove '../build/libpolaris_bms.so': Operation not permitted
+rm: cannot remove '../build/c_api.o': Operation not permitted
+rm: cannot remove '../build/ekf_soc.o': Operation not permitted
+rm: cannot remove '../build/cell_model.o': Operation not permitted
+make: *** [Makefile:36: clean] Error 1
+### S8: cd sprint8_flight_test_harness/cpp && make clean && make
+rm -rf ../build
+rm: cannot remove '../build/c_api.o': Operation not permitted
+rm: cannot remove '../build/flight_core.o': Operation not permitted
+rm: cannot remove '../build/libpolaris_ft.so': Operation not permitted
+make: *** [Makefile:36: clean] Error 1
+### artifacts after rebuild ###
+sprint7_battery_testbench/build/libpolaris_bms.so:  ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=aae4fd957ef8b264044485657ba39da301d4b67b, not stripped
+sprint8_flight_test_harness/build/libpolaris_ft.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=87aa26d364dc79e6fe42b662d3f68ed9c3f148ab, not stripped
+ef25810cbb2e5f6f8aaf566b0f5e541e  sprint7_battery_testbench/build/libpolaris_bms.so
+aa89fc6f2846f6ecf68db4853c06f40d  sprint8_flight_test_harness/build/libpolaris_ft.so
+UTC 2026-09-06T18:36:44Z
+NOTE: 'make clean' fails in this workspace (mounted folders are delete-protected).
+Forcing a full recompile+relink from sources with 'make -B' instead (overwrite, no delete).
+### S7: cd sprint7_battery_testbench/cpp && make -B
+mkdir -p ../build
+g++ -O2 -std=c++17 -fPIC -Wall -Wextra -Wno-unused-parameter -c cell_model.cpp -o ../build/cell_model.o
+g++ -O2 -std=c++17 -fPIC -Wall -Wextra -Wno-unused-parameter -c ekf_soc.cpp -o ../build/ekf_soc.o
+g++ -O2 -std=c++17 -fPIC -Wall -Wextra -Wno-unused-parameter -c c_api.cpp -o ../build/c_api.o
+g++ -shared -o ../build/libpolaris_bms.so ../build/cell_model.o ../build/ekf_soc.o ../build/c_api.o
+### S8: cd sprint8_flight_test_harness/cpp && make -B
+mkdir -p ../build
+g++ -O2 -std=c++17 -fPIC -Wall -Wextra -Wno-unused-parameter -c flight_core.cpp -o ../build/flight_core.o
+g++ -O2 -std=c++17 -fPIC -Wall -Wextra -Wno-unused-parameter -c c_api.cpp -o ../build/c_api.o
+g++ -shared -o ../build/libpolaris_ft.so ../build/flight_core.o ../build/c_api.o
+### artifacts after rebuild ###
+sprint7_battery_testbench/build:
+total 40
+drwx------  6 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   192 Jul 21 02:23 .
+drwx------ 14 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   448 Jun 29 23:35 ..
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  6328 Sep  6 18:36 c_api.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  6200 Sep  6 18:36 cell_model.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  3376 Sep  6 18:36 ekf_soc.o
+-rwx------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 19360 Sep  6 18:36 libpolaris_bms.so
+
+sprint8_flight_test_harness/build:
+total 28
+drwx------  5 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   160 Jul  3 00:15 .
+drwx------ 13 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i   416 Jul  3 00:21 ..
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  2712 Sep  6  2026 c_api.o
+-rw-------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i  5312 Sep  6  2026 flight_core.o
+-rwx------  1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 13248 Sep  6  2026 libpolaris_ft.so
+sprint7_battery_testbench/build/libpolaris_bms.so:  ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=b03cc3e75c0c1485b44a0af06e0a99f75f93df3f, not stripped
+sprint8_flight_test_harness/build/libpolaris_ft.so: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=87aa26d364dc79e6fe42b662d3f68ed9c3f148ab, not stripped
+3ae442c31241fef8f0c3dc2ac70d6924  sprint7_battery_testbench/build/libpolaris_bms.so
+aa89fc6f2846f6ecf68db4853c06f40d  sprint8_flight_test_harness/build/libpolaris_ft.so
+### determinism check: rebuild S7 again, compare to first rebuild ###
+3ae442c31241fef8f0c3dc2ac70d6924  /tmp/s7_build1.so
+3ae442c31241fef8f0c3dc2ac70d6924  sprint7_battery_testbench/build/libpolaris_bms.so
+S7 build is deterministic -> the June 29 .so differed because SOURCES changed since
+### __DATE__/__TIME__ macros in sources? ###
+none
+### source mtimes vs old binary (Jun 29 23:33 / Jul 3 00:15) ###
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 2645 Jun 29 23:13 sprint7_battery_testbench/cpp/c_api.cpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 5560 Jun 29 23:19 sprint7_battery_testbench/cpp/cell_model.cpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 3655 Jun 29 23:19 sprint7_battery_testbench/cpp/cell_model.hpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 3968 Jun 29 23:33 sprint7_battery_testbench/cpp/ekf_soc.cpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 1376 Jun 29 23:12 sprint7_battery_testbench/cpp/ekf_soc.hpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 2300 Jul  3 00:14 sprint8_flight_test_harness/cpp/c_api.cpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 5582 Jul  3 00:14 sprint8_flight_test_harness/cpp/flight_core.cpp
+-rw------- 1 rcw-016pxiphhpqijgycmxqdt34i rcw-016pxiphhpqijgycmxqdt34i 2095 Jul  3 00:14 sprint8_flight_test_harness/cpp/flight_core.hpp
+### git history of the C++ sources ###
+### toolchain ###
+g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+### are cpp sources / build artifacts tracked by git? ###
+sprint7_battery_testbench/cpp/cell_model.cpp                 untracked (not ignored)
+sprint7_battery_testbench/build/libpolaris_bms.so            untracked (.gitignore:8:build/	sprint7_battery_testbench/build/libpolaris_bms.so)
+sprint8_flight_test_harness/cpp/flight_core.cpp              TRACKED
+sprint8_flight_test_harness/build/libpolaris_ft.so           untracked (.gitignore:8:build/	sprint8_flight_test_harness/build/libpolaris_ft.so)

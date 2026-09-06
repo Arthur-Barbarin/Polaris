@@ -1,0 +1,10 @@
+A = native       Cell=_NativeCell  Ekf=_NativeEkf
+B = pure_python  Cell=_PyCell      Ekf=_PyEkf
+
+worst relative deviation per section
+  ocv    rel=0.000e+00  abs=0.000e+00  at ocv.20
+  cell   rel=0.000e+00  abs=0.000e+00  at cell.313.15.v_sum
+  fault  rel=0.000e+00  abs=0.000e+00  at fault.SEI_GROWTH.v_sum
+  ekf    rel=5.594e-15  abs=2.151e-16  at ekf.rms_err
+
+fields exceeding rel tol 1e-12: 0

@@ -1,0 +1,20 @@
+UTC 2026-09-06T18:38:27Z
+### S7: python -m pytest -ra -q ###
+..................                                                       [100%]
+EXIT=0
+
+### S7 test inventory ###
+__pycache__
+conftest.py
+test_cell_model.py
+test_estimators.py
+test_hppc.py
+test_scpi_interface.py
+
+### does ANY S7 test touch the native/C++ path? ###
+NO S7 test references the native backend
+
+### S8: count of native-parity tests ###
+tests/test_native_parity.py::test_backend_verdicts_agree
+
+11 tests collected in 0.29s

@@ -1,0 +1,11 @@
+UTC 2026-09-06T18:37:22Z
+### S7 native load proof (freshly built .so) ###
+native_available: True
+lib object      : <CDLL '/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint7_battery_testbench/build/libpolaris_bms.so', handle b15dc38caff0 at 0xf92448d134c0>
+lib path        : /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint7_battery_testbench/build/libpolaris_bms.so
+polaris_ocv_of_soc(0.5) via C++ = 3.7
+
+### S8 native load proof (freshly built .so) ###
+lib object: <CDLL '/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint8_flight_test_harness/build/libpolaris_ft.so', handle aba5522931a0 at 0xfd53c3e09d80>
+lib path  : /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint8_flight_test_harness/build/libpolaris_ft.so
+ft_wrap_pi(7.0) via C++ = 0.7168146928204138
