@@ -1,0 +1,7 @@
+### Does the CURRENT rul_projection reproduce the SHIPPED rul_projections.json from the SHIPPED records? ###
+scenario                  recomputed  stored json  FA-001 text
+HEALTHY                          924          924          924
+LITHIUM_PLATING                  337          337          339
+SEI_GROWTH                       480          480            -
+INTERNAL_SHORT                   467          467            -
+ELECTROLYTE_DEPLETION            368          368            -

@@ -6,11 +6,30 @@
 | **Cell** | NMC 18650, 3.20 Ah nominal (modelled) |
 | **Test bench** | Polaris Virtual Bench VTB-1 (libpolaris_bms 0.1) |
 | **Operator** | A. Barbarin |
-| **Date** | 2026-06-29 |
+| **Date** | 2026-06-29 (rev B, 2026-09-06) |
+| **Revision** | B — six numerical corrections, see §0 |
+
+## 0. Revision notice (rev B, 2026-09-06)
+
+This report was audited during the S7 → S12 toolchain integration campaign by
+re-executing the pipeline it describes. **Six statements in rev A were wrong.**
+In every case it was this report that was wrong, not the code, except where
+noted for the model coefficients.
+
+| # | rev A said | Actually | Which was wrong |
+|---|---|---|---|
+| 1 | campaign run at −10 °C (263.15 K) | 283.15 K (+10 °C), as configured in `scripts/run_cycling_campaign.py` and as used to generate the bundled dataset | the report |
+| 2 | RUL 339 cycles | **337**, which is what `rul_projection` returns and what `data/rul_projections.json` has always contained | the report |
+| 3 | 1000-sample bootstrap CI of 335 / 342 | no bootstrap code exists anywhere in this sprint; `rul_projection` is a bare `np.polyfit` with no uncertainty estimate. The interval was withdrawn rather than invented a second time | the report |
+| 4 | mean cluster posterior 0.93 | **1.000** exactly, on every cycle. The GMM posteriors are degenerate, see §6 | the report |
+| 5 | — | `cpp/cell_model.hpp` carried `k_cyc = 0.0090` and `k_r_cyc = 0.0020`, which cannot regenerate the bundled dataset. Restored to the generating values `0.0030` and `0.0008` | the code |
+| 6 | — | with those restored, `data/cycle_records.json` and `data/rul_projections.json` regenerate **byte-identically**, and in-sample triage accuracy returns to the 94.6 % quoted in §6 | — |
+
+Evidence for each: `integration_campaign_2026-09/` (findings F1-1 to F1-4, F1-6).
 
 ## 1. Summary
 
-The cell under test (CUT) was cycled 60 times at a chamber set-point of **−10 °C** (263.15 K) with a 1 C constant-current discharge and a 0.5 C CC-CV charge. The triage pipeline assigned **LITHIUM_PLATING** to 58 / 59 post-baseline cycles with a mean cluster posterior of 0.93. Final state-of-health was **94.33 %**, vs **97.74 %** for the matching healthy cell at 25 °C — a **2.51× acceleration** of the cycle-fade rate (5.67 % loss vs 2.26 %).
+The cell under test (CUT) was cycled 60 times at a chamber set-point of **+10 °C** (283.15 K) with a 1 C constant-current discharge and a 0.5 C CC-CV charge. The triage pipeline assigned **LITHIUM_PLATING** to 58 / 59 post-baseline cycles with a mean cluster posterior of 1.000 (degenerate — see §6). Final state-of-health was **94.33 %**, vs **97.74 %** for the matching healthy cell at 25 °C — a **2.51× acceleration** of the cycle-fade rate (5.67 % loss vs 2.26 %).
 
 All numerical values in this report are computed by `scripts/run_cycling_campaign.py` from the bundled `data/cycle_records.json` dataset; reproducibility instructions are in §5.
 
@@ -30,7 +49,7 @@ The signatures are consistent with the canonical electrochemical mechanism: at l
 
 ## 3. RUL projection
 
-Linear regression on the trailing third of the SoH(cycle) trace projects the **80 % SoH crossing at cycle 339** (1000-sample bootstrap of the regression slope: 5th / 95th percentile = **335 / 342**). The bootstrap interval is tight because the simulated stress trajectory is deterministic — any variability comes from the regression sample size, not from cell-to-cell scatter (which the model does not currently represent). On a real bench this interval would be substantially wider.
+Linear regression on the trailing third of the SoH(cycle) trace projects the **80 % SoH crossing at cycle 337** (`polaris_bms.triage.rul_projection`, `np.polyfit` degree 1 over the trailing third, extrapolated to the 80 % threshold). This is a bare point estimate: **no confidence interval is quoted because the code computes none.** Rev A of this report cited a 1000-sample bootstrap interval of 335 / 342; no bootstrap exists in this sprint and that interval was withdrawn in rev B. A projection like this is in any case a linear extrapolation of a deterministic square-root fade law well beyond the 60 cycles actually simulated, so its real uncertainty is dominated by model form, not by regression scatter.
 
 For comparison, the same projection on the healthy cell crosses 80 % SoH at cycle **924** — a 2.7× longevity advantage.
 
@@ -60,3 +79,5 @@ PY
 - Single-cell, deterministic simulation. No cell-to-cell variability, no full-pack thermal gradient, no measurement-system aging.
 - The Li-plating mechanism is implemented as an **R1 impedance multiplier + cycle-fade multiplier + a small charge-voltage offset below 15 °C**, not via a first-principles butler-volmer model. Sign, magnitude, and temperature dependence are calibrated to qualitatively match published data, not to predict absolute kinetics.
 - Triage accuracy quoted is **in-sample** (94.6 % overall); no held-out cells were used. Cross-validated accuracy on a held-out cell will be lower; this is appropriate future work.
+- **The GMM posteriors are degenerate.** Eight clusters over 295 points drawn from five deterministic trajectories separate so cleanly that every posterior is exactly 1.000. The posterior therefore carries no confidence information and must not be read as one. Rev A quoted 0.93, which no run produces.
+- The two aging coefficients `k_cyc` and `k_r_cyc` had drifted in `cpp/cell_model.hpp` away from the values that generated the bundled dataset. Nothing in the sprint detected this, because no test compares the code against its own committed data. See §0 and finding F1-1.

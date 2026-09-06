@@ -1,0 +1,26 @@
+UTC 2026-09-06T19:00:53Z
+### python scripts/run_campaign.py --seeds 4 --dt 0.05 --outdir /tmp/s8_camp ###
+
+Flight-test campaign  (card v1.0.0, 4 seeds/scenario, dt=0.05s)
+
+scenario            pass   xt_rms  xt_max alt_rms  Va_rms navRMSE  settle
+nominal            4/4       1.23   15.07    2.22    0.80    1.51     nan
+wind_step          0/4      10.51  108.84    2.33    0.85    2.85     0.0
+wind_shear         0/4       6.78   90.19    2.16    0.78    5.83     0.0
+gps_dropout        0/4      16.66  111.36    2.18    0.80   18.89    37.2
+airspeed_bias      0/4       2.75   41.83    2.96    4.11    2.22     nan
+aileron_loss       0/4      31.65  197.32    2.20    0.79    1.52     nan
+elevator_loss      0/4       1.17   12.57    6.54    1.21    1.52     nan
+thrust_loss        0/4       1.15   10.00    1.79    2.01    1.55     nan
+
+Triage overall accuracy: 100.0%
+  AILERON_LOSS     4/4
+  AIRSPEED_BIAS    4/4
+  ELEVATOR_LOSS    4/4
+  GPS_DROPOUT      4/4
+  NOMINAL          4/4
+  THRUST_LOSS      4/4
+  WIND_SHEAR       4/4
+  WIND_STEP        4/4
+
+Wrote /tmp/s8_camp/campaign.json and /tmp/s8_camp/triage.json

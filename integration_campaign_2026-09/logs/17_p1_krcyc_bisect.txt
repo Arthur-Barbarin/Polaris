@@ -1,0 +1,12 @@
+committed k_r_cyc = 0.002, k_cyc = 0.003
+  k_r_cyc  scenario           ir_drop    target      dvdq    target   max rel err
+   0.0020  HEALTHY             0.0766    0.0743    87.554    84.921      3.10e-02
+   0.0020  LITHIUM_PLATING     0.1161    0.1127    60.083    56.223      6.86e-02
+   0.0015  HEALTHY             0.0757    0.0743    86.457    84.921      1.81e-02
+   0.0015  LITHIUM_PLATING     0.1147    0.1127    58.474    56.223      4.00e-02
+   0.0012  HEALTHY             0.0751    0.0743    85.799    84.921      1.03e-02
+   0.0012  LITHIUM_PLATING     0.1138    0.1127    57.510    56.223      2.29e-02
+   0.0010  HEALTHY             0.0747    0.0743    85.360    84.921      5.17e-03
+   0.0010  LITHIUM_PLATING     0.1132    0.1127    56.866    56.223      1.14e-02
+   0.0008  HEALTHY             0.0743    0.0743    84.921    84.921      3.73e-16   <== MATCH
+   0.0008  LITHIUM_PLATING     0.1127    0.1127    56.223    56.223      1.52e-15   <== MATCH

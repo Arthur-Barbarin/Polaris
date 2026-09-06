@@ -1,0 +1,4 @@
+### remaining FA-001 claims checked against the restored, byte-identical dataset ###
+LITHIUM_PLATING correctly triaged: 58/59   (FA-001 says 58 / 59)
+mean cluster posterior on those cycles: 1.0000   (FA-001 says 0.93)
+overall in-sample accuracy: 279/295 = 94.6%   (FA-001 says 94.6 %)

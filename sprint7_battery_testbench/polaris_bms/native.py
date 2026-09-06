@@ -111,8 +111,8 @@ class _PyCellParams:
     Ea_R0 = 20000.0; Ea_R1 = 35000.0; Ea_R2 = 40000.0
     R0_ref = 0.022; R1_ref = 0.015; C1_ref = 1800.0
     R2_ref = 0.030; C2_ref = 18000.0
-    k_cyc = 0.0090; k_cal = 0.00015
-    k_r_cyc = 0.0020; k_r_cal = 0.00010
+    k_cyc = 0.0030; k_cal = 0.00015   # k_cyc must track cpp/cell_model.hpp (F1-1)
+    k_r_cyc = 0.0008; k_r_cal = 0.00010   # k_r_cyc must track cpp/cell_model.hpp (F1-1)
     v_max = 4.20; v_min = 2.75
 
 

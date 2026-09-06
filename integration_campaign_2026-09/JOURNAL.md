@@ -280,3 +280,304 @@ severity of F0-2: the gap is *unverified* computation, not *wrong* computation.
   isolation, which is precisely the condition the rest of this campaign exists
   to break.
 - Nothing about real hardware. All inputs are simulator-generated.
+
+---
+
+# Phase 1 — Reproducing the document / code discrepancies of S7 and S8
+
+**2026-09-06, same environment of record as Phase 0** (Linux aarch64, g++ 11.4.0,
+CPython 3.10.12, native C++ path loaded and verified). All data remains
+synthetic. Logs `10_*` through `23_*`, probes `tools/p1_*.py`.
+
+Five discrepancies were carried into this phase from a static review. All five
+reproduced. Execution surfaced two more that the static review had not seen, one
+of which is larger than the five.
+
+## Correction to a Phase 0 finding
+
+**F0-1 was overstated and is corrected here.** Phase 0 recorded that S7's `cpp/`
+sources are "untracked and not ignored, so the native path is unbuildable from a
+clone". The first half is true of the `Polaris_sprint` working copy — where, it
+turns out, **the whole of `sprint7_battery_testbench` is untracked**, not just
+`cpp/`. The conclusion drawn from it was wrong: in the published repository
+(`Polaris`, `origin/main`) S7 including all six `cpp/` files **is** tracked, from
+commit `c66d9cb`. A clone can build the native path. What F0-1 actually describes
+is a divergence between the scratch copy and the published repository, not a gap
+in the published repository. Restated:
+
+> **F0-1 (rev B)** — In the `Polaris_sprint` working copy, `sprint7_battery_testbench`
+> is entirely untracked and not gitignored. Changes made there are invisible to
+> `git status`, carry no history, and reach the published repository only by manual
+> copy. The published repository tracks S7 correctly. Severity: medium (process),
+> not high (reproducibility).
+
+The consequence bit during this phase: S7's Phase 1 edits produce no diff in
+`Polaris_sprint` and had to be added to the index explicitly.
+
+---
+
+## P1-1 — The committed model no longer produces the committed dataset
+
+Log: `10_p1_s7_campaign.txt`, `11_p1_kcyc_bisect.txt`, `17_p1_krcyc_bisect.txt`,
+`16_`/`18_p1_f1-1_fix*.txt`. Probes: `tools/p1_kcyc_bisect.py`,
+`tools/p1_krcyc_bisect.py`.
+
+This was not on the list. It was found by doing the first thing the phase asked
+for — running the script FA-001 says produces its numbers.
+
+```
+python3 scripts/run_cycling_campaign.py
+```
+
+| | shipped `data/` | this run |
+|---|---|---|
+| HEALTHY final SoH | 97.745 % | **93.318 %** |
+| LITHIUM_PLATING final SoH | 94.329 % | **83.077 %** |
+| RUL, LITHIUM_PLATING | 337 | **80** |
+| RUL, HEALTHY | 924 | **279** |
+
+Every figure in FA-001 derives from that dataset, so the report described a model
+that was no longer in the repository.
+
+The discrepancy is not random and not a backend artefact: the loss ratio is a
+constant 2.96 from the first cycle onward, which is the signature of a single
+scaled coefficient. Bisecting the cycle-fade coefficient on the pure-Python
+backend (`tools/p1_kcyc_bisect.py`) located it:
+
+```
+   k_cyc  scenario            soh[1]   soh[60]   shipped soh[1] shipped soh[60]   max |err|
+  0.0090  HEALTHY             99.126    93.318           99.705          97.745      4.4268
+  0.0030  HEALTHY             99.705    97.745           99.705          97.745      0.0000   <== MATCH
+  0.0030  LITHIUM_PLATING     99.259    94.329           99.259          94.329      0.0001   <== MATCH
+```
+
+Restoring `k_cyc = 0.0030` reproduced the SoH trace exactly but left the
+impedance-derived features 3–7 % off (`ir_drop_v`, `peak_charge_dvdq`). The same
+bisection on the resistance-growth coefficient (`tools/p1_krcyc_bisect.py`)
+closed it:
+
+```
+   0.0020  HEALTHY             0.0766    0.0743    87.554    84.921      3.10e-02
+   0.0008  HEALTHY             0.0743    0.0743    84.921    84.921      3.73e-16   <== MATCH
+   0.0008  LITHIUM_PLATING     0.1127    0.1127    56.223    56.223      1.52e-15   <== MATCH
+```
+
+**Fix applied.** `cpp/cell_model.hpp` and the Python mirror in
+`polaris_bms/native.py`: `k_cyc 0.0090 → 0.0030`, `k_r_cyc 0.0020 → 0.0008`.
+S7 rebuilt, campaign re-run:
+
+```
+cycle_records.json  : BYTE-IDENTICAL to shipped
+rul_projections.json: BYTE-IDENTICAL to shipped
+Triage in-sample accuracy: 279/295 = 94.6%
+```
+
+Three independent confirmations that these are the generating values: the raw
+dataset is byte-identical, the RUL file is byte-identical, and the in-sample
+triage accuracy returns to **94.6 %**, the number FA-001 §6 has always quoted and
+which the drifted model could not produce (it gave 92.5 %, then 94.2 % after only
+the first coefficient was restored).
+
+Native and pure-Python mirror re-verified after the change: worst relative
+deviation 6.7e-15, zero fields outside 1e-12.
+
+**Which was wrong: the code.** The dataset, the RUL file and the report agreed
+with each other and disagreed only with the source. Decided in consultation with
+the operator; the alternative (regenerate everything against `0.0090`) would have
+invalidated every published S7 figure to no benefit, since neither value is
+traceable to a physical calibration.
+
+**Test that locks it:** `tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible`,
+parametrised over all five scenarios, pins seven features per cycle against the
+committed dataset at `rel=1e-9`. Verified to fail on the pre-fix code — see
+`22_p1_tests_fail_prefix.txt`, 5 failures — and to pass after.
+
+## P1-2 — FA-001 campaign temperature (was on the list)
+
+`scripts/run_cycling_campaign.py:28` configures `LITHIUM_PLATING` at **283.15 K**
+(+10 °C). FA-001 §1 said **−10 °C (263.15 K)**.
+
+Reproduced, and settled by more than reading the table: the shipped dataset is
+reproduced byte-for-byte by a run at 283.15 K (P1-1). The campaign that produced
+FA-001 was run at +10 °C. The model's plating mechanism triggers below 15 °C
+(FA-001 §6), so 283.15 K is inside the plating regime and the code is
+self-consistent.
+
+**Which was wrong: the report.** Corrected to +10 °C (283.15 K), with the change
+recorded in a new §0 revision notice rather than silently. If −10 °C was the
+intended test point, that is a re-run of the campaign and a full regeneration of
+`data/`, not a text edit — left as an operator decision.
+
+## P1-3 — FA-001 bootstrap confidence interval (was on the list)
+
+FA-001 §3 cited a "1000-sample bootstrap of the regression slope: 5th / 95th
+percentile = 335 / 342".
+
+```
+grep -rni "bootstrap" . --include=*.py --include=*.md --include=*.json --include=*.sh
+./reports/FA-001_lithium_plating_signature.md:33:  ... 1000-sample bootstrap ...
+```
+
+The only occurrence in the sprint is the claim itself. `rul_projection`
+(`polaris_bms/triage.py:104-119`) is a bare `np.polyfit` degree 1 with no
+resampling and no uncertainty output.
+
+**Which was wrong: the report.** The interval could not have been produced by
+this repository. It was **withdrawn**, not recomputed: implementing a bootstrap
+to retro-fit a published number would be inventing the evidence a second time,
+and adding an estimator is a feature, not a defect fix. §3 now states plainly
+that no interval is quoted because the code computes none.
+
+## P1-4 — FA-001 RUL 339 vs 337 (was on the list)
+
+Recomputing `rul_projection` on the shipped records:
+
+```
+scenario                  recomputed  stored json  FA-001 text
+HEALTHY                          924          924          924
+LITHIUM_PLATING                  337          337          339
+SEI_GROWTH                       480          480            -
+```
+
+The code, the stored JSON and the report agree everywhere except this one cell.
+
+**Which was wrong: the report.** Corrected to 337.
+
+## P1-5 — FA-002 root cause (was on the list, and worse than suspected)
+
+Logs: `13_`, `14_`, `19_p1_*`. Probe: `tools/p1_fa002_clip.py`.
+
+`scripts/benchmark_estimators.py:62` read
+
+```python
+init_guess = float(np.clip(true_init - guess_err, 0.05, 0.95))
+```
+
+with every scenario starting the cell at `soc0 = 1.0`. The **upper** bound
+therefore seeded all three estimators at 0.95 against a true 1.00 whenever
+`guess_err` was small — including `baseline_25c`, whose own table row declares a
+guess error of 0.0.
+
+Measured, clip on versus clip removed, nothing else changed:
+
+```
+baseline, no bias at all, clip ON  : CC rms = 0.0496   <- pure artefact, zero bias applied
+baseline, no bias at all, clip OFF : CC rms = 0.0005
+biased shunt (0.08 A), clip ON     : CC rms = 0.0761   <- the 0.076 quoted in FA-002
+biased shunt (0.08 A), clip OFF    : CC rms = 0.0285   <- what the shunt bias alone costs
+```
+
+FA-002 §3 attributed 0.05 to the shunt bias and "the additional 0.026" to a wrong
+initial guess the scenario did not declare. The two terms are real and sum
+correctly, but **they are the wrong way round**: the seed artefact is the larger
+term (0.0496), the shunt bias the smaller (0.0285).
+
+The consequence is larger than a misattributed sentence. Open-loop coulomb
+counting cannot recover from a seed error; the EKF re-anchors on voltage within
+seconds. The gap between them was measuring the size of the injected handicap.
+
+**Fix applied,** guard widened to the physical range `(0.0, 1.0)`, extracted into
+a documented `seed_guess()` so it can be tested, and the campaign re-run:
+
+| scenario | CC before | CC after | EKF before | EKF after | EKF advantage before → after |
+|---|---|---|---|---|---|
+| baseline_25c | 0.0498 | **0.0002** | 0.0016 | 0.0003 | +96.9 % → **−9.7 %** |
+| bad_guess_25c | 0.3998 | 0.3998 | 0.0053 | 0.0053 | +98.7 % → +98.7 % |
+| biased_shunt_25c | 0.0763 | **0.0287** | 0.0105 | **0.0575** | +86.3 % → **−100.0 %** |
+| biased_and_bad_guess | 0.4252 | 0.4252 | 0.0100 | 0.0100 | +97.7 % → +97.7 % |
+| cold_minus_10c | 0.2125 | 0.2125 | 0.0546 | 0.0546 | +74.3 % → +74.3 % |
+| hot_plus_45c | 0.2125 | 0.2125 | 0.0286 | 0.0286 | +86.6 % → +86.6 % |
+
+Only the two scenarios that were supposed to be clean moved. The three with a
+large declared guess error are untouched, because there the injected 0.05 was
+swamped by the declared 0.4 or 0.2. That selectivity is itself the signature of a
+seeding defect rather than a modelling change.
+
+**FA-002's headline is withdrawn.** "90 % on average" becomes: decisive on seed
+error (+98.7 %, +97.7 %), solid at temperature extremes (+74.3 %, +86.6 %), no
+help on a clean run, and **twice as bad as open-loop counting under a pure shunt
+bias with a correct seed** (0.0575 vs 0.0287). No average is quoted in rev B,
+because averaging percentages across scenarios whose baseline error spans 0.0002
+to 0.4252 is dominated by near-zero denominators.
+
+Partial root cause for the last row, supportable from the code: the EKF's state
+vector is `[SOC, v_rc1, v_rc2]` — there is **no current-bias state**, so a DC
+shunt offset is not observable to the filter. Why it ends up *worse* than the
+counter rather than merely equal is **not established** and is left open below.
+
+**Which was wrong: both.** The code had a real defect; the report both
+misattributed it and built its headline on it. Both corrected, with FA-002 rev B
+carrying an explicit withdrawal notice rather than a quiet renumbering.
+
+**Test that locks it:** `test_seed_guard_does_not_invent_a_guess_error`. Verified
+to fail on the pre-fix code (`assert 0.95 == 1.0`) and pass after.
+
+## P1-6 — FA-001 cluster posterior (not on the list)
+
+FA-001 §1 claimed a "mean cluster posterior of 0.93" over the plating cycles.
+Recomputed on the restored, byte-identical dataset:
+
+```
+LITHIUM_PLATING correctly triaged: 58/59   (FA-001 says 58 / 59)          OK
+mean cluster posterior on those cycles: 1.0000   (FA-001 says 0.93)       WRONG
+overall in-sample accuracy: 279/295 = 94.6%   (FA-001 says 94.6 %)        OK
+```
+
+**Which was wrong: the report** — and the truth is less flattering than the
+claim. Every posterior is exactly 1.000: eight clusters over 295 points drawn
+from five deterministic trajectories separate so cleanly that the GMM saturates.
+The posterior carries no confidence information at all and must not be presented
+as one. FA-001 §6 now says so.
+
+## P1-7 — S8 README, thrust_loss row (was on the list)
+
+```
+python scripts/run_campaign.py --seeds 4 --dt 0.05 --outdir /tmp/s8_camp
+
+scenario            pass   xt_rms  xt_max alt_rms  Va_rms navRMSE
+nominal            4/4       1.23   15.07    2.22    0.80    1.51
+thrust_loss        0/4       1.15   10.00    1.79    2.01    1.55
+```
+
+The README's `thrust_loss` row read `1.24 | 15.1` — within rounding of the
+nominal row's `1.23 | 15.1`. Actual values are **1.15 / 10.00**. Every other cell
+in that table, all seven other scenarios and all five other columns, reproduces
+exactly as printed.
+
+**Which was wrong: the README.** Corrected in place with a dated footnote. The
+error direction matters: it made a thrust-loss failure look like it tracked
+cross-track no better than nominal, when it actually tracks noticeably tighter.
+
+---
+
+## Phase 1 regression status
+
+```
+S7: {'tests': '25', 'failures': '0', 'errors': '0', 'skipped': '0', 'time': '3.814'}
+S8: {'tests': '28', 'failures': '0', 'errors': '0', 'skipped': '0', 'time': '32.592'}
+```
+
+S7 was 18 tests before this phase and is 25 after (7 added, all locking a fix).
+No pre-existing test changed behaviour. `data/cycle_records.json` and
+`data/rul_projections.json` are byte-identical to what they were on entry;
+`data/estimator_benchmark.{json,csv}` are regenerated, which is the point of P1-5.
+
+## Open after Phase 1
+
+| # | Item | Why open |
+|---|---|---|
+| O-5 | The EKF is worse than open-loop counting under pure shunt bias with a correct seed (0.0575 vs 0.0287) | Reproduced and reported, root cause not established. Adding a current-bias state is a design change, deliberately not made. |
+| O-6 | `baseline_25c` now seeds the estimators with the exact true SOC | Physically unrealistic, but it is what a declared guess error of 0.0 means. Starting the cell at `soc0 = 0.9` would fix the design; that is a change to the experiment, not a defect fix. |
+| O-7 | Neither `k_cyc = 0.0030` nor `k_r_cyc = 0.0008` is traceable to a physical calibration | The header calls them "calibrated for accelerated test cycling" with no source. Restored to the generating values because reproducibility was the defect; the values themselves remain unjustified. |
+| O-8 | FA-001 was written for −10 °C but the campaign ran at +10 °C | The report was corrected to match what ran. Whether +10 °C is the test point that was actually wanted is an operator decision, and changing it means regenerating `data/`. |
+| O-1..O-4 | carried forward from Phase 0 | unchanged |
+
+## What Phase 1 does not prove
+
+- Nothing about S9, S10 or S12, and nothing about integration. Every check above
+  is still a single sprint in isolation.
+- Nothing about whether the model is *right*. P1-1 restored the code to the
+  values that generate the shipped data; it did not validate either value against
+  a real cell, and no such validation is possible with synthetic data.
+- Nothing about held-out triage performance. The 94.6 % remains in-sample, and
+  P1-6 shows the posteriors that would normally qualify it are degenerate.

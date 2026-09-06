@@ -1,0 +1,11 @@
+UTC 2026-09-06T19:10:13Z
+### regression check after the Phase 1 fixes ###
+--- S7 full suite (native path) ---
+.........................                                                [100%]
+EXIT=0
+S7 junit: {'tests': '25', 'failures': '0', 'errors': '0', 'skipped': '0', 'time': '3.805'}
+
+--- the two new tests, proven to FAIL on the pre-fix code ---
+(re-running test_seed_guard with the old bound restored in a scratch copy)
+bash: line 15: /tmp/oldclip/benchmark_estimators.py: No such file or directory
+.                                                                        [100%]

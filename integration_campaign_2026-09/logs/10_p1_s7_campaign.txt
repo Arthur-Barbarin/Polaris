@@ -1,0 +1,48 @@
+UTC 2026-09-06T18:56:34Z
+### grep for bootstrap across the whole of S7 (reports included) ###
+./reports/FA-001_lithium_plating_signature.md:33:Linear regression on the trailing third of the SoH(cycle) trace projects the **80 % SoH crossing at cycle 339** (1000-sample bootstrap of the regression slope: 5th / 95th percentile = **335 / 342**). The bootstrap interval is tight because the simulated stress trajectory is deterministic — any variability comes from the regression sample size, not from cell-to-cell scatter (which the model does not currently represent). On a real bench this interval would be substantially wider.
+
+### scenario table as configured in scripts/run_cycling_campaign.py ###
+SCENARIOS = [
+    ("HEALTHY",                 Fault.NONE,                  0.0,  298.15, 60),
+    ("LITHIUM_PLATING",         Fault.LITHIUM_PLATING,       0.8,  283.15, 60),
+    ("SEI_GROWTH",              Fault.SEI_GROWTH,            0.7,  308.15, 60),
+    ("INTERNAL_SHORT",          Fault.INTERNAL_SHORT,        0.6,  298.15, 60),
+    ("ELECTROLYTE_DEPLETION",   Fault.ELECTROLYTE_DEPLETION, 0.9,  313.15, 60),
+]
+
+### python3 scripts/run_cycling_campaign.py  (native path loaded) ###
+Running cycling campaigns...
+  HEALTHY                  -> 60 cycles, final SoH= 93.3%
+  LITHIUM_PLATING          -> 60 cycles, final SoH= 83.1%
+  SEI_GROWTH               -> 60 cycles, final SoH= 87.7%
+  INTERNAL_SHORT           -> 60 cycles, final SoH= 87.3%
+  ELECTROLYTE_DEPLETION    -> 60 cycles, final SoH= 84.3%
+
+Triage clusters -> {0: np.str_('SEI_GROWTH'), 1: np.str_('LITHIUM_PLATING'), 2: np.str_('ELECTROLYTE_DEPLETION'), 3: np.str_('INTERNAL_SHORT'), 4: np.str_('HEALTHY'), 5: np.str_('ELECTROLYTE_DEPLETION'), 6: np.str_('LITHIUM_PLATING'), 7: np.str_('ELECTROLYTE_DEPLETION')}
+RUL projections (cycles to 80% SoH): {'HEALTHY': 279, 'LITHIUM_PLATING': 80, 'SEI_GROWTH': 128, 'INTERNAL_SHORT': 123, 'ELECTROLYTE_DEPLETION': 90}
+
+Triage in-sample accuracy: 273/295 = 92.5%
+  ELECTROLYTE_DEPLETION    59/59 = 100.0%
+  HEALTHY                  58/59 = 98.3%
+  INTERNAL_SHORT           49/59 = 83.1%
+  LITHIUM_PLATING          58/59 = 98.3%
+  SEI_GROWTH               49/59 = 83.1%
+### shipped data/ (backed up before the re-run) vs freshly regenerated ###
+--- SHIPPED (Jun 29): 300 records
+    HEALTHY                  n= 60  soh_first= 99.705  soh_last= 97.745  T_k=?
+    LITHIUM_PLATING          n= 60  soh_first= 99.259  soh_last= 94.329  T_k=?
+    SEI_GROWTH               n= 60  soh_first= 99.459  soh_last= 95.856  T_k=?
+    INTERNAL_SHORT           n= 60  soh_first= 99.445  soh_last= 95.752  T_k=?
+    ELECTROLYTE_DEPLETION    n= 60  soh_first= 99.313  soh_last= 94.749  T_k=?
+--- REGENERATED (today): 300 records
+    HEALTHY                  n= 60  soh_first= 99.126  soh_last= 93.318  T_k=?
+    LITHIUM_PLATING          n= 60  soh_first= 97.788  soh_last= 83.077  T_k=?
+    SEI_GROWTH               n= 60  soh_first= 98.388  soh_last= 87.651  T_k=?
+    INTERNAL_SHORT           n= 60  soh_first= 98.345  soh_last= 87.341  T_k=?
+    ELECTROLYTE_DEPLETION    n= 60  soh_first= 97.951  soh_last= 84.335  T_k=?
+
+RUL shipped     : {'HEALTHY': 924, 'LITHIUM_PLATING': 337, 'SEI_GROWTH': 480, 'INTERNAL_SHORT': 467, 'ELECTROLYTE_DEPLETION': 368}
+RUL regenerated : {'HEALTHY': 279, 'LITHIUM_PLATING': 80, 'SEI_GROWTH': 128, 'INTERNAL_SHORT': 123, 'ELECTROLYTE_DEPLETION': 90}
+
+record keys: ['charge_capacity_ah', 'coulombic_efficiency', 'cycle', 'd_ir_drop_v', 'd_mean_voltage_v', 'd_soh_pct', 'discharge_capacity_ah', 'fault', 'ir_drop_v', 'mean_discharge_voltage', 'peak_charge_dvdq', 'rest_relaxation_v', 'soh_pct']

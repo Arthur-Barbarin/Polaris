@@ -36,10 +36,12 @@ struct CellParams {
     double C2_ref = 18000.0;
     // Aging coefficients
     //   capacity loss: q_now = q_nom * (1 - k_cyc * sqrt(cycles) - k_cal * sqrt(time_s/86400))
-    double k_cyc = 0.0090;     // per sqrt(cycle) - calibrated for accelerated test cycling
+    double k_cyc = 0.0030;     // per sqrt(cycle) - calibrated for accelerated test cycling
+                               // (0.0030 is the value data/cycle_records.json was generated with;
+                               //  see integration_campaign_2026-09 finding F1-1)
     double k_cal = 0.00015;    // per sqrt(day)
     //   internal resistance growth: R0(now) = R0_ref * (1 + k_r_cyc * cycles + k_r_cal * days)
-    double k_r_cyc = 0.0020;
+    double k_r_cyc = 0.0008;   // value data/cycle_records.json was generated with (F1-1)
     double k_r_cal = 0.00010;
     // Voltage limits (V)
     double v_max = 4.20;

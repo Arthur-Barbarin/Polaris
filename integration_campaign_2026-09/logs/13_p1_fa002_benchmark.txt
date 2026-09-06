@@ -1,0 +1,22 @@
+UTC 2026-09-06T18:59:18Z
+### python3 scripts/benchmark_estimators.py (native path) ###
+Training ML residual corrector on a held-out simulated cycle...
+  baseline_25c              CC rms=0.0495  EKF rms=0.0015  ML rms=0.0048  EKF adv=+96.9%  ML adv=+90.2%
+  bad_guess_25c             CC rms=0.3995  EKF rms=0.0054  ML rms=0.0030  EKF adv=+98.6%  ML adv=+99.2%
+  biased_shunt_25c          CC rms=0.0760  EKF rms=0.0103  ML rms=0.0105  EKF adv=+86.5%  ML adv=+86.2%
+  biased_and_bad_guess      CC rms=0.4249  EKF rms=0.0098  ML rms=0.0085  EKF adv=+97.7%  ML adv=+98.0%
+  cold_minus_10c            CC rms=0.2122  EKF rms=0.0543  ML rms=0.0548  EKF adv=+74.4%  ML adv=+74.2%
+  hot_plus_45c              CC rms=0.2122  EKF rms=0.0286  ML rms=0.0250  EKF adv=+86.5%  ML adv=+88.2%
+
+Mean EKF advantage vs coulomb counting: +90.1%
+Mean ML-augmented advantage vs coulomb counting: +89.3%
+Wrote data/estimator_benchmark.json and data/estimator_benchmark.csv
+
+### regenerated vs shipped vs FA-002 table ###
+scenario               guess_err | cc_rms new   shipped   FA-002 |  ekf new  shipped  FA-002
+baseline_25c                 0.0 |     0.0495    0.0498    0.050 |   0.0015   0.0016   0.002
+bad_guess_25c                0.4 |     0.3995    0.3998    0.400 |   0.0054   0.0053   0.005
+biased_shunt_25c             0.0 |     0.0760    0.0763    0.076 |   0.0103   0.0105   0.011
+biased_and_bad_guess         0.4 |     0.4249    0.4252    0.425 |   0.0098   0.0100   0.010
+cold_minus_10c               0.2 |     0.2122    0.2125    0.213 |   0.0543   0.0546   0.055
+hot_plus_45c                 0.2 |     0.2122    0.2125    0.213 |   0.0286   0.0286   0.029

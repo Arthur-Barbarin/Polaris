@@ -1,0 +1,31 @@
+UTC 2026-09-06T19:10:56Z
+### final state check ###
+cycle_records.json   : unchanged from shipped (byte-identical) OK
+rul_projections.json : unchanged from shipped OK
+estimator_benchmark  : regenerated with the corrected seeding OK
+
+### full suites, after all Phase 1 changes ###
+S7: {'tests': '25', 'failures': '0', 'errors': '0', 'skipped': '0', 'time': '3.814'}
+S8: {'tests': '28', 'failures': '0', 'errors': '0', 'skipped': '0', 'time': '32.592'}
+
+### files changed in Phase 1 ###
+ M integration_campaign_2026-09/logs/s7_native.json
+ M integration_campaign_2026-09/logs/s7_pyfallback.json
+A  sprint8_flight_test_harness/.streamlit/config.toml
+AM sprint8_flight_test_harness/README.md
+A  sprint8_flight_test_harness/cpp/Makefile
+AM sprint8_flight_test_harness/cpp/c_api.cpp
+AM sprint8_flight_test_harness/cpp/flight_core.cpp
+AM sprint8_flight_test_harness/cpp/flight_core.hpp
+A  sprint8_flight_test_harness/dashboard/app.py
+A  sprint8_flight_test_harness/dashboard/requirements.txt
+AM sprint8_flight_test_harness/data/campaign.json
+AM sprint8_flight_test_harness/data/triage.json
+A  sprint8_flight_test_harness/polaris_ft/__init__.py
+A  sprint8_flight_test_harness/polaris_ft/controller.py
+A  sprint8_flight_test_harness/polaris_ft/estimator.py
+AM sprint8_flight_test_harness/polaris_ft/faults.py
+A  sprint8_flight_test_harness/polaris_ft/mission.py
+AM sprint8_flight_test_harness/polaris_ft/native.py
+A  sprint8_flight_test_harness/polaris_ft/signals.py
+A  sprint8_flight_test_harness/polaris_ft/simulator.py

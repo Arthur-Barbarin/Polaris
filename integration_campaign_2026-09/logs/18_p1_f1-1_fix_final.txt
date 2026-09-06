@@ -1,0 +1,12 @@
+### after restoring k_cyc=0.0030 AND k_r_cyc=0.0008: regenerate and compare ###
+RUL projections (cycles to 80% SoH): {'HEALTHY': 924, 'LITHIUM_PLATING': 337, 'SEI_GROWTH': 480, 'INTERNAL_SHORT': 467, 'ELECTROLYTE_DEPLETION': 368}
+
+Triage in-sample accuracy: 279/295 = 94.6%
+  ELECTROLYTE_DEPLETION    53/59 = 89.8%
+  HEALTHY                  58/59 = 98.3%
+  INTERNAL_SHORT           58/59 = 98.3%
+  LITHIUM_PLATING          58/59 = 98.3%
+  SEI_GROWTH               52/59 = 88.1%
+
+cycle_records.json  : BYTE-IDENTICAL to shipped
+rul_projections.json: BYTE-IDENTICAL to shipped

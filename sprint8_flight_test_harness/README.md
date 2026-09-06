@@ -173,7 +173,9 @@ so it reflects the disturbance response rather than unrelated turn transients.
 | airspeed_bias (−4 m/s pitot) | 0/4 | 2.75 | 41.8 | 2.96 | **4.11** | 2.22 | airspeed RMS |
 | aileron_loss (50 % auth, 2.5× lag) | 0/4 | **31.7** | 197.3 | 2.20 | 0.79 | 1.52 | cross-track |
 | elevator_loss (50 % auth, 3× lag) | 0/4 | 1.17 | 12.6 | **6.54** | 1.21 | 1.52 | altitude-hold |
-| thrust_loss (45 % thrust) | 0/4 | 1.24 | 15.1 | 1.79 | 2.01 | 1.55 | throttle sat (90 %) |
+| thrust_loss (45 % thrust) | 0/4 | 1.15 | 10.0 | 1.79 | 2.01 | 1.55 | throttle sat (90 %) |
+
+*Corrected 2026-09-06: the thrust_loss cross-track figures previously read 1.24 / 15.1, within rounding of the nominal row. Re-running `scripts/run_campaign.py --seeds 4 --dt 0.05` gives 1.15 / 10.00. Every other cell in this table reproduces as printed. See `integration_campaign_2026-09`, finding F1-7.*
 
 The harness passes the nominal mission and fails all seven fault families, each
 on the metric that physically corresponds to the injected fault: cross-track for

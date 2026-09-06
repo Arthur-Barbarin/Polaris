@@ -1,0 +1,20 @@
+### Do the new tests actually fail on the PRE-FIX code? (temporarily reverting both fixes) ###
+39:    double k_cyc = 0.0090;     // per sqrt(cycle) - calibrated for accelerated test cycling
+44:    double k_r_cyc = 0.0020;   // value data/cycle_records.json was generated with (F1-1)
+42:    return float(np.clip(true_soc - guess_err, 0.05, 0.95))
+
+________________ test_seed_guard_does_not_invent_a_guess_error _________________
+tests/test_dataset_reproducibility.py:108: in test_seed_guard_does_not_invent_a_guess_error
+    assert seed_guess(1.0, 0.0) == 1.0
+E   assert 0.95 == 1.0
+E    +  where 0.95 = <function seed_guess at 0xf556f5862170>(1.0, 0.0)
+=========================== short test summary info ============================
+FAILED tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible[ELECTROLYTE_DEPLETION]
+FAILED tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible[HEALTHY]
+FAILED tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible[INTERNAL_SHORT]
+FAILED tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible[LITHIUM_PLATING]
+FAILED tests/test_dataset_reproducibility.py::test_committed_dataset_is_reproducible[SEI_GROWTH]
+FAILED tests/test_dataset_reproducibility.py::test_seed_guard_does_not_invent_a_guess_error
+
+### fixes restored, rebuilt, re-run ###
+.......                                                                  [100%]

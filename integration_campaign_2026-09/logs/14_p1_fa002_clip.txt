@@ -1,0 +1,10 @@
+scenario                bias guess_err   clip  true soc0  seed guess   CC rms
+baseline_25c            0.00       0.0   True      1.000       0.950   0.0496
+baseline_25c            0.00       0.0  False      1.000       1.000   0.0005
+biased_shunt_25c        0.08       0.0   True      1.000       0.950   0.0761
+biased_shunt_25c        0.08       0.0  False      1.000       1.000   0.0285
+
+baseline, no bias at all, clip ON  : CC rms = 0.0496   <- pure artefact of the clip, zero bias applied
+baseline, no bias at all, clip OFF : CC rms = 0.0005
+biased shunt (0.08 A), clip ON     : CC rms = 0.0761   <- the 0.076 quoted in FA-002
+biased shunt (0.08 A), clip OFF    : CC rms = 0.0285   <- what the shunt bias alone actually costs

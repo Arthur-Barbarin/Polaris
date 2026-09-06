@@ -28,6 +28,20 @@ OUT_DIR = REPO / "data"
 OUT_DIR.mkdir(exist_ok=True)
 
 
+def seed_guess(true_soc: float, guess_err: float) -> float:
+    """Initial SOC handed to every estimator, guarded to the physical range.
+
+    The guard exists only to keep the seed inside [0, 1]. It must never move the
+    seed for a scenario that declares a guess error, and must never introduce one
+    for a scenario that declares none. A previous version clipped to (0.05, 0.95);
+    since every scenario starts the cell at soc0 = 1.0, that upper bound silently
+    seeded all three estimators 0.05 low in every run, including the "clean"
+    baseline, and inflated the EKF's measured advantage over open-loop coulomb
+    counting. See FA-002 rev B and integration_campaign_2026-09 finding F1-5.
+    """
+    return float(np.clip(true_soc - guess_err, 0.0, 1.0))
+
+
 @dataclass
 class Result:
     scenario: str
@@ -59,7 +73,7 @@ def _run_scenario(
     rng = np.random.default_rng(seed)
     cell = Cell(soc0=1.0, temperature_k=temperature_k)
     true_init = cell.snapshot().soc
-    init_guess = float(np.clip(true_init - guess_err, 0.05, 0.95))
+    init_guess = seed_guess(true_init, guess_err)
     ekf = Ekf(soc_guess=init_guess, covariance_soc=0.2)
     cc = CoulombCounter(capacity_ah=cell.snapshot().q_now_ah, soc=init_guess)
     # Reset the ML estimator's internal EKF for this scenario.

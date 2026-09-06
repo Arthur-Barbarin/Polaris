@@ -1,0 +1,25 @@
+UTC 2026-09-06T19:05:41Z
+### F1-5 fix: seed clip (0.05,0.95) -> (0.0,1.0). Regenerating the FA-002 benchmark. ###
+Training ML residual corrector on a held-out simulated cycle...
+  baseline_25c              CC rms=0.0002  EKF rms=0.0003  ML rms=0.0037  EKF adv=-9.7%  ML adv=-1454.4%
+  bad_guess_25c             CC rms=0.3998  EKF rms=0.0053  ML rms=0.0030  EKF adv=+98.7%  ML adv=+99.3%
+  biased_shunt_25c          CC rms=0.0287  EKF rms=0.0575  ML rms=0.0525  EKF adv=-100.0%  ML adv=-82.7%
+  biased_and_bad_guess      CC rms=0.4252  EKF rms=0.0100  ML rms=0.0086  EKF adv=+97.7%  ML adv=+98.0%
+  cold_minus_10c            CC rms=0.2125  EKF rms=0.0546  ML rms=0.0549  EKF adv=+74.3%  ML adv=+74.2%
+  hot_plus_45c              CC rms=0.2125  EKF rms=0.0286  ML rms=0.0249  EKF adv=+86.6%  ML adv=+88.3%
+
+Mean EKF advantage vs coulomb counting: +41.3%
+Mean ML-augmented advantage vs coulomb counting: -196.2%
+Wrote data/estimator_benchmark.json and data/estimator_benchmark.csv
+
+### corrected table vs the FA-002 table as published ###
+scenario                     T  bias  g_err |  CC old  CC new |  EKF old  EKF new |  adv old  adv new
+baseline_25c            298.15  0.00    0.0 |  0.0498  0.0002 |   0.0016   0.0003 |   +96.9%    -9.7%
+bad_guess_25c           298.15  0.00    0.4 |  0.3998  0.3998 |   0.0053   0.0053 |   +98.7%   +98.7%
+biased_shunt_25c        298.15  0.08    0.0 |  0.0763  0.0287 |   0.0105   0.0575 |   +86.3%  -100.0%
+biased_and_bad_guess    298.15  0.08    0.4 |  0.4252  0.4252 |   0.0100   0.0100 |   +97.7%   +97.7%
+cold_minus_10c          263.15  0.04    0.2 |  0.2125  0.2125 |   0.0546   0.0546 |   +74.3%   +74.3%
+hot_plus_45c            318.15  0.04    0.2 |  0.2125  0.2125 |   0.0286   0.0286 |   +86.6%   +86.6%
+
+mean EKF advantage  old = +90.1%   new = +41.3%
+mean ML  advantage  old = +89.4%   new = -196.2%
