@@ -2,7 +2,7 @@
 
 A full-stack battery validation testbench: **C++ Thévenin equivalent-circuit cell model**, **virtual SCPI instrument server**, **pytest-driven characterization suite** (HPPC, OCV-SOC, CC-CV cycling), **Extended Kalman Filter SOC estimator in C++**, and a **PCA + Gaussian Mixture failure triage** pipeline that auto-bucketizes cycling anomalies into named degradation modes.
 
-Designed to demonstrate the validation toolchain an Apple Battery Quality / Hardware System Validation engineer would build: physics-based device-under-test simulation, hardware-style instrument abstraction, automated characterization with DoE sweeps, and AI/ML-augmented anomaly triage on the resulting test data.
+It reproduces the validation toolchain a battery quality or hardware-validation function runs in practice: physics-based device-under-test simulation, hardware-style instrument abstraction, automated characterization with DoE sweeps, and ML-augmented anomaly triage on the resulting test data.
 
 ## Architecture
 
@@ -105,10 +105,10 @@ RUL projections (cycles-to-80 %-SoH) for the same scenarios: **Healthy 924, SEI 
 
 ## Why this sprint
 
-This sprint closes the three highest-impact gaps in my portfolio against Apple's Battery System Quality Engineer (200668028), Hardware System Validation Engineer (200664001), Hardware Systems Engineer (200659990), and EE Design & Test Engineer (200664207) JDs:
+Three capabilities the rest of the Polaris portfolio did not yet cover:
 
-1. **Physics-based battery modeling** (equivalent circuit, gas gauging, SOC/SOH/RUL) — required by Battery QE.
-2. **C/C++ in the loop** — Battery QE lists Python and C/C++ as required.
-3. **Hardware-style test automation** — pytest framework driving the cell through a SCPI-like instrument interface, identical to what runs on a real lab bench. Required across HSV / HSE / EE Design.
+1. **Physics-based battery modelling** — equivalent circuit, gas gauging, SOC/SOH/RUL, rather than statistical fitting on recorded data alone.
+2. **C/C++ in the loop** — the cell model and the EKF run as compiled code behind a flat C ABI, not only as Python.
+3. **Hardware-style test automation** — a pytest framework driving the cell through a SCPI-like instrument interface, the same way a real lab bench is driven.
 
 The triage pipeline reuses the **PCA + GMM** anomaly detection from Sprint 3 (Fleet Energy & Battery Risk Studio), extending the previous ML-based SoH work onto a physics-based equivalent-circuit foundation.

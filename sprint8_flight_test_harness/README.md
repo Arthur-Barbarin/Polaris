@@ -217,25 +217,24 @@ fixes are locked in by regression guards (`verify.py` block 7 + pytest):
 
 ## Why this sprint
 
-Closes the single gap that recurs across Zipline's **Electrical Engineer**,
-**Hardware Test**, and **Flight Test Engineer** intern JDs, and is the weakest
-link in the rest of the Polaris portfolio: no prior project tests or validates a
-system that behaves **autonomously / closed-loop** using flight-log-style
-telemetry — only pure simulation output or open-loop sensor DAQ.
+Closes the weakest link in the rest of the Polaris portfolio: no prior sprint
+tests or validates a system that behaves **autonomously / closed-loop** using
+flight-log-style telemetry — only pure simulation output or open-loop sensor
+acquisition. Three capabilities follow from that:
 
-* **Flight Test:** a controller that closes on estimated state, synthetic flight
+* **Flight test.** A controller that closes on estimated state, synthetic flight
   logs, automated flight-test cards with pass/fail gating, and anomaly detection
   over a test campaign.
-* **Hardware Test:** ownership of a reusable test asset end-to-end (concept →
-  build → automated validation → recommendation), with actuator/sensor faults in
-  the loop rather than sensor logging alone.
-* **Electrical Engineer:** a real-time-style estimation + control loop and
+* **Hardware test.** Ownership of a reusable test asset end-to-end (concept →
+  build → automated validation → recommendation), with actuator and sensor
+  faults in the loop rather than sensor logging alone.
+* **Estimation and control.** A real-time-style estimation and control loop with
   automated regression-style test coverage.
 
 Reuses the **PCA + GMM** anomaly-triage pattern from Sprint 3 / Sprint 7 and the
 sensor-signal modelling approach from Sprint 7, applied to a fixed-wing DUT.
 
-## CV bullets
+## Summary of work
 
 - Built a **closed-loop fixed-wing flight-test validation harness** in Python: a
   reduced-order UAV flown by a cascaded path-following / altitude / airspeed
@@ -271,15 +270,6 @@ sensor-signal modelling approach from Sprint 7, applied to a fixed-wing DUT.
   `V²/(g·tan φ)`) and a **28-test pytest gate** spanning dynamics, guidance,
   estimator, test cards, triage, physical-plausibility regression guards, and
   C++/Python parity.
-
-## JD keyword coverage
-
-closed-loop control, autonomous vehicle, flight test, test cards, pass/fail
-acceptance, guidance, path following, cascaded PID, autopilot, state estimation,
-Extended Kalman Filter, sensor fusion, GPS/INS, fault injection, anomaly
-detection, PCA, GMM, telemetry / flight-log analysis, geofence, regression
-testing, pytest, Python, C, C++, C ABI, ctypes, real-time / embedded control
-loop, verification & validation, RK4, coordinated turn.
 
 ---
 

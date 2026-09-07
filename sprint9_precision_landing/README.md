@@ -8,9 +8,9 @@ approach is scored against **landing test cards**, and campaigns are
 characterised by **Monte-Carlo touchdown dispersion (CEP)** and **PCA+GMM
 anomaly triage** over the approaches.
 
-Optimised for the **Flight Test** angle: approach telemetry, quantitative
-landing acceptance, dispersion statistics, safe-abort validation, and anomaly
-detection over many logged approaches.
+Built around flight-test practice: approach telemetry, quantitative landing
+acceptance, dispersion statistics, safe-abort validation, and anomaly detection
+over many logged approaches.
 
 > **Honesty note.** The camera model produces **synthetic measurements** —
 > pinhole projection of a fiducial's geometry with pixel noise, FOV gating and
@@ -185,17 +185,16 @@ metric blind spots) drove four more fixes, each locked by a regression guard:
   the approach envelope), and the schedule-limited `max_sink` feature (std 0.01)
   was dropped from the triage set.
 
-## Why this sprint (Flight Test)
+## Why this sprint
 
-Deepens the autonomy / closed-loop story from Sprint 8 into **perception in the
-loop**, and targets the Zipline **Flight Test** JD directly: approach telemetry
-and flight-log-style analysis, quantitative landing acceptance (touchdown CEP,
-sink rate, glideslope), **safe-abort / go-around validation**, and anomaly
-detection over a campaign of logged approaches. Reuses the Polaris closed-loop
-simulator, Kalman-filter and PCA+GMM triage idioms (Sprints 3/7/8) applied to a
-vision-guided landing device-under-test.
+Deepens the autonomy / closed-loop work of Sprint 8 into **perception in the
+loop**: approach telemetry and flight-log-style analysis, quantitative landing
+acceptance (touchdown CEP, sink rate, glideslope), **safe-abort / go-around
+validation**, and anomaly detection over a campaign of logged approaches.
+Reuses the Polaris closed-loop simulator, Kalman-filter and PCA+GMM triage
+idioms (Sprints 3/7/8) applied to a vision-guided landing device-under-test.
 
-## CV bullets
+## Summary of work
 
 - Built a **closed-loop vision-guided precision-landing studio** in Python: an
   accel-limited multirotor flying an autonomous descent onto a fiducial pad,
@@ -219,15 +218,6 @@ vision-guided landing device-under-test.
   lands blind" safety guard) — after **two physical-plausibility audits** that
   caught and fixed an unphysical sub-millimetre CEP, a wind-induced hover trap,
   a precision-vs-accuracy CEP blind spot, and several dead / inert config knobs.
-
-## JD keyword coverage
-
-precision landing, autonomous landing, vision-guided, perception, fiducial /
-marker detection, pinhole camera model, sensor fusion, GPS/vision handover,
-Kalman filter, state estimation, guidance state machine, go-around / rejected
-landing, decision height, touchdown dispersion, CEP, Monte-Carlo, flight-log /
-telemetry analysis, anomaly detection, PCA, GMM, verification & validation,
-Python, pytest.
 
 ---
 
