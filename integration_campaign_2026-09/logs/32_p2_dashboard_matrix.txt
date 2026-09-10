@@ -1,0 +1,16 @@
+dashboard/app.py lines 194-199, run against the shipped artefact:
+outcome           PASS  FAIL  REJECT  TIMEOUT
+scenario                                     
+crosswind            0     0       0        0
+degraded_vehicle     0     0       0        0
+gps_bias             0     0       0        0
+gust                 0     0       0        0
+late_acquire         0     0       0        0
+low_light            0     0       0        0
+narrow_fov           0     0       0        0
+nominal              0     0       0        0
+offset_pad           0     0       0        0
+vision_dropout       0     0       0        0
+
+columns actually produced by the groupby: ['GO_AROUND', 'LANDED']
+sum of the four displayed columns: 0 out of 120 runs

@@ -1,0 +1,51 @@
+==============================================================================
+1. Does grade() produce a card verdict distinct from the operational outcome?
+==============================================================================
+40 runs, 10 scenarios x 4 seeds
+
+  LandingReport.outcome  (the card verdict, in memory) : {'PASS': 27, 'REJECT': 8, 'FAIL': 5}
+  metrics.outcome        (the operational outcome)     : {'LANDED': 32, 'GO_AROUND': 8}
+  summary_row()['outcome'] (what actually serialises)  : {'LANDED': 32, 'GO_AROUND': 8}
+
+  runs whose card verdict does NOT survive summary_row(): 40 / 40
+  verdict -> serialised value, observed pairs: [('FAIL', 'LANDED'), ('PASS', 'LANDED'), ('REJECT', 'GO_AROUND')]
+
+  every key summary_row() sets and then loses to the splat:
+    'label'      explicit='NOMINAL'    splatted='NOMINAL'    (same value, harmless)
+    'outcome'    explicit='PASS'       splatted='LANDED'     <== SILENTLY DIFFERENT
+    'scenario'   explicit='nominal'    splatted='nominal'    (same value, harmless)
+  keys set explicitly but never splatted (safe): ['passed']
+
+==============================================================================
+2. Is the card verdict present anywhere in the shipped artefact?
+==============================================================================
+  data/campaign.json: 120 runs, keys = ['descent_time', 'go_around', 'gps_vision_disagree', 'label', 'landed', 'max_lateral_final', 'max_sink', 'nav_err_final', 'outcome', 'passed', 'scenario', 'seed', 'touchdown_lateral', 'touchdown_radius', 'touchdown_sink', 'vision_avail_final', 'vision_avail_high']
+  'card_verdict' present : False
+  'verdict' present      : False
+  outcome values on disk : {'LANDED': 96, 'GO_AROUND': 24}
+  passed values on disk  : {True: 83, False: 37}
+
+  the three card verdicts, as they would have been:
+    PASS   = passed True                       -> 83
+    REJECT = passed False and go_around True   -> 24
+    FAIL   = passed False and go_around False  -> 13
+  none of those three strings appears in the artefact:
+    PASS       in campaign.json runs: False
+    FAIL       in campaign.json runs: False
+    REJECT     in campaign.json runs: False
+    TIMEOUT    in campaign.json runs: False
+    LANDED     in campaign.json runs: True
+    GO_AROUND  in campaign.json runs: True
+
+==============================================================================
+3. Does S10 read the overwritten field?
+==============================================================================
+  evidence.py:204: rejected = [r for r in unsafe if r.get("outcome") == "GO_AROUND"]
+  evidence.py:205: landed = [r for r in unsafe if r.get("outcome") == "LANDED"]
+  evidence.py:208: value=r.get("outcome"),
+  evidence.py:209: passed=(r.get("outcome") == "GO_AROUND"))
+
+  FC-LDG-003 compares that field against 'GO_AROUND' / 'LANDED', i.e.
+  against the OPERATIONAL outcome, under a key whose documented meaning
+  in LandingReport is the card verdict. S10 is correct today only
+  because S9's splat overwrites the verdict.

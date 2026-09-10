@@ -1,0 +1,15 @@
+UTC 2026-09-10T19:53:41Z
+### committed form: xfail(strict=True). The suite must be green and the defect recorded. ###
+.........F......xxxxx                                                    [100%]
+=================================== FAILURES ===================================
+E   AssertionError: mean EKF advantage was 41.25893181510613
+    assert (41.25893181510613 is not None and 41.25893181510613 >= 60.0)
+/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint10_fleet_certification/tests/test_certification.py:106: AssertionError: mean EKF advantage was 41.25893181510613
+=========================== short test summary info ============================
+XFAIL tests/test_s9_s10_contract.py::test_card_verdict_survives_serialisation[nominal-0-PASS-LANDED] - S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, overwriting the card verdict with the flight outcome. Reproduced in integration_campaign_2026-09 phase 2; fix scheduled for phase 3.
+XFAIL tests/test_s9_s10_contract.py::test_card_verdict_survives_serialisation[low_light-0-FAIL-LANDED] - S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, overwriting the card verdict with the flight outcome. Reproduced in integration_campaign_2026-09 phase 2; fix scheduled for phase 3.
+XFAIL tests/test_s9_s10_contract.py::test_card_verdict_survives_serialisation[gust-0-REJECT-GO_AROUND] - S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, overwriting the card verdict with the flight outcome. Reproduced in integration_campaign_2026-09 phase 2; fix scheduled for phase 3.
+XFAIL tests/test_s9_s10_contract.py::test_a_landed_failure_is_distinguishable_from_a_landed_pass - S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, overwriting the card verdict with the flight outcome. Reproduced in integration_campaign_2026-09 phase 2; fix scheduled for phase 3.
+XFAIL tests/test_s9_s10_contract.py::test_s10_ldg003_grades_on_the_card_verdict - S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, overwriting the card verdict with the flight outcome. Reproduced in integration_campaign_2026-09 phase 2; fix scheduled for phase 3.
+1 failed, 15 passed, 5 xfailed in 1.02s
+EXIT=1

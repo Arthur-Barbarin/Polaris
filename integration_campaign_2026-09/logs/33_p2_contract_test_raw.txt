@@ -1,0 +1,47 @@
+UTC 2026-09-10T19:52:54Z
+### The three contract tests with the xfail markers REMOVED, i.e. the raw failures ###
+### (temporary copy tests/test_s9_s10_contract_raw.py, deleted after this run) ###
+
+....FFFFF                                                                [100%]
+=================================== FAILURES ===================================
+_______ test_card_verdict_survives_serialisation[nominal-0-PASS-LANDED] ________
+tests/test_s9_s10_contract_raw.py:130: in test_card_verdict_survives_serialisation
+    assert present, (
+E   AssertionError: nominal seed 0: card verdict 'PASS' appears under no key of the serialised row. Row carries {'scenario': 'nominal', 'label': 'NOMINAL', 'outcome': 'LANDED'}
+E   assert []
+______ test_card_verdict_survives_serialisation[low_light-0-FAIL-LANDED] _______
+tests/test_s9_s10_contract_raw.py:130: in test_card_verdict_survives_serialisation
+    assert present, (
+E   AssertionError: low_light seed 0: card verdict 'FAIL' appears under no key of the serialised row. Row carries {'scenario': 'low_light', 'label': 'LOW_LIGHT', 'outcome': 'LANDED'}
+E   assert []
+______ test_card_verdict_survives_serialisation[gust-0-REJECT-GO_AROUND] _______
+tests/test_s9_s10_contract_raw.py:130: in test_card_verdict_survives_serialisation
+    assert present, (
+E   AssertionError: gust seed 0: card verdict 'REJECT' appears under no key of the serialised row. Row carries {'scenario': 'gust', 'label': 'GUST', 'outcome': 'GO_AROUND'}
+E   assert []
+_________ test_a_landed_failure_is_distinguishable_from_a_landed_pass __________
+tests/test_s9_s10_contract_raw.py:150: in test_a_landed_failure_is_distinguishable_from_a_landed_pass
+    assert good["outcome"] != bad["outcome"], (
+E   AssertionError: a card FAIL and a card PASS serialise to the same 'outcome' value ('LANDED'); the verdict is not recoverable from this field
+E   assert 'LANDED' != 'LANDED'
+__________________ test_s10_ldg003_grades_on_the_card_verdict __________________
+tests/test_s9_s10_contract_raw.py:179: in test_s10_ldg003_grades_on_the_card_verdict
+    assert values <= CARD_VERDICTS, (
+E   AssertionError: FC-LDG-003 graded unsafe finals on ['GO_AROUND'], which are flight outcomes, not card verdicts. The requirement is written about the REJECT verdict but is evaluated against the vehicle's physical outcome, and passes only because Sprint 9 overwrites one with the other.
+E   assert {'GO_AROUND'} <= {'FAIL', 'PAS...T', 'TIMEOUT'}
+E     
+E     Extra items in the left set:
+E     'GO_AROUND'
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_s9_s10_contract_raw.py::test_the_two_vocabularies_only_overlap_on_timeout
+PASSED tests/test_s9_s10_contract_raw.py::test_grade_really_does_produce_two_distinct_scores[nominal-0-PASS-LANDED]
+PASSED tests/test_s9_s10_contract_raw.py::test_grade_really_does_produce_two_distinct_scores[low_light-0-FAIL-LANDED]
+PASSED tests/test_s9_s10_contract_raw.py::test_grade_really_does_produce_two_distinct_scores[gust-0-REJECT-GO_AROUND]
+FAILED tests/test_s9_s10_contract_raw.py::test_card_verdict_survives_serialisation[nominal-0-PASS-LANDED]
+FAILED tests/test_s9_s10_contract_raw.py::test_card_verdict_survives_serialisation[low_light-0-FAIL-LANDED]
+FAILED tests/test_s9_s10_contract_raw.py::test_card_verdict_survives_serialisation[gust-0-REJECT-GO_AROUND]
+FAILED tests/test_s9_s10_contract_raw.py::test_a_landed_failure_is_distinguishable_from_a_landed_pass
+FAILED tests/test_s9_s10_contract_raw.py::test_s10_ldg003_grades_on_the_card_verdict
+5 failed, 4 passed in 1.05s
+EXIT=1

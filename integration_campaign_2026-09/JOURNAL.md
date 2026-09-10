@@ -581,3 +581,402 @@ No pre-existing test changed behaviour. `data/cycle_records.json` and
   a real cell, and no such validation is possible with synthetic data.
 - Nothing about held-out triage performance. The 94.6 % remains in-sample, and
   P1-6 shows the posteriors that would normally qualify it are degenerate.
+
+---
+
+# Phase 2 — Reproducing the S9 / S10 contract collision
+
+**2026-09-10.** Same environment of record as Phases 0 and 1 (Linux aarch64
+workspace VM, g++ 11.4.0, CPython 3.10.12 in `$HOME/polaris_lnx_venv`, native
+C++ path built and loading). All data remains synthetic. Logs `30_*` through
+`36_*`, probe `tools/p2_contract_probe.py`.
+
+Repository state on entry: `origin/main` at `e8ae6c0`, i.e. Phase 1 (`e430f02`)
+was pushed, followed by a README cleanup commit on Sprints 7 to 9.
+
+Phase 2's brief was to reproduce one defect and fix nothing. It reproduced that
+defect in full, and running the rest of the chain surfaced a second one that is
+a direct consequence of Phase 1. Both are recorded below. **No production code
+was changed in this phase.**
+
+---
+
+## P2-1 — The S9 / S10 contract collision
+
+Probe: `tools/p2_contract_probe.py`. Logs: `31_p2_contract_probe.txt`,
+`32_p2_dashboard_matrix.txt`, `33_p2_contract_test_raw.txt`,
+`34_p2_contract_test_xfail.txt`.
+
+### The two scores
+
+Sprint 9 grades a landing on two independent axes, and both are called
+`outcome` in their own class:
+
+| | values | source |
+|---|---|---|
+| **card verdict** | `PASS` `FAIL` `REJECT` `TIMEOUT` | `LandingReport.outcome`, set by `grade()` |
+| **flight outcome** | `LANDED` `GO_AROUND` `TIMEOUT` | `LandingMetrics.outcome`, from `ApproachLog` |
+
+The vocabularies overlap on exactly one token, `TIMEOUT`. That single overlap
+is why the collision is silent on timeout runs and detectable on every other
+run, and it is asserted as a standing invariant by the new test module.
+
+`polaris_pl/testcards.py`, `LandingReport.summary_row()`:
+
+```python
+return {"scenario": self.scenario, "label": self.label,
+        "outcome": self.outcome, "passed": self.passed,
+        **self.metrics.as_dict()}
+```
+
+`self.metrics.as_dict()` is built from `LandingMetrics.__dict__`, which carries
+its own `outcome`. The splat is last, so it wins.
+
+### Measured
+
+40 runs, 10 scenarios × 4 seeds, dt = 0.02:
+
+```
+  LandingReport.outcome  (the card verdict, in memory) : {'PASS': 27, 'REJECT': 8, 'FAIL': 5}
+  metrics.outcome        (the operational outcome)     : {'LANDED': 32, 'GO_AROUND': 8}
+  summary_row()['outcome'] (what actually serialises)  : {'LANDED': 32, 'GO_AROUND': 8}
+
+  runs whose card verdict does NOT survive summary_row(): 40 / 40
+  verdict -> serialised value, observed pairs: [('FAIL', 'LANDED'), ('PASS', 'LANDED'), ('REJECT', 'GO_AROUND')]
+```
+
+**40 of 40.** The splat also overwrites `scenario` and `label`, but with
+identical values, so those are harmless; `passed` is the only explicitly-set key
+`LandingMetrics` does not shadow, which is why Sprint 10's other landing
+requirements are unaffected.
+
+### The verdict is absent from the shipped artefact
+
+`sprint9_precision_landing/data/campaign.json`, 120 runs:
+
+```
+  'card_verdict' present : False
+  'verdict' present      : False
+  outcome values on disk : {'LANDED': 96, 'GO_AROUND': 24}
+  passed values on disk  : {True: 83, False: 37}
+
+  none of those three strings appears in the artefact:
+    PASS       in campaign.json runs: False
+    FAIL       in campaign.json runs: False
+    REJECT     in campaign.json runs: False
+    LANDED     in campaign.json runs: True
+    GO_AROUND  in campaign.json runs: True
+```
+
+Reconstructing what the verdicts would have been: **83 PASS, 13 FAIL, 24
+REJECT.** The 13 FAIL runs are the ones that matter. A FAIL is a run that
+*landed* while violating a required card, i.e. a landing that should not have
+happened that way. On the `outcome` field Sprint 10 reads, those 13 are
+indistinguishable from the 83 clean landings: all 96 read `LANDED`.
+
+The information is not destroyed at artefact level — `passed` plus `go_around`
+lets a consumer rebuild the verdict — but the field whose documented meaning
+*is* the verdict silently carries something else, and no consumer is told.
+
+### Sprint 10 reads the overwritten field
+
+```
+  evidence.py:204: rejected = [r for r in unsafe if r.get("outcome") == "GO_AROUND"]
+  evidence.py:205: landed = [r for r in unsafe if r.get("outcome") == "LANDED"]
+  evidence.py:208: value=r.get("outcome"),
+  evidence.py:209: passed=(r.get("outcome") == "GO_AROUND"))
+```
+
+Four sites, all inside `__unsafe_becomes_reject__`, which backs **FC-LDG-003 —
+"Unsafe finals must trigger a go-around, not a landing"** (severity CRITICAL).
+Its rationale says the guidance "MUST **reject** the landing". `REJECT` is the
+card verdict for precisely that. The requirement is written about the verdict
+and evaluated against the vehicle's physical outcome, and it grades correctly
+today **only because Sprint 9 overwrites one with the other**. This is the
+mutual dependency the brief predicted: renaming Sprint 9's field on its own
+would break Sprint 10 immediately.
+
+### A second consumer, already visibly broken
+
+`sprint9_precision_landing/dashboard/app.py:194-199` builds the panel its own
+module docstring calls the "Campaign PASS / FAIL / REJECT matrix":
+
+```python
+mat = runs.groupby(["scenario", "outcome"]).size().unstack(fill_value=0)
+for col in ["PASS", "FAIL", "REJECT", "TIMEOUT"]:
+    if col not in mat: mat[col] = 0
+```
+
+Run against the shipped artefact, that exact code gives:
+
+```
+outcome           PASS  FAIL  REJECT  TIMEOUT
+crosswind            0     0       0        0
+degraded_vehicle     0     0       0        0
+gps_bias             0     0       0        0
+gust                 0     0       0        0
+late_acquire         0     0       0        0
+low_light            0     0       0        0
+narrow_fov           0     0       0        0
+nominal              0     0       0        0
+offset_pad           0     0       0        0
+vision_dropout       0     0       0        0
+
+columns actually produced by the groupby: ['GO_AROUND', 'LANDED']
+sum of the four displayed columns: 0 out of 120 runs
+```
+
+The headline outcome matrix of Sprint 9's dashboard is a 10 × 4 grid of zeros,
+representing 0 of 120 runs. The `fill_value=0` and the `if col not in mat`
+guard, both written to be defensive, are what convert a missing field into a
+plausible-looking table of noughts instead of a `KeyError`.
+
+### The failing test
+
+New module, `sprint10_fleet_certification/tests/test_s9_s10_contract.py`. It
+lives in Sprint 10's suite because Sprint 10 is the consumer, and it imports
+both sprints. With the `xfail` markers stripped
+(`33_p2_contract_test_raw.txt`):
+
+```
+....FFFFF                                                                [100%]
+E   AssertionError: nominal seed 0: card verdict 'PASS' appears under no key of the serialised row.
+      Row carries {'scenario': 'nominal', 'label': 'NOMINAL', 'outcome': 'LANDED'}
+E   AssertionError: low_light seed 0: card verdict 'FAIL' appears under no key of the serialised row.
+E   AssertionError: gust seed 0: card verdict 'REJECT' appears under no key of the serialised row.
+E   AssertionError: a card FAIL and a card PASS serialise to the same 'outcome' value ('LANDED');
+      the verdict is not recoverable from this field
+E   AssertionError: FC-LDG-003 graded unsafe finals on ['GO_AROUND'], which are flight outcomes,
+      not card verdicts.
+5 failed, 4 passed in 1.05s
+```
+
+The third of those drives Sprint 10's own `_handle_special_metric` with an
+artefact built from live Sprint 9 runs, so the failure is measured at the
+integration seam rather than asserted about it.
+
+**Form committed.** The three contract tests carry
+`pytest.mark.xfail(strict=True)`; the four supporting tests are unmarked and
+pass. Rationale: a permanently red suite in a published repository is a worse
+signal than a recorded expected failure, and `strict=True` means the marker
+cannot outlive the defect — the moment Phase 3 honours the contract, these turn
+into failures and force the markers off. The raw failures above are the
+evidence that they are real. To see them again, delete the `@XFAIL` decorators.
+
+Committed state (`34_p2_contract_test_xfail.txt`): `15 passed, 5 xfailed` plus
+one pre-existing failure, which is P2-2.
+
+**Nothing was fixed.** Per the brief, the fix is Phase 3, and it must keep both
+values under distinct keys (`card_verdict` / `flight_outcome`) and update
+Sprint 10 to read the right one per requirement.
+
+---
+
+## P2-2 — Phase 1's fix broke Sprint 10 and Sprint 12
+
+Logs: `30_p2_s10_verify.txt`, `35_p2_chain_suites.txt`,
+`36_p2_propagation_causal.txt`.
+
+This was not on any list. It was found by the first thing Phase 2 did: running
+the whole chain instead of one sprint.
+
+### How it was missed
+
+**Phase 1's regression check was scoped too narrowly and its conclusion was
+wrong.** It ran S7 and S8, found 25/25 and 28/28, and recorded "no regression".
+It never ran S9, S10 or S12 — the consumers of the artefact it had just
+regenerated. That commit is on `origin/main`.
+
+### What is broken
+
+```
+sprint7_battery_testbench          exit=0 tests=25 failures=0
+sprint8_flight_test_harness        exit=0 tests=28 failures=0
+sprint9_precision_landing          exit=0 tests=19 failures=0
+sprint10_fleet_certification       exit=1 tests=21 failures=1 skipped=5
+sprint12_vv_agent                  exit=1 tests=18 failures=5
+```
+
+`sprint10_fleet_certification/scripts/verify.py` also exits 1:
+
+```
+  ✗ FC-BAT-002 mean EKF advantage: 41.3% (>=60)
+FAIL
+```
+
+The five Sprint 12 failures are all the same root cause one hop further out:
+
+```
+tests/test_agent.py::test_baseline_produces_no_findings_and_go   assert 1 == 0
+      (the finding is FC-BAT-002, disposition WAIVER_CANDIDATE)
+tests/test_agent.py::test_stress_produces_expected_findings_and_no_go
+      ids == {"FC-BAT-001","FC-LDG-001"}  -> extra item 'FC-BAT-002'
+tests/test_report.py::test_report_decision_matches_status
+      'Decision: **GO**' not in the rendered report
+tests/test_tools.py::test_baseline_fleet_is_green   'FINDINGS' == 'GREEN'
+tests/test_tools.py::test_stress_basis_surfaces_two_failures  extra item 'FC-BAT-002'
+```
+
+### The chain, proven causally
+
+Phase 1 corrected the seed guard in `benchmark_estimators.py` (finding F1-5)
+and regenerated `data/estimator_benchmark.json`. The mean EKF advantage in that
+file went from **90.06 %** to **41.26 %**. FC-BAT-002 requires **≥ 60 %**.
+
+Causation was established by swapping that one file back to its pre-Phase-1
+content, recovered from git (`e430f02^`), and changing nothing else:
+
+| `estimator_benchmark.json` | mean advantage | S10 `verify.py` | S10 suite | S12 suite |
+|---|---|---|---|---|
+| pre-Phase-1 (`e430f02^`) | 90.06 % | **PASS** | 16 passed, 5 xfailed | **18 passed** |
+| current (Phase 1 fixed) | 41.26 % | **FAIL** | 1 failed | **5 failed** |
+
+One file. Nothing else touched. Restored afterwards and re-verified.
+
+FC-BAT-002 is severity MAJOR, not CRITICAL, so Sprint 10 degrades to
+`FINDINGS` rather than `BLOCKED` and the console still renders. That is the
+graceful-degradation design working as intended, and it is also why nothing
+screamed.
+
+### Why this is a finding and not just a bound that needs moving
+
+Two reasons, both worse than a stale threshold.
+
+**The bound has no documented provenance.** FC-BAT-002's rationale says the
+reduction "must exceed 60 %" and nothing in the repository says where 60 came
+from. It sits between the defective 90.1 % and the corrected 41.3 %, so
+whether the requirement was satisfied depended entirely on the presence of the
+seeding defect. The 60 is also hard-coded a second time in
+`tests/test_certification.py:106`, so the bound lives in two files and a change
+requires editing both.
+
+**The statistic itself was withdrawn upstream.** FC-BAT-002 aggregates
+`ekf_advantage_pct` with `aggregate="mean"`. FA-002 rev B, written in Phase 1,
+explicitly declines to quote any average of that column, because it averages
+percentages across scenarios whose baseline error spans 0.0002 to 0.4252 and is
+therefore dominated by near-zero denominators. Sprint 10 is grading a
+certification requirement on a number its own upstream failure-analysis report
+says must not be used. Re-baselining the bound would preserve that problem.
+Re-expressing the requirement — per-condition bounds, or an absolute RMS
+ceiling — is the real repair, and it is a Phase 3 decision, not a Phase 2 one.
+
+---
+
+## Findings from Phase 2
+
+### F2-1 — Sprint 9's card verdict never reaches any consumer
+**Severity: high. Reproduced, not fixed (Phase 3).**
+`summary_row()` splats `metrics.as_dict()` over its own `outcome` key. 40 of 40
+runs lose the verdict; the shipped artefact contains no `PASS` / `FAIL` /
+`REJECT` token at all; 13 card-FAIL runs are indistinguishable from 83
+card-PASS runs on the field Sprint 10 reads. Locked by five strict-xfail
+assertions in `tests/test_s9_s10_contract.py`.
+
+### F2-2 — Sprint 10 depends on that defect
+**Severity: high. Reproduced, not fixed (Phase 3).**
+`evidence.py:204-209` compares `r.get("outcome")` against `"GO_AROUND"` /
+`"LANDED"` to grade FC-LDG-003, a CRITICAL requirement written about the
+`REJECT` verdict. It is correct today only because Sprint 9 overwrites the
+verdict with the flight outcome. A rename in Sprint 9 alone breaks it.
+
+### F2-3 — Sprint 9's dashboard outcome matrix renders 0 of 120 runs
+**Severity: medium. Reproduced, not fixed.**
+The same missing field makes `dashboard/app.py:194-199` display a 10 × 4 grid
+of zeros where its own docstring promises a PASS / FAIL / REJECT matrix. The
+defensive `fill_value=0` is what turns the missing field into a plausible table
+instead of an error.
+
+### F2-4 — Phase 1's correction left Sprint 10 and Sprint 12 red on `origin/main`
+**Severity: high (published state). Reproduced, not fixed (Phase 3).**
+Correcting a real defect in Sprint 7 moved a downstream certification
+requirement from pass to fail and cascaded into five Sprint 12 failures. Proven
+causally by a single-file swap. The underlying issue is that FC-BAT-002's bound
+is undocumented and its aggregation is the statistic FA-002 rev B withdrew.
+**Phase 1's own regression check is the process defect here:** it verified only
+the two sprints it had edited, not the four that consume their artefacts.
+
+---
+
+## Open after Phase 2
+
+| # | Item | Why open |
+|---|---|---|
+| O-9 | F2-1 / F2-2 / F2-3 not fixed | Phase 2's brief is explicit: reproduce, do not repair. Phase 3 owns the two-field split and the Sprint 10 update. |
+| O-10 | FC-BAT-002 fails on `origin/main` | Needs a decision Phase 2 must not make alone: re-express the requirement, re-baseline the bound with a stated justification, or accept the finding as a genuine one. The bound's duplication in `tests/test_certification.py:106` has to move with it. |
+| O-11 | Sprint 12's tests encode "baseline is GREEN / GO" | Four of the five failures assert a fleet state that was only reachable through the seeding defect. Whether the expected baseline should change, or the fleet genuinely is not GREEN, follows from O-10. |
+| O-12 | The campaign has no chain-wide regression gate | Nothing runs all five suites together, which is exactly why F2-4 shipped. A single entry point would have caught it in Phase 1. |
+| O-1..O-8 | carried forward from Phases 0 and 1 | unchanged |
+
+## What Phase 2 does not prove
+
+- Nothing is repaired. Every finding above is reproduced and left in place, by
+  design.
+- The end-to-end chain has still never been executed as a chain. Phase 2 ran
+  each suite and the S9 → S10 seam; S7 → S8 → S9 → S10 → S12 as one pass with
+  timestamped outputs is Phase 4.
+- Nothing about whether FC-BAT-002's 60 % bound is the right engineering
+  requirement. Phase 2 establishes only that its provenance is undocumented and
+  that its aggregation is one the upstream report withdrew.
+- Nothing about traceability completeness. Whether each requirement really
+  reaches a measurement, a verdict, a finding, an anomaly cluster and an
+  artefact hash is Phase 5.
+- Nothing about real hardware. All inputs remain simulator-generated.
+
+---
+
+## P2-3 — Sprint 7's own README still publishes the withdrawn numbers
+
+Log: `37_p2_s7_readme_stale.txt`. Found while checking whether Phase 1's
+corrections had reached every place the numbers live. They had not.
+
+`sprint7_battery_testbench/README.md`, section "Key results from the bundled
+data set", is still the rev A estimator table — on `origin/main`, in the same
+commit range as FA-002 rev B, which withdraws it.
+
+| scenario | CC published / actual | EKF published / actual | EKF adv. published / actual | |
+|---|---|---|---|---|
+| baseline (25 °C, clean sensors) | 0.050 / **0.0002** | 0.002 / **0.0003** | +97 % / **−9.7 %** | **stale** |
+| wrong initial guess (0.4 SOC) | 0.400 / 0.3998 | 0.005 / 0.0053 | +99 % / +98.7 % | ok |
+| biased current shunt (+80 mA) | 0.076 / **0.0287** | 0.011 / **0.0575** | +86 % / **−100.0 %** | **stale** |
+| biased shunt + bad guess | 0.425 / 0.4252 | 0.010 / 0.0100 | +98 % / +97.7 % | ok |
+| cold soak (−10 °C) | 0.213 / 0.2125 | 0.055 / 0.0546 | +74 % / +74.3 % | ok |
+| hot soak (+45 °C) | 0.213 / 0.2125 | 0.029 / 0.0286 | +87 % / +86.6 % | ok |
+| **mean across 6 scenarios** | | | **+90 % / +41.3 %** | **stale, and withdrawn** |
+| ML mean across 6 scenarios | | | **+89 % / −196.2 %** | **stale** |
+
+Exactly the two rows that Phase 1's finding F1-5 predicted would move — the two
+that were supposed to be clean — are the two that are stale. The three
+scenarios with a large declared guess error still match, because there the
+injected 0.05 seed error was swamped.
+
+Two smaller items in the same README:
+
+- The triage table's `overall` reads **95 %**; the measured in-sample figure is
+  94.6 %, which FA-001 quotes correctly. Rounding, but the two documents in the
+  same repository now print different values.
+- The RUL sentence attributes Li-plating dominance to "cold-soak cycling". F1-2
+  established that the plating campaign runs at **+10 °C**, not cold soak. The
+  same error FA-001 rev B corrected is still in this README.
+
+**Which was wrong: the README.** The corrected values already exist, computed
+and published in FA-002 rev B in the same repository.
+
+**Not fixed in this phase.** Phase 2's rule is to reproduce and not repair, and
+unlike the numbers themselves, how a portfolio README should present a −9.7 %
+and a −100.0 % row is a presentation decision that belongs to the operator, not
+to this campaign. Recorded as finding F2-5 and open item O-13.
+
+This is the same class of miss as F2-4: Phase 1 corrected the report and the
+code, and did not check the third place the same numbers were written down.
+
+### F2-5 — Phase 1's corrections did not reach Sprint 7's README
+**Severity: high (published state). Reproduced, not fixed.**
+The published README still shows the pre-fix baseline and biased-shunt rows and
+the "+90 % mean" that FA-002 rev B withdraws, plus a 95 % triage figure against
+FA-001's 94.6 % and a "cold-soak" attribution F1-2 disproved. A reader of the
+repository finds two documents disagreeing, with the withdrawn one in the more
+prominent place.
+
+| # | Item | Why open |
+|---|---|---|
+| O-13 | Sprint 7's README table not corrected | The numbers are unambiguous; the presentation of a negative EKF advantage in a portfolio README is an operator decision. |

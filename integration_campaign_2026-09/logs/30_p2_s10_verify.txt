@@ -1,0 +1,18 @@
+UTC 2026-09-10T19:50:10Z
+### PHASE 2 baseline: run the S9 -> S10 chain as checked in ###
+--- S10: python scripts/verify.py ---
+=== Fleet Certification Console — verification ===
+repo: /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint
+catalog: v1.0.0
+fleet:   FINDINGS
+
+manifest present:
+  ✓ all three primary artefacts present: [('BATTERY_PACK', 'estimator_benchmark'), ('FIXED_WING_UAV', 'campaign'), ('LANDING_MULTIROTOR', 'campaign')]
+  ✓ requirements catalog size: 13
+  ✗ FC-BAT-002 mean EKF advantage: 41.3% (>=60)
+  ✓ FC-LDG-001 nominal touchdown worst-case: 0.03884134287306648 m (<=0.5)
+  ✓ FC-LDG-003 unsafe finals go around: PASS
+  ✓ FC-UAV-001 nominal mission pass fraction: 1.0
+
+FAIL
+EXIT=1
