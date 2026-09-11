@@ -191,7 +191,14 @@ with tabs[4]:
     else:
         blob = json.loads(f.read_text())
         runs = pd.DataFrame(blob["runs"])
-        mat = (runs.groupby(["scenario", "outcome"]).size()
+        # `card_verdict`, not `flight_outcome`: this matrix is the test-card
+        # scoreboard. Before 2026-09-11 the artefact had neither field, only an
+        # ambiguous `outcome` holding LANDED/GO_AROUND, so every column below
+        # was filled with zeros and the table showed 0 of 120 runs (F2-3).
+        if "card_verdict" not in runs.columns:
+            st.warning("This campaign.json predates the card_verdict field. "
+                       "Re-run `python scripts/run_campaign.py` to populate it.")
+        mat = (runs.groupby(["scenario", "card_verdict"]).size()
                .unstack(fill_value=0))
         for col in ["PASS", "FAIL", "REJECT", "TIMEOUT"]:
             if col not in mat: mat[col] = 0

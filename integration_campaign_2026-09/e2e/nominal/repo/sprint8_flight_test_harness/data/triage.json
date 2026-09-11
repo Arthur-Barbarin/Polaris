@@ -1,0 +1,231 @@
+{
+  "overall_accuracy": 1.0,
+  "per_class": {
+    "NOMINAL": [
+      4,
+      4
+    ],
+    "WIND_STEP": [
+      4,
+      4
+    ],
+    "WIND_SHEAR": [
+      4,
+      4
+    ],
+    "GPS_DROPOUT": [
+      4,
+      4
+    ],
+    "AIRSPEED_BIAS": [
+      4,
+      4
+    ],
+    "AILERON_LOSS": [
+      4,
+      4
+    ],
+    "ELEVATOR_LOSS": [
+      4,
+      4
+    ],
+    "THRUST_LOSS": [
+      4,
+      4
+    ]
+  },
+  "predictions": [
+    {
+      "label": "NOMINAL",
+      "predicted": "NOMINAL",
+      "cluster": 9,
+      "posterior": 1.0
+    },
+    {
+      "label": "NOMINAL",
+      "predicted": "NOMINAL",
+      "cluster": 9,
+      "posterior": 1.0
+    },
+    {
+      "label": "NOMINAL",
+      "predicted": "NOMINAL",
+      "cluster": 9,
+      "posterior": 1.0
+    },
+    {
+      "label": "NOMINAL",
+      "predicted": "NOMINAL",
+      "cluster": 4,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_STEP",
+      "predicted": "WIND_STEP",
+      "cluster": 7,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_STEP",
+      "predicted": "WIND_STEP",
+      "cluster": 7,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_STEP",
+      "predicted": "WIND_STEP",
+      "cluster": 7,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_STEP",
+      "predicted": "WIND_STEP",
+      "cluster": 7,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_SHEAR",
+      "predicted": "WIND_SHEAR",
+      "cluster": 6,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_SHEAR",
+      "predicted": "WIND_SHEAR",
+      "cluster": 6,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_SHEAR",
+      "predicted": "WIND_SHEAR",
+      "cluster": 6,
+      "posterior": 1.0
+    },
+    {
+      "label": "WIND_SHEAR",
+      "predicted": "WIND_SHEAR",
+      "cluster": 6,
+      "posterior": 1.0
+    },
+    {
+      "label": "GPS_DROPOUT",
+      "predicted": "GPS_DROPOUT",
+      "cluster": 3,
+      "posterior": 1.0
+    },
+    {
+      "label": "GPS_DROPOUT",
+      "predicted": "GPS_DROPOUT",
+      "cluster": 3,
+      "posterior": 1.0
+    },
+    {
+      "label": "GPS_DROPOUT",
+      "predicted": "GPS_DROPOUT",
+      "cluster": 3,
+      "posterior": 1.0
+    },
+    {
+      "label": "GPS_DROPOUT",
+      "predicted": "GPS_DROPOUT",
+      "cluster": 3,
+      "posterior": 1.0
+    },
+    {
+      "label": "AIRSPEED_BIAS",
+      "predicted": "AIRSPEED_BIAS",
+      "cluster": 0,
+      "posterior": 1.0
+    },
+    {
+      "label": "AIRSPEED_BIAS",
+      "predicted": "AIRSPEED_BIAS",
+      "cluster": 0,
+      "posterior": 1.0
+    },
+    {
+      "label": "AIRSPEED_BIAS",
+      "predicted": "AIRSPEED_BIAS",
+      "cluster": 0,
+      "posterior": 1.0
+    },
+    {
+      "label": "AIRSPEED_BIAS",
+      "predicted": "AIRSPEED_BIAS",
+      "cluster": 0,
+      "posterior": 1.0
+    },
+    {
+      "label": "AILERON_LOSS",
+      "predicted": "AILERON_LOSS",
+      "cluster": 10,
+      "posterior": 1.0
+    },
+    {
+      "label": "AILERON_LOSS",
+      "predicted": "AILERON_LOSS",
+      "cluster": 10,
+      "posterior": 1.0
+    },
+    {
+      "label": "AILERON_LOSS",
+      "predicted": "AILERON_LOSS",
+      "cluster": 10,
+      "posterior": 1.0
+    },
+    {
+      "label": "AILERON_LOSS",
+      "predicted": "AILERON_LOSS",
+      "cluster": 1,
+      "posterior": 1.0
+    },
+    {
+      "label": "ELEVATOR_LOSS",
+      "predicted": "ELEVATOR_LOSS",
+      "cluster": 8,
+      "posterior": 1.0
+    },
+    {
+      "label": "ELEVATOR_LOSS",
+      "predicted": "ELEVATOR_LOSS",
+      "cluster": 2,
+      "posterior": 1.0
+    },
+    {
+      "label": "ELEVATOR_LOSS",
+      "predicted": "ELEVATOR_LOSS",
+      "cluster": 8,
+      "posterior": 1.0
+    },
+    {
+      "label": "ELEVATOR_LOSS",
+      "predicted": "ELEVATOR_LOSS",
+      "cluster": 2,
+      "posterior": 1.0
+    },
+    {
+      "label": "THRUST_LOSS",
+      "predicted": "THRUST_LOSS",
+      "cluster": 5,
+      "posterior": 1.0
+    },
+    {
+      "label": "THRUST_LOSS",
+      "predicted": "THRUST_LOSS",
+      "cluster": 5,
+      "posterior": 1.0
+    },
+    {
+      "label": "THRUST_LOSS",
+      "predicted": "THRUST_LOSS",
+      "cluster": 5,
+      "posterior": 1.0
+    },
+    {
+      "label": "THRUST_LOSS",
+      "predicted": "THRUST_LOSS",
+      "cluster": 5,
+      "posterior": 1.0
+    }
+  ]
+}

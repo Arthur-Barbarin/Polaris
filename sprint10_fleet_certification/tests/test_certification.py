@@ -101,9 +101,34 @@ def test_uav_nominal_passes(rollup):
 
 
 def test_battery_ekf_advantage_positive(rollup):
+    """FC-BAT-002: worst-case advantage where closed-loop estimation is required.
+
+    The bound is read from the requirement rather than repeated here. It used
+    to be hard-coded as 60.0 in this file as well, so changing the catalogue
+    meant editing two places and nothing enforced that they agreed.
+    """
     r = next(x for x in rollup.all_results() if x.requirement.id == "FC-BAT-002")
     v = r.aggregated_value
-    assert v is not None and v >= 60.0, f"mean EKF advantage was {v}"
+    assert v is not None and v >= r.requirement.bound, (
+        f"worst-case EKF advantage where required was {v}, "
+        f"bound {r.requirement.bound}")
+
+
+def test_battery_ekf_never_worse_is_a_tracked_finding(rollup):
+    """FC-BAT-005 is expected to FAIL, and to fail as a non-blocking finding.
+
+    Under a pure current-shunt bias with a correct seed the EKF is worse than
+    the coulomb counter it replaces. That is a real deficiency of the
+    estimator, not of this console, and the point of splitting it out of
+    FC-BAT-002 is that it stays visible instead of being averaged away. If
+    this test starts failing because the requirement PASSES, the estimator was
+    improved: invert the expectation deliberately, do not delete the test.
+    """
+    r = next(x for x in rollup.all_results() if x.requirement.id == "FC-BAT-005")
+    assert not r.passed, (
+        f"FC-BAT-005 now passes (worst {r.aggregated_value}); the estimator "
+        "appears to have been fixed, so invert this expectation deliberately")
+    assert not r.blocking, "FC-BAT-005 is MAJOR and must not block certification"
 
 
 def test_summary_shape(rollup):

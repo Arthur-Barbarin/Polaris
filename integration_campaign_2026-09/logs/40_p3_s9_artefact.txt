@@ -1,0 +1,14 @@
+### the shipped S9 artefact was generated with --seeds 12; the script default is 20 ###
+### regenerating with the artefact's own recorded parameters so the contract fix stays schema-only ###
+  VISION_DROPOUT   12/12
+
+Wrote /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint9_precision_landing/data/campaign.json and /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/sprint9_precision_landing/data/triage.json
+
+  runs: 120 -> 120
+  keys removed: ['outcome']
+  keys added  : ['card_verdict', 'flight_outcome']
+  card_verdict   : {'PASS': 83, 'REJECT': 24, 'FAIL': 13}
+  flight_outcome : {'LANDED': 96, 'GO_AROUND': 24}
+  the landed-but-card-failed runs are now their own class: 13 runs, flight_outcome=['LANDED']
+  every shared field identical; worst numeric deviation 0.000e+00 at None
+  => the contract fix changed the SCHEMA only, not one measurement

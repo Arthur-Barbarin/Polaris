@@ -1,0 +1,14 @@
+UTC 2026-09-11T18:56:13Z
+### FINAL chain gate after every phase-3-to-6 change ###
+
+=== S7 -> S12 chain gate ===
+  PASS  sprint7_battery_testbench     pytest                4.4s
+  PASS  sprint8_flight_test_harness   pytest               33.2s
+  PASS  sprint8_flight_test_harness   scripts/verify.py     6.3s
+  PASS  sprint9_precision_landing     pytest               15.3s
+  PASS  sprint9_precision_landing     scripts/verify.py     9.8s
+  PASS  sprint10_fleet_certification  pytest                1.1s
+  PASS  sprint10_fleet_certification  scripts/verify.py     0.0s
+  PASS  sprint12_vv_agent             pytest                0.2s
+
+all 8 checks passed

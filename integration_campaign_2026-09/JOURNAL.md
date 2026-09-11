@@ -980,3 +980,157 @@ prominent place.
 | # | Item | Why open |
 |---|---|---|
 | O-13 | Sprint 7's README table not corrected | The numbers are unambiguous; the presentation of a negative EKF advantage in a portfolio README is an operator decision. |
+
+---
+
+# Phases 3 to 6 — Fix, run end to end, audit, report
+
+**2026-09-11.** Same environment of record. All data synthetic. Logs `40_*`
+through `61_*`; tools `e2e_run.py`, `traceability_audit.py`, and `chain_gate.py`
+at the repository root.
+
+Repository on entry: `origin/main` at `184ae93` (phase 2, pushed).
+
+Two decisions were taken by the operator before this block, because neither
+was the campaign's to make: restore reproducibility rather than regenerate
+against the drifted coefficients, and **re-express FC-BAT-002** rather than
+re-baseline its bound, splitting the shunt-bias deficiency out as a finding of
+its own.
+
+## P3-1 — The contract fix
+
+`polaris_pl/testcards.py` now serialises `card_verdict` and `flight_outcome`
+and **removes** the ambiguous `outcome` key, so a consumer cannot read one
+while meaning the other. `evidence.py`'s `__unsafe_becomes_reject__` checks
+both, each for what it means, and refuses to grade an artefact that predates
+the fix instead of falling back. `dashboard/app.py` groups on `card_verdict`.
+
+Regenerated with the artefact's own recorded parameters (`--seeds 12 --dt
+0.02`, see F3-1), `logs/40_p3_s9_artefact.txt`:
+
+```
+  runs: 120 -> 120
+  keys removed: ['outcome']
+  keys added  : ['card_verdict', 'flight_outcome']
+  card_verdict   : {'PASS': 83, 'REJECT': 24, 'FAIL': 13}
+  flight_outcome : {'LANDED': 96, 'GO_AROUND': 24}
+  13 runs with card_verdict=FAIL, all flight_outcome=['LANDED']
+  every shared field identical; worst numeric deviation 0.000e+00
+  => the contract fix changed the SCHEMA only, not one measurement
+```
+
+83 / 13 / 24 is exactly the reconstruction phase 2 predicted from `passed` and
+`go_around`. The phase-2 `xfail(strict=True)` markers turned into failures the
+moment the contract was honoured, which is what forced them off; the nine
+contract tests now run as ordinary tests.
+
+## P3-2 — FC-BAT-002 re-expressed, FC-BAT-005 split out
+
+`__ekf_advantage_where_required__` takes the **worst case** over the conditions
+requiring closed-loop estimation — a declared initial-guess error, or an
+off-nominal soak temperature — and passes at **74.3 %** against a 60 % bound.
+`__ekf_never_worse_than_open_loop__` takes the worst case over **every**
+condition against 0 % and measures **−100.0 %**: a MAJOR, non-blocking,
+deliberately failing requirement so the shunt-bias deficiency stays visible.
+
+Collision caught during the edit: `FC-BAT-004` already existed (RUL finite per
+mode), so the new requirement is `FC-BAT-005`. `CATALOG_VERSION` was bumped to
+**1.1.0** — a package tagged 1.0.0 was graded against different requirements
+and is not comparable. Sprint 12's expectations were updated to the honest
+state: baseline carries one standing finding and returns GO WITH FINDINGS.
+
+## P3-3 — The chain gate, and proof it catches F2-4
+
+`chain_gate.py` runs all five suites plus every **read-only** verification
+script, upstream to downstream. Sprint 7's `run_all.sh` is deliberately
+excluded: it regenerates `data/`, and a gate must not mutate what it checks.
+
+Verified against the exact defect that shipped (`logs/45_p3_gate_catches_f2-4.txt`):
+re-introducing the pre-phase-1 `estimator_benchmark.json` turns the gate red on
+Sprints 10 and 12 with 7, 8 and 9 still green, and prints the hint that a
+downstream failure under green upstream suites usually means an artefact moved.
+Restoring it returns all checks to green.
+
+Final state, `logs/61_p6_final_gate.txt`: **all 8 checks pass.** Suite sizes
+18/28/19/21/18 at campaign entry → 25/28/19/22/18 at exit.
+
+## P4 — End to end, nominal and degraded
+
+`tools/e2e_run.py`, five staged commands. Both cases run against a shadow root
+holding only `sprint{7,8,9}/data/`, so a degraded run cannot leave degraded
+evidence in the repository. Each stage writes a timestamped, hashed manifest.
+
+S7 regenerated and confirmed byte-identical to what is committed
+(`S7 artefacts reproduced identically: True`). Degraded injection: Sprint 9
+camera `p_detect` 0.97 → 0.45 on **every** scenario.
+
+| | nominal | degraded |
+|---|---|---|
+| S9 card verdicts | 83 PASS / 13 FAIL / 24 REJECT | **0 PASS / 92 FAIL / 28 REJECT** |
+| S9 `vision_avail_final` (nominal scenario) | 0.968 | 0.434 |
+| S10 | FINDINGS, 13/14, 0 blocking | FINDINGS, 12/14, 0 blocking |
+| S10 failures | FC-BAT-005 | FC-BAT-005, FC-LDG-004 |
+| S12 | 8 steps, GO WITH FINDINGS | 11 steps, GO WITH FINDINGS |
+
+S12 produced a full findings report with its audit trail on both: requirement
+id, criterion, measured value, worst run, analyst root cause and
+recommendation, disposition, artefact path and hash, plus a complete tool
+transcript with no errors.
+
+**The go/no-go is coherent on the nominal case and not on the degraded one.**
+Mechanism, established rather than guessed (`logs/52_p5_why_certifies.txt`):
+the injection drives `vision_avail_final` below the 0.7 card bound, so every
+nominal approach is graded FAIL; FC-LDG-004 reads that metric directly and does
+fail, but it is MAJOR; and FC-LDG-001 (touchdown lateral, CRITICAL) still
+passes at 0.085 m against 0.5 m, because a vision-starved approach in this
+model still touches down accurately. Recorded as F4-1.
+
+## P5 — Traceability audit
+
+`tools/traceability_audit.py`, all 14 requirements, on the repository and on
+the degraded root. The first pass reported eight breaks; five were artefact
+shape rather than defects — the battery artefacts are one row per condition and
+carry no seeds by design — so the audit was tightened to demand a seed only of
+campaign-backed evidence. Reporting by-design shapes as breaks would have been
+the same failure this campaign exists to catch, one level up.
+
+Three real breaks, identical on both roots (`logs/50_`, `51_`):
+
+```
+[HIGH] catalogue: 8 of 10 sprint-9 scenarios have their card verdict read by no
+       requirement (13 runs graded FAIL among them; 92 on the degraded root)
+[LOW]  FC-BAT-005: failing requirement has no anomaly cluster, and its artefact
+       has no triage layer to join to
+[LOW]  cycle_records.json: in the manifest and hashed, referenced by no result
+```
+
+Everything else holds: 14/14 carry an artefact hash, campaign-backed evidence
+carries scenario and seed, and every failing requirement has a finding with a
+root cause, a recommendation and a disposition.
+
+## P5-2 — An artefact that is not reproducible across runs
+
+Found while checking that the phase-3 regeneration had changed the schema only.
+`campaign.json` is byte-stable across identical runs; `triage.json` is not. The
+cluster-to-label map flips `NOMINAL` <-> `CROSSWIND` between consecutive runs,
+overall accuracy unchanged. Five fits inside one process are identical, four
+fits in four processes are not, and pinning BLAS threads does not help, so the
+already-present `random_state=0` is not sufficient and the mechanism is NOT
+established. Downstream, FC-LDG-005 grades 9 or 8 against a bound of exactly 8
+depending on which run last wrote the file. Recorded as F3-3, not fixed:
+changing the tie-break without understanding it would be a guess.
+
+## P6 — Report
+
+`POLARIS_S7-S12_Integration_Report_v1.0_2026-09-11.md` at the repository root.
+
+## What phases 3 to 6 do not prove
+
+- Nothing about reality; every input is still simulator output.
+- Nothing about macOS; the `.dylib` path remains unexecuted.
+- Nothing about requirement adequacy. F4-1 is direct evidence that the
+  catalogue is not yet sufficient: a configuration in which every nominal
+  landing fails its own acceptance cards certifies identically to a healthy one.
+- Nothing about the degraded case being representative. One injection, chosen
+  because it exercises the vision path the landing cards depend on, is not a
+  fault-coverage argument.

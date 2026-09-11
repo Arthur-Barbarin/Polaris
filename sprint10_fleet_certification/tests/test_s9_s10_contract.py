@@ -28,17 +28,21 @@ whose documented meaning is the verdict.
 
 STATUS
 ------
-Phase 2 of integration_campaign_2026-09 reproduces this; the fix is Phase 3.
-The three tests that assert the intended contract are marked
-`xfail(strict=True)`, so they record the defect without turning the suite red
-and, being strict, they FAIL the moment the contract is honoured -- which is
-what forces the markers off in Phase 3. Drop the `pytestmark` decorator on
-each to see the raw failures; the Phase 2 journal has that output.
+Reproduced in phase 2 of integration_campaign_2026-09 (2026-09-10), fixed in
+phase 3 (2026-09-11). Phase 2 committed these assertions under
+`xfail(strict=True)`; the strict marker meant they turned into failures the
+moment the contract was honoured, which is what forced the markers off. They
+now run as ordinary tests and must stay green.
 
-The fix must keep BOTH values under distinct keys (`card_verdict` and
-`flight_outcome`) and update Sprint 10 to read the right one per requirement.
-Renaming Sprint 9's field alone would break FC-LDG-003, which explicitly
-compares against "GO_AROUND" today.
+The fix keeps BOTH values under distinct keys, `card_verdict` and
+`flight_outcome`, and drops the ambiguous `outcome` key entirely so that no
+consumer can read one while meaning the other. Sprint 10 was updated in the
+same change: FC-LDG-003 now checks the verdict AND the flight outcome, each
+for what it means, and refuses to grade at all on an artefact that predates
+the fix rather than silently falling back.
+
+The raw phase-2 failures are preserved in
+integration_campaign_2026-09/logs/33_p2_contract_test_raw.txt.
 """
 from __future__ import annotations
 
@@ -70,14 +74,6 @@ CASES = [
     ("low_light", 0, "FAIL", "LANDED"),
     ("gust", 0, "REJECT", "GO_AROUND"),
 ]
-
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    reason="S9 summary_row() splats metrics.as_dict() over its own 'outcome' key, "
-           "overwriting the card verdict with the flight outcome. Reproduced in "
-           "integration_campaign_2026-09 phase 2; fix scheduled for phase 3.",
-)
-
 
 def _report(scenario: str, seed: int):
     return grade(compute_metrics(simulate(ALL_SCENARIOS[scenario](), seed=seed, dt=DT)))
@@ -113,10 +109,9 @@ def test_grade_really_does_produce_two_distinct_scores(scenario, seed, verdict, 
 
 
 # --------------------------------------------------------------------------
-# The defect. Strict xfail until phase 3.
+# The contract itself. These were the strict-xfail reproduction in phase 2.
 # --------------------------------------------------------------------------
 
-@XFAIL
 @pytest.mark.parametrize("scenario,seed,verdict,flight", CASES)
 def test_card_verdict_survives_serialisation(scenario, seed, verdict, flight):
     """The card verdict must be recoverable from the serialised row.
@@ -127,6 +122,12 @@ def test_card_verdict_survives_serialisation(scenario, seed, verdict, flight):
     rep = _report(scenario, seed)
     row = rep.summary_row()
 
+    assert row["card_verdict"] == rep.outcome
+    assert row["flight_outcome"] == rep.metrics.outcome
+    assert "outcome" not in row, (
+        "the ambiguous 'outcome' key is back; it is what allowed a consumer to "
+        "read the flight outcome while meaning the card verdict")
+
     present = [k for k, v in row.items() if v == rep.outcome]
     assert present, (
         f"{scenario} seed {seed}: card verdict {rep.outcome!r} appears under no "
@@ -135,7 +136,6 @@ def test_card_verdict_survives_serialisation(scenario, seed, verdict, flight):
     )
 
 
-@XFAIL
 def test_a_landed_failure_is_distinguishable_from_a_landed_pass():
     """The worst consequence, isolated.
 
@@ -149,13 +149,12 @@ def test_a_landed_failure_is_distinguishable_from_a_landed_pass():
     good = _report("nominal", 0).summary_row()
     bad = _report("low_light", 0).summary_row()
 
-    assert good["outcome"] != bad["outcome"], (
-        "a card FAIL and a card PASS serialise to the same 'outcome' value "
-        f"({good['outcome']!r}); the verdict is not recoverable from this field"
-    )
+    assert good["card_verdict"] == "PASS" and bad["card_verdict"] == "FAIL"
+    assert good["flight_outcome"] == bad["flight_outcome"] == "LANDED", (
+        "both runs must still agree on what the vehicle physically did; "
+        "the point is that the verdict now separates them")
 
 
-@XFAIL
 def test_s10_ldg003_grades_on_the_card_verdict():
     """Sprint 10's own evaluator, driven by a real Sprint 9 artefact.
 

@@ -1,0 +1,30 @@
+UTC 2026-09-11T18:47:41Z
+### traceability audit, repository configuration ###
+=== traceability audit ===
+root: /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint
+
+requirement sev      stat card  meas  seed  clus  find  hash   note
+-------------------------------------------------------------------
+FC-BAT-001  MAJOR    PASS  ok   ok   --   --   --   ok    
+FC-BAT-002  MAJOR    PASS  ok   ok   --   --   --   ok    worst of 4 conditions requiring closed-loop es
+FC-BAT-003  MAJOR    PASS  ok   ok   --   --   --   ok    6 non-HEALTHY clusters in triage model
+FC-BAT-004  CRITICAL PASS  ok   ok   --   --   --   ok    RUL projections: {'LITHIUM_PLATING': 337, 'SEI
+FC-BAT-005  MAJOR    FAIL  ok   ok   --   --   ok   ok    worst of 6 every characterised condition: bias
+FC-UAV-001  CRITICAL PASS  ok   ok   ok   ok   --   ok    
+FC-UAV-002  CRITICAL PASS  ok   ok   ok   ok   --   ok    
+FC-UAV-003  MAJOR    PASS  ok   ok   ok   ok   --   ok    
+FC-UAV-004  MAJOR    PASS  ok   ok   --   --   --   ok    top-level overall_accuracy = 1.0
+FC-LDG-001  CRITICAL PASS  ok   ok   ok   ok   --   ok    
+FC-LDG-002  CRITICAL PASS  ok   ok   ok   ok   --   ok    
+FC-LDG-003  CRITICAL PASS  ok   ok   ok   --   --   ok    24/24 unsafe finals correctly went around; 0 l
+FC-LDG-004  MAJOR    PASS  ok   ok   ok   ok   --   ok    
+FC-LDG-005  MAJOR    PASS  ok   ok   --   --   --   ok    8 fault families with >=1 correct identificati
+
+sprint 9 card verdicts on disk : {'PASS': 83, 'REJECT': 24, 'FAIL': 13}
+requirements graded on a verdict: ['FC-LDG-003']
+scenarios whose verdict no requirement reads: ['crosswind', 'degraded_vehicle', 'gps_bias', 'late_acquire', 'low_light', 'narrow_fov', 'nominal', 'offset_pad']
+
+=== traceability breaks: 3 ===
+  [HIGH] catalogue: 8 of 10 sprint-9 scenarios have their card verdict read by no requirement (13 runs currently graded FAIL among them). A landing can be failed by its own test cards and contribute nothing to the fleet decision.
+  [LOW] FC-BAT-005: failing requirement has no anomaly cluster, and its artefact has no triage layer to join to: the root-cause hop of the chain does not exist for this evidence type
+  [LOW] BATTERY_PACK/cycle_records: artefact cycle_records.json is in the manifest and hashed but no requirement result references it

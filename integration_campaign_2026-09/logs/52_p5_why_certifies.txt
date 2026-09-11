@@ -1,0 +1,22 @@
+### WHY does a fleet of 92 card-FAIL landings still certify? ###
+sprint 9 landing cards:
+   Touchdown lateral error            touchdown_lateral      m 0.5
+   Touchdown sink rate                touchdown_sink         m/s 1.0
+   Max lateral on final               max_lateral_final      m 2.0
+   Vision availability on final       vision_avail_final     >= frac 0.7
+   Nav error on final                 nav_err_final          m 0.3
+
+nominal scenario, 12 seeds, nominal vs degraded configuration:
+   metric                      nominal     degraded
+   touchdown_lateral            0.0229       0.0477
+   touchdown_sink               0.3632       0.3793
+   vision_avail_final           0.9684       0.4340
+   nav_err_final                0.0418       0.0625
+   max_lateral_final            0.4134       0.4200
+
+   card_verdict nominal : ['PASS']
+   card_verdict degraded: ['FAIL']
+
+S10 requirements that read a sprint 9 metric, and whether they moved:
+   nominal   {'FC-LDG-001': ('PASS', 0.03884134287306648), 'FC-LDG-002': ('PASS', 0.38250127573633125), 'FC-LDG-003': ('PASS', True), 'FC-LDG-004': ('PASS', 1.0), 'FC-LDG-005': ('PASS', 8)}
+   degraded  {'FC-LDG-001': ('PASS', 0.08510423578320687), 'FC-LDG-002': ('PASS', 0.4046677074923262), 'FC-LDG-003': ('PASS', True), 'FC-LDG-004': ('FAIL', 0.0), 'FC-LDG-005': ('PASS', 8)}

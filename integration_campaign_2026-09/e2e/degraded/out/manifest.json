@@ -1,0 +1,125 @@
+{
+  "case": "degraded",
+  "stages": [
+    {
+      "stage": "01_upstream",
+      "utc": "2026-09-11T18:45:38Z",
+      "s7_reproduced_committed_artefacts": true,
+      "s7_artefacts": {
+        "cycle_records.json": {
+          "sha256_12": "241526c7e703",
+          "bytes": 160738
+        },
+        "estimator_benchmark.json": {
+          "sha256_12": "d20ce31af1c9",
+          "bytes": 2746
+        },
+        "rul_projections.json": {
+          "sha256_12": "f8abd84ce8a2",
+          "bytes": 124
+        },
+        "triage_model.json": {
+          "sha256_12": "260596e970ad",
+          "bytes": 199
+        }
+      },
+      "s8_artefacts": {
+        "campaign.json": {
+          "sha256_12": "3981f6f1b2f6",
+          "bytes": 20013
+        },
+        "triage.json": {
+          "sha256_12": "0672ecb0bd53",
+          "bytes": 4258
+        }
+      },
+      "s8_command": "scripts/run_campaign.py --seeds 4 --dt 0.05"
+    },
+    {
+      "stage": "02_s9",
+      "utc": "2026-09-11T18:46:08Z",
+      "injection": {
+        "parameter": "camera.p_detect",
+        "nominal": 0.97,
+        "applied": 0.45,
+        "scope": "every scenario"
+      },
+      "runs": 120,
+      "card_verdicts": {
+        "nominal": {
+          "FAIL": 12
+        },
+        "crosswind": {
+          "FAIL": 12
+        },
+        "gust": {
+          "REJECT": 12
+        },
+        "offset_pad": {
+          "FAIL": 12
+        },
+        "gps_bias": {
+          "FAIL": 12
+        },
+        "low_light": {
+          "FAIL": 12
+        },
+        "vision_dropout": {
+          "REJECT": 12
+        },
+        "late_acquire": {
+          "FAIL": 12
+        },
+        "degraded_vehicle": {
+          "FAIL": 12
+        },
+        "narrow_fov": {
+          "REJECT": 4,
+          "FAIL": 8
+        }
+      },
+      "artefacts": {
+        "campaign.json": {
+          "sha256_12": "07cf46ccaaca",
+          "bytes": 77181
+        },
+        "triage.json": {
+          "sha256_12": "c02fd218f9da",
+          "bytes": 508
+        }
+      }
+    },
+    {
+      "stage": "03_cert",
+      "utc": "2026-09-11T18:46:15Z",
+      "s10_fleet_status": "FINDINGS",
+      "s10_pass": 12,
+      "s10_total": 14,
+      "s10_failing": [
+        "FC-BAT-005",
+        "FC-LDG-004"
+      ],
+      "s10_blocking": [],
+      "s12_findings": [
+        "FC-BAT-005",
+        "FC-LDG-004"
+      ],
+      "s12_decision": "Decision: **GO WITH FINDINGS**  (fleet status: FINDINGS)",
+      "s12_tool_calls": 11,
+      "outputs": {
+        "s10_rollup.json": {
+          "sha256_12": "2c21efff78db",
+          "bytes": 8891
+        },
+        "s12_findings_report.md": {
+          "sha256_12": "6128a881a36e",
+          "bytes": 8997
+        },
+        "s12_transcript.json": {
+          "sha256_12": "2b8612bf5020",
+          "bytes": 2827
+        }
+      }
+    }
+  ]
+}

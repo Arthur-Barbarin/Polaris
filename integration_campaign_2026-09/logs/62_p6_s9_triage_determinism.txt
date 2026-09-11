@@ -1,0 +1,33 @@
+UTC 2026-09-11T18:53:56Z
+### is sprint 9's triage artefact deterministic across identical runs? ###
+  campaign.json byte-stable across runs: True
+  run1 vs run2: overall_accuracy same=True  per_class same=True
+  run2 vs run3: overall_accuracy same=True  per_class same=False
+     differing classes: {'NOMINAL': ([12, 12], [0, 12]), 'CROSSWIND': ([0, 12], [12, 12])}
+UTC 2026-09-11T18:54:55Z
+### where does the sprint 9 triage instability come from? ###
+--- 5 fits inside one process (default threading) ---
+Traceback (most recent call last):
+  File "/tmp/tri_probe.py", line 15, in <module>
+    maps.append(json.dumps(t.cluster_to_label, sort_keys=True))
+AttributeError: 'LandingTriage' object has no attribute 'cluster_to_label'. Did you mean: 'cluster_to_mode'?
+--- one fit per process, 4 processes, default threading ---
+--- one fit per process, 4 processes, OMP_NUM_THREADS=1 ---
+--- 5 fits inside one process (default threading) ---
+  fits in ONE process, all identical: True
+  distinct label maps: 1
+  {"0": "LATE_ACQUIRE", "1": "NOMINAL", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHICLE
+--- one fit per process, 4 processes, default threading ---
+  {"0": "LATE_ACQUIRE", "1": "CROSSWIND", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHIC
+  {"0": "LATE_ACQUIRE", "1": "NOMINAL", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHICLE
+  {"0": "LATE_ACQUIRE", "1": "NOMINAL", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHICLE
+  {"0": "LATE_ACQUIRE", "1": "NOMINAL", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHICLE
+--- one fit per process, 4 processes, single-threaded BLAS ---
+  {"0": "LATE_ACQUIRE", "1": "CROSSWIND", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHIC
+  {"0": "LATE_ACQUIRE", "1": "CROSSWIND", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHIC
+  {"0": "LATE_ACQUIRE", "1": "CROSSWIND", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHIC
+  {"0": "LATE_ACQUIRE", "1": "NOMINAL", "2": "GUST", "3": "VISION_DROPOUT", "4": "GPS_BIAS", "5": "LOW_LIGHT", "6": "OFFSET_PAD", "7": "DEGRADED_VEHICLE
+--- what FC-LDG-005 grades under each of the two triage states ---
+  as currently written             per_class NOMINAL=[0, 12] CROSSWIND=[12, 12]  ->  FC-LDG-005 = 9 (bound 8.0, PASS)
+  with NOMINAL/CROSSWIND flipped   per_class NOMINAL=[12, 12] CROSSWIND=[0, 12]  ->  FC-LDG-005 = 8 (bound 8.0, PASS)
+  triage.json restored to the state on disk

@@ -29,18 +29,27 @@ def test_registry_rejects_tools_outside_allow_list():
         reg.call("os_system", {"cmd": "rm -rf /"})
 
 
-def test_baseline_fleet_is_green():
+def test_baseline_fleet_carries_the_known_finding():
+    # FC-BAT-005 is a deliberate, tracked finding on the baseline basis: under a
+    # pure current-shunt bias with a correct seed the EKF is worse than the
+    # coulomb counter it replaces. It was split out of FC-BAT-002 on 2026-09-11
+    # precisely so it could not be averaged away. The fleet is therefore
+    # legitimately FINDINGS, not GREEN, and the analyst must surface it.
+    # See integration_campaign_2026-09 finding F2-4 and FA-002 rev B.
     reg = build_registry(basis="baseline")
     out = reg.call("list_subsystems", {})
-    assert out["fleet_status"] == "GREEN"
+    assert out["fleet_status"] == "FINDINGS"
     assert out["acceptance_basis"] == "baseline"
+    ids = {f["requirement_id"] for f in reg.call("get_failing_requirements", {})["failing"]}
+    assert ids == {"FC-BAT-005"}
 
 
-def test_stress_basis_surfaces_two_failures():
+def test_stress_basis_surfaces_the_tightened_failures():
     reg = build_registry(basis="stress")
     fails = reg.call("get_failing_requirements", {})
     ids = {f["requirement_id"] for f in fails["failing"]}
-    assert ids == {"FC-BAT-001", "FC-LDG-001"}
+    # the two the tightened basis creates, plus the standing FC-BAT-005 finding
+    assert ids == {"FC-BAT-001", "FC-LDG-001", "FC-BAT-005"}
     # the LDG failure is CRITICAL and therefore blocking
     ldg = next(f for f in fails["failing"] if f["requirement_id"] == "FC-LDG-001")
     assert ldg["blocking"] is True

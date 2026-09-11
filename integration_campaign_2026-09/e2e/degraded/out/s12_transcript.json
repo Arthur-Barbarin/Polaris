@@ -1,0 +1,105 @@
+[
+  {
+    "i": 0,
+    "thought": "Survey the fleet before drilling in.",
+    "tool": "list_subsystems",
+    "arguments": {},
+    "error": null
+  },
+  {
+    "i": 1,
+    "thought": "Grade every requirement for BATTERY_PACK.",
+    "tool": "grade_requirements",
+    "arguments": {
+      "subsystem": "BATTERY_PACK"
+    },
+    "error": null
+  },
+  {
+    "i": 2,
+    "thought": "Grade every requirement for FIXED_WING_UAV.",
+    "tool": "grade_requirements",
+    "arguments": {
+      "subsystem": "FIXED_WING_UAV"
+    },
+    "error": null
+  },
+  {
+    "i": 3,
+    "thought": "Grade every requirement for LANDING_MULTIROTOR.",
+    "tool": "grade_requirements",
+    "arguments": {
+      "subsystem": "LANDING_MULTIROTOR"
+    },
+    "error": null
+  },
+  {
+    "i": 4,
+    "thought": "Find the root-cause cluster behind FC-BAT-005.",
+    "tool": "inspect_anomaly_triage",
+    "arguments": {
+      "requirement_id": "FC-BAT-005"
+    },
+    "error": null
+  },
+  {
+    "i": 5,
+    "thought": "Capture the audit trail for FC-BAT-005.",
+    "tool": "get_evidence_provenance",
+    "arguments": {
+      "requirement_id": "FC-BAT-005"
+    },
+    "error": null
+  },
+  {
+    "i": 6,
+    "thought": "Disposition FC-BAT-005.",
+    "tool": "record_finding",
+    "arguments": {
+      "requirement_id": "FC-BAT-005",
+      "root_cause": "Battery pack requirement not met on the graded evidence.",
+      "recommendation": "Open a MAJOR finding; determine whether the fade model or the triage labelling is the driver, then re-characterise.",
+      "disposition": "WAIVER_CANDIDATE"
+    },
+    "error": null
+  },
+  {
+    "i": 7,
+    "thought": "Find the root-cause cluster behind FC-LDG-004.",
+    "tool": "inspect_anomaly_triage",
+    "arguments": {
+      "requirement_id": "FC-LDG-004"
+    },
+    "error": null
+  },
+  {
+    "i": 8,
+    "thought": "Capture the audit trail for FC-LDG-004.",
+    "tool": "get_evidence_provenance",
+    "arguments": {
+      "requirement_id": "FC-LDG-004"
+    },
+    "error": null
+  },
+  {
+    "i": 9,
+    "thought": "Disposition FC-LDG-004.",
+    "tool": "record_finding",
+    "arguments": {
+      "requirement_id": "FC-LDG-004",
+      "root_cause": "Approach did not touch down inside tolerance / did not correctly reject an unsafe final.",
+      "recommendation": "Tune the decision-height go-around gate or the GPS\u2192vision handover; re-run the Monte-Carlo dispersion campaign.",
+      "disposition": "WAIVER_CANDIDATE"
+    },
+    "error": null
+  },
+  {
+    "i": 10,
+    "thought": "Emit the go/no-go decision basis.",
+    "tool": "finalize",
+    "arguments": {
+      "decision_rationale": "2 requirement(s) failed (0 blocking); recommend GO WITH FINDINGS. Each failure is dispositioned with a root-cause hypothesis and a recommendation; blocking items must clear before certification."
+    },
+    "error": null
+  }
+]

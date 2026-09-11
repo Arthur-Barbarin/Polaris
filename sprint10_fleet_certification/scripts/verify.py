@@ -55,14 +55,26 @@ def main() -> int:
                      summary["requirements_total"],
                      summary["requirements_total"] >= 10)
 
-    # Battery — EKF advantage over CC must be >= 60% on the mean.
-    bat = [r for r in res.all_results()
-           if r.requirement.subsystem == Subsystem.BATTERY_PACK
-           and r.requirement.id == "FC-BAT-002"]
+    # Battery — the EKF must beat coulomb counting in every condition it
+    # exists to handle. Worst case, not mean: see FC-BAT-002's rationale.
+    bat = [r for r in res.all_results() if r.requirement.id == "FC-BAT-002"]
     if bat:
-        v = bat[0].aggregated_value
-        ok_all &= _check("FC-BAT-002 mean EKF advantage",
-                         f"{v:.1f}% (>=60)", v is not None and v >= 60.0)
+        r = bat[0]
+        v = r.aggregated_value
+        ok_all &= _check("FC-BAT-002 worst-case EKF advantage where required",
+                         f"{v:.1f}% (>={r.requirement.bound:.0f})", r.passed)
+
+    # Battery — FC-BAT-005 is a KNOWN, TRACKED FINDING and is expected to
+    # fail: under a pure shunt bias with a correct seed the EKF is worse than
+    # the counter. The headline check is that it fails as a non-blocking
+    # finding, not that it passes.
+    nw = [r for r in res.all_results() if r.requirement.id == "FC-BAT-005"]
+    if nw:
+        r = nw[0]
+        ok_all &= _check("FC-BAT-005 known finding, non-blocking",
+                         f"worst {r.aggregated_value:.1f}% "
+                         f"({'FAIL as expected' if not r.passed else 'PASSES - review'})",
+                         not r.blocking)
 
     # Landing — nominal touchdown must land within pad radius (0.5 m) on
     # every seed of the sprint-9 nominal scenario.

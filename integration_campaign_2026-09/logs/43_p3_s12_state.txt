@@ -1,0 +1,38 @@
+### battery + landing requirement results in detail ###
+  FC-BAT-001  PASS blocking=False  value=0.05745364737249689  bound=0.06
+      
+  FC-BAT-002  PASS blocking=False  value=74.3014614780727  bound=60.0
+      worst of 4 conditions requiring closed-loop estimation: cold_minus_10c +74.3%, hot_plus_45c +86.6%, biased_and_bad_guess +97.7% ...
+  FC-BAT-003  PASS blocking=False  value=6  bound=3.0
+      6 non-HEALTHY clusters in triage model
+  FC-BAT-004  PASS blocking=False  value=True  bound=1.0
+      RUL projections: {'LITHIUM_PLATING': 337, 'SEI_GROWTH': 480, 'INTERNAL_SHORT': 467, 'ELECTROLYTE_DEPLETION': 368}
+  FC-BAT-005  FAIL blocking=False  value=-99.95876829162604  bound=0.0
+      worst of 6 every characterised condition: biased_shunt_25c -100.0%, baseline_25c -9.7%, cold_minus_10c +74.3% ...
+  FC-LDG-003  PASS blocking=False  value=True  bound=1.0
+      24/24 unsafe finals correctly went around; 0 landed (must be zero)
+
+  fleet status: FINDINGS
+
+### what S12 now reports on each basis ###
+['Agent', 'AgentResult']
+"""Agent-loop tests: termination, reproducibility, guardrails."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from polaris_agent import Agent, DeterministicPolicy, build_registry
+
+
+def _run(basis="baseline", subsystems=None):
+    reg = build_registry(basis=basis)
+    agent = Agent(registry=reg, policy=DeterministicPolicy(subsystems=subsystems))
+    return agent.run("goal")
+
+
+def test_agent_terminates_by_finalizing():
+    res = _run("baseline")
+    assert res.stopped_reason == "finalized"
+    assert res.transcript[-1].tool == "finalize"
+    assert res.n_steps < 40                    # well under the step budget

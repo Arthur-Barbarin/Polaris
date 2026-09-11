@@ -193,20 +193,87 @@ def _handle_special_metric(req: Requirement, artefact: Any) -> Optional[Requirem
             evidence=ev, artefact_hash="", artefact_path="",
             note=f"RUL projections: {non_healthy}")
 
+    if m in ("__ekf_advantage_where_required__",
+             "__ekf_never_worse_than_open_loop__"):
+        # sprint 7 estimator_benchmark.json is a flat list of per-scenario rows.
+        #
+        # Both of these are worst-case over conditions, never a mean. FA-002
+        # rev B withdrew the mean of `ekf_advantage_pct` because it averages
+        # percentages across scenarios whose baseline error spans 0.0002 to
+        # 0.4252 and is therefore dominated by near-zero denominators. The old
+        # FC-BAT-002 used that mean, and it is what hid the shunt-bias
+        # behaviour that FC-BAT-004 now states outright.
+        rows = artefact if isinstance(artefact, list) else []
+        scope = "every characterised condition"
+        if m == "__ekf_advantage_where_required__":
+            # The conditions a closed-loop estimator exists to handle: a wrong
+            # initial state of charge, which open-loop counting can never
+            # recover from, and off-nominal soak temperature. A clean 25 C run
+            # with a correct seed is deliberately out of scope -- there the
+            # counter is already near-optimal and beating it is not the point.
+            rows = [r for r in rows
+                    if float(r.get("initial_guess_err", 0.0)) > 0.0
+                    or abs(float(r.get("temperature_k", 298.15)) - 298.15) > 1.0]
+            scope = "conditions requiring closed-loop estimation"
+        if not rows:
+            return RequirementResult(
+                requirement=req, aggregated_value=None, bound=req.bound,
+                passed=False, n_runs_considered=0, evidence=[],
+                artefact_hash="", artefact_path="",
+                note="no scenario rows in the estimator benchmark artefact")
+        worst = min(float(r["ekf_advantage_pct"]) for r in rows)
+        ev = [EvidenceItem(scenario=r["scenario"], seed=None,
+                           value=float(r["ekf_advantage_pct"]),
+                           passed=_op_check(float(r["ekf_advantage_pct"]),
+                                            req.op, req.bound))
+              for r in sorted(rows, key=lambda r: r["ekf_advantage_pct"])]
+        return RequirementResult(
+            requirement=req, aggregated_value=worst, bound=req.bound,
+            passed=_op_check(worst, req.op, req.bound),
+            n_runs_considered=len(rows), evidence=ev,
+            artefact_hash="", artefact_path="",
+            note=(f"worst of {len(rows)} {scope}: "
+                  + ", ".join(f"{e.scenario} {e.value:+.1f}%" for e in ev[:3])
+                  + (" ..." if len(ev) > 3 else "")))
+
     if m == "__unsafe_becomes_reject__":
         # sprint 9 campaign: scenarios that SHOULD go-around are
-        # ("gust", "vision_dropout"). Requirement passes iff every such run
-        # was rejected (outcome == GO_AROUND), and no LANDED runs came from
-        # them (which would mean the guidance failed to abort an unsafe final).
+        # ("gust", "vision_dropout"). The requirement passes iff every such run
+        # was GRADED `REJECT` by the landing cards AND none of them physically
+        # landed. Those are two different fields and both are checked on
+        # purpose: a run that landed while being graded REJECT, or a run graded
+        # PASS that went around, is a scoring defect this requirement must
+        # surface rather than absorb.
+        #
+        # Until 2026-09-11 both checks read a single `outcome` key, because
+        # Sprint 9 overwrote the card verdict with the flight outcome before
+        # serialising. This requirement graded correctly only as a consequence
+        # of that defect. See integration_campaign_2026-09, F2-1 and F2-2.
         runs = artefact.get("runs", [])
         unsafe_scenarios = {"gust", "vision_dropout"}
         unsafe = [r for r in runs if r.get("scenario") in unsafe_scenarios]
-        rejected = [r for r in unsafe if r.get("outcome") == "GO_AROUND"]
-        landed = [r for r in unsafe if r.get("outcome") == "LANDED"]
+
+        stale = [r for r in unsafe if "card_verdict" not in r]
+        if unsafe and stale:
+            # Refuse to guess. An artefact without the verdict cannot evidence
+            # a requirement about the verdict, and silently falling back to the
+            # flight outcome is exactly the defect that was just removed.
+            return RequirementResult(
+                requirement=req, aggregated_value=None, bound=req.bound,
+                passed=False, n_runs_considered=len(unsafe), evidence=[],
+                artefact_hash="", artefact_path="",
+                note=("sprint 9 campaign artefact carries no 'card_verdict' field "
+                      f"on {len(stale)}/{len(unsafe)} unsafe runs: it predates the "
+                      "contract fix and cannot evidence this requirement. "
+                      "Regenerate with sprint9 scripts/run_campaign.py."))
+
+        rejected = [r for r in unsafe if r.get("card_verdict") == "REJECT"]
+        landed = [r for r in unsafe if r.get("flight_outcome") == "LANDED"]
         passed = (len(unsafe) > 0) and (len(landed) == 0) and (len(rejected) == len(unsafe))
         ev = [EvidenceItem(scenario=r["scenario"], seed=r.get("seed"),
-                           value=r.get("outcome"),
-                           passed=(r.get("outcome") == "GO_AROUND"))
+                           value=r.get("card_verdict"),
+                           passed=(r.get("card_verdict") == "REJECT"
+                                   and r.get("flight_outcome") != "LANDED"))
               for r in unsafe]
         return RequirementResult(
             requirement=req, aggregated_value=passed, bound=req.bound,

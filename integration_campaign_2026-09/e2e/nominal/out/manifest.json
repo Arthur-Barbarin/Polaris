@@ -1,0 +1,118 @@
+{
+  "case": "nominal",
+  "stages": [
+    {
+      "stage": "01_upstream",
+      "utc": "2026-09-11T18:45:38Z",
+      "s7_reproduced_committed_artefacts": true,
+      "s7_artefacts": {
+        "cycle_records.json": {
+          "sha256_12": "241526c7e703",
+          "bytes": 160738
+        },
+        "estimator_benchmark.json": {
+          "sha256_12": "d20ce31af1c9",
+          "bytes": 2746
+        },
+        "rul_projections.json": {
+          "sha256_12": "f8abd84ce8a2",
+          "bytes": 124
+        },
+        "triage_model.json": {
+          "sha256_12": "260596e970ad",
+          "bytes": 199
+        }
+      },
+      "s8_artefacts": {
+        "campaign.json": {
+          "sha256_12": "3981f6f1b2f6",
+          "bytes": 20013
+        },
+        "triage.json": {
+          "sha256_12": "0672ecb0bd53",
+          "bytes": 4258
+        }
+      },
+      "s8_command": "scripts/run_campaign.py --seeds 4 --dt 0.05"
+    },
+    {
+      "stage": "02_s9",
+      "utc": "2026-09-11T18:45:53Z",
+      "injection": null,
+      "runs": 120,
+      "card_verdicts": {
+        "nominal": {
+          "PASS": 12
+        },
+        "crosswind": {
+          "PASS": 12
+        },
+        "gust": {
+          "REJECT": 12
+        },
+        "offset_pad": {
+          "PASS": 12
+        },
+        "gps_bias": {
+          "PASS": 12
+        },
+        "low_light": {
+          "FAIL": 12
+        },
+        "vision_dropout": {
+          "REJECT": 12
+        },
+        "late_acquire": {
+          "PASS": 11,
+          "FAIL": 1
+        },
+        "degraded_vehicle": {
+          "PASS": 12
+        },
+        "narrow_fov": {
+          "PASS": 12
+        }
+      },
+      "artefacts": {
+        "campaign.json": {
+          "sha256_12": "5c804dda0780",
+          "bytes": 77259
+        },
+        "triage.json": {
+          "sha256_12": "c02fd218f9da",
+          "bytes": 508
+        }
+      }
+    },
+    {
+      "stage": "03_cert",
+      "utc": "2026-09-11T18:46:12Z",
+      "s10_fleet_status": "FINDINGS",
+      "s10_pass": 13,
+      "s10_total": 14,
+      "s10_failing": [
+        "FC-BAT-005"
+      ],
+      "s10_blocking": [],
+      "s12_findings": [
+        "FC-BAT-005"
+      ],
+      "s12_decision": "Decision: **GO WITH FINDINGS**  (fleet status: FINDINGS)",
+      "s12_tool_calls": 8,
+      "outputs": {
+        "s10_rollup.json": {
+          "sha256_12": "dcca77127d76",
+          "bytes": 8874
+        },
+        "s12_findings_report.md": {
+          "sha256_12": "360fb64259a4",
+          "bytes": 7179
+        },
+        "s12_transcript.json": {
+          "sha256_12": "a3e175012d96",
+          "bytes": 1951
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "generated_utc": "2026-09-11T18:46:12Z",
+  "shadow_root": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo",
+  "fleet_status": "FINDINGS",
+  "summary": {
+    "catalog_version": "1.0.0",
+    "fleet_status": "FINDINGS",
+    "requirements_total": 14,
+    "requirements_passed": 13,
+    "blocking_findings": 0,
+    "manifest_hashes": {
+      "BATTERY_PACK": {
+        "estimator_benchmark": "d20ce31af1c9",
+        "triage_model": "260596e970ad",
+        "rul_projections": "f8abd84ce8a2",
+        "cycle_records": "241526c7e703"
+      },
+      "FIXED_WING_UAV": {
+        "campaign": "3981f6f1b2f6",
+        "triage": "0672ecb0bd53"
+      },
+      "LANDING_MULTIROTOR": {
+        "campaign": "5c804dda0780",
+        "triage": "c02fd218f9da"
+      }
+    },
+    "by_subsystem": {
+      "BATTERY_PACK": "FINDINGS",
+      "FIXED_WING_UAV": "GREEN",
+      "LANDING_MULTIROTOR": "GREEN"
+    }
+  },
+  "requirements": [
+    {
+      "id": "FC-BAT-001",
+      "subsystem": "BATTERY_PACK",
+      "title": "EKF SOC RMS error under worst characterisation scenario",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 0.05745364737249689,
+      "bound": 0.06,
+      "n_runs": 6,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint7_battery_testbench/data/estimator_benchmark.json",
+      "artefact_hash": "d20ce31af1c9",
+      "note": ""
+    },
+    {
+      "id": "FC-BAT-002",
+      "subsystem": "BATTERY_PACK",
+      "title": "EKF advantage where closed-loop estimation is required",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 74.3014614780727,
+      "bound": 60.0,
+      "n_runs": 4,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint7_battery_testbench/data/estimator_benchmark.json",
+      "artefact_hash": "d20ce31af1c9",
+      "note": "worst of 4 conditions requiring closed-loop estimation: cold_minus_10c +74.3%, hot_plus_45c +86.6%, biased_and_bad_guess +97.7% ..."
+    },
+    {
+      "id": "FC-BAT-003",
+      "subsystem": "BATTERY_PACK",
+      "title": "Failure-mode triage identifies at least one degradation cluster",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 6,
+      "bound": 3.0,
+      "n_runs": 8,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint7_battery_testbench/data/triage_model.json",
+      "artefact_hash": "260596e970ad",
+      "note": "6 non-HEALTHY clusters in triage model"
+    },
+    {
+      "id": "FC-BAT-004",
+      "subsystem": "BATTERY_PACK",
+      "title": "Remaining useful life is finite for every non-healthy mode",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": true,
+      "bound": 1.0,
+      "n_runs": 4,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint7_battery_testbench/data/rul_projections.json",
+      "artefact_hash": "f8abd84ce8a2",
+      "note": "RUL projections: {'LITHIUM_PLATING': 337, 'SEI_GROWTH': 480, 'INTERNAL_SHORT': 467, 'ELECTROLYTE_DEPLETION': 368}"
+    },
+    {
+      "id": "FC-BAT-005",
+      "subsystem": "BATTERY_PACK",
+      "title": "EKF must not be worse than open-loop counting in any condition",
+      "severity": "MAJOR",
+      "status": "FAIL",
+      "blocking": false,
+      "value": -99.95876829162604,
+      "bound": 0.0,
+      "n_runs": 6,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint7_battery_testbench/data/estimator_benchmark.json",
+      "artefact_hash": "d20ce31af1c9",
+      "note": "worst of 6 every characterised condition: biased_shunt_25c -100.0%, baseline_25c -9.7%, cold_minus_10c +74.3% ..."
+    },
+    {
+      "id": "FC-UAV-001",
+      "subsystem": "FIXED_WING_UAV",
+      "title": "Nominal mission completes with full test-card compliance",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": 1.0,
+      "bound": 1.0,
+      "n_runs": 4,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint8_flight_test_harness/data/campaign.json",
+      "artefact_hash": "3981f6f1b2f6",
+      "note": ""
+    },
+    {
+      "id": "FC-UAV-002",
+      "subsystem": "FIXED_WING_UAV",
+      "title": "Geofence containment across every scenario",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": false,
+      "bound": 0.0,
+      "n_runs": 32,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint8_flight_test_harness/data/campaign.json",
+      "artefact_hash": "3981f6f1b2f6",
+      "note": ""
+    },
+    {
+      "id": "FC-UAV-003",
+      "subsystem": "FIXED_WING_UAV",
+      "title": "Cross-track RMS bound in nominal conditions",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 1.2614726513241112,
+      "bound": 5.0,
+      "n_runs": 4,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint8_flight_test_harness/data/campaign.json",
+      "artefact_hash": "3981f6f1b2f6",
+      "note": ""
+    },
+    {
+      "id": "FC-UAV-004",
+      "subsystem": "FIXED_WING_UAV",
+      "title": "Anomaly triage per-class accuracy",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 1.0,
+      "bound": 0.85,
+      "n_runs": 1,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint8_flight_test_harness/data/triage.json",
+      "artefact_hash": "0672ecb0bd53",
+      "note": "top-level overall_accuracy = 1.0"
+    },
+    {
+      "id": "FC-LDG-001",
+      "subsystem": "LANDING_MULTIROTOR",
+      "title": "Touchdown lateral error inside pad acceptance radius (nominal)",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": 0.03884134287306648,
+      "bound": 0.5,
+      "n_runs": 12,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint9_precision_landing/data/campaign.json",
+      "artefact_hash": "5c804dda0780",
+      "note": ""
+    },
+    {
+      "id": "FC-LDG-002",
+      "subsystem": "LANDING_MULTIROTOR",
+      "title": "Sink rate at touchdown (nominal)",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": 0.38250127573633125,
+      "bound": 1.0,
+      "n_runs": 12,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint9_precision_landing/data/campaign.json",
+      "artefact_hash": "5c804dda0780",
+      "note": ""
+    },
+    {
+      "id": "FC-LDG-003",
+      "subsystem": "LANDING_MULTIROTOR",
+      "title": "Unsafe finals must trigger a go-around, not a landing",
+      "severity": "CRITICAL",
+      "status": "PASS",
+      "blocking": false,
+      "value": true,
+      "bound": 1.0,
+      "n_runs": 24,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint9_precision_landing/data/campaign.json",
+      "artefact_hash": "5c804dda0780",
+      "note": "24/24 unsafe finals correctly went around; 0 landed (must be zero)"
+    },
+    {
+      "id": "FC-LDG-004",
+      "subsystem": "LANDING_MULTIROTOR",
+      "title": "Vision availability on final",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 1.0,
+      "bound": 0.9,
+      "n_runs": 12,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint9_precision_landing/data/campaign.json",
+      "artefact_hash": "5c804dda0780",
+      "note": ""
+    },
+    {
+      "id": "FC-LDG-005",
+      "subsystem": "LANDING_MULTIROTOR",
+      "title": "Triage identifies each fault family it saw",
+      "severity": "MAJOR",
+      "status": "PASS",
+      "blocking": false,
+      "value": 8,
+      "bound": 8.0,
+      "n_runs": 10,
+      "artefact": "/sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint/integration_campaign_2026-09/e2e/nominal/repo/sprint9_precision_landing/data/triage.json",
+      "artefact_hash": "c02fd218f9da",
+      "note": "8 fault families with >=1 correct identification: ['GUST', 'OFFSET_PAD', 'GPS_BIAS', 'LOW_LIGHT', 'VISION_DROPOUT', 'LATE_ACQUIRE', 'DEGRADED_VEHICLE', 'NARROW_FOV']"
+    }
+  ]
+}

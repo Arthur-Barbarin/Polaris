@@ -1,0 +1,7 @@
+UTC 2026-09-11T18:35:19Z
+### phase 3 regression: every suite in the chain ###
+sprint7_battery_testbench          exit=0 tests=25 failures=0 errors=0 skipped=0
+sprint8_flight_test_harness        exit=0 tests=28 failures=0 errors=0 skipped=0
+sprint9_precision_landing          exit=0 tests=19 failures=0 errors=0 skipped=0
+sprint10_fleet_certification       exit=0 tests=22 failures=0 errors=0 skipped=0
+sprint12_vv_agent                  exit=1 tests=18 failures=5 errors=0 skipped=0

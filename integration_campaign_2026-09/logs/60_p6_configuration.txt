@@ -1,0 +1,25 @@
+### configuration of record ###
+report generated UTC 2026-09-11T18:48:37Z
+host        : Linux 6.8.0-136-generic aarch64
+compiler    : g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+python      : Python 3.10.12
+packages   : numpy 2.2.6 scipy 1.15.3 pandas 2.3.3 sklearn 1.7.2 matplotlib 3.10.9 pytest 9.1.1
+publishing repo HEAD (~/Polaris): 184ae93 Reproduce the S9/S10 verification, adds the failing integration test, the probe and dated journal
+origin/main                     : 184ae93 Reproduce the S9/S10 verification, adds the failing integration test, the probe and dated journal
+
+### artefact manifest (sha256_12) ###
+  d20ce31af1c9       2746  sprint7_battery_testbench/data/estimator_benchmark.json
+  241526c7e703     160738  sprint7_battery_testbench/data/cycle_records.json
+  f8abd84ce8a2        124  sprint7_battery_testbench/data/rul_projections.json
+  260596e970ad        199  sprint7_battery_testbench/data/triage_model.json
+  3981f6f1b2f6      20013  sprint8_flight_test_harness/data/campaign.json
+  0672ecb0bd53       4258  sprint8_flight_test_harness/data/triage.json
+  fdf64a963d5c      80663  sprint9_precision_landing/data/campaign.json
+  c02fd218f9da        508  sprint9_precision_landing/data/triage.json
+  942b0f0cc353      19360  sprint7_battery_testbench/build/libpolaris_bms.so
+  7c0f0a174104      13248  sprint8_flight_test_harness/build/libpolaris_ft.so
+
+### card / catalog versions ###
+CARD_VERSION = "1.0.0"
+CARD_VERSION = "1.0.0"
+CATALOG_VERSION = "1.0.0"

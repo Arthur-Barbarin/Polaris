@@ -20,16 +20,26 @@ def test_agent_terminates_by_finalizing():
     assert res.n_steps < 40                    # well under the step budget
 
 
-def test_baseline_produces_no_findings_and_go():
+def test_baseline_surfaces_the_known_estimator_finding():
+    # FC-BAT-005 is a deliberate, tracked finding on the baseline basis: under a
+    # pure current-shunt bias with a correct seed the EKF is worse than the
+    # coulomb counter it replaces. It was split out of FC-BAT-002 on 2026-09-11
+    # precisely so it could not be averaged away. The fleet is therefore
+    # legitimately FINDINGS, not GREEN, and the analyst must surface it.
+    # See integration_campaign_2026-09 finding F2-4 and FA-002 rev B.
     res = _run("baseline")
-    assert len(res.ctx.findings) == 0
-    assert res.ctx.fleet_status() == "GREEN"
+    assert {f.requirement_id for f in res.ctx.findings} == {"FC-BAT-005"}
+    assert res.ctx.fleet_status() == "FINDINGS"
+    # MAJOR, so it is a finding to disposition, never a certification blocker
+    f = res.ctx.findings[0]
+    assert f.disposition != "BLOCKER"
 
 
 def test_stress_produces_expected_findings_and_no_go():
     res = _run("stress")
     ids = {f.requirement_id for f in res.ctx.findings}
-    assert ids == {"FC-BAT-001", "FC-LDG-001"}
+    # FC-BAT-005 fails on every basis; the stress basis adds two more.
+    assert ids == {"FC-BAT-001", "FC-LDG-001", "FC-BAT-005"}
     assert res.ctx.fleet_status() == "BLOCKED"
     # the blocker must be dispositioned as such
     ldg = next(f for f in res.ctx.findings if f.requirement_id == "FC-LDG-001")

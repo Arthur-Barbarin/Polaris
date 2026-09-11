@@ -26,7 +26,9 @@ def test_report_has_required_sections():
 
 def test_report_decision_matches_status():
     assert "NO-GO" in render_findings_report(_result("stress"))
-    assert "Decision: **GO**" in render_findings_report(_result("baseline"))
+    # baseline carries the standing FC-BAT-005 finding, so the honest decision
+    # is GO WITH FINDINGS rather than an unqualified GO.
+    assert "Decision: **GO WITH FINDINGS**" in render_findings_report(_result("baseline"))
 
 
 def test_numbers_come_from_evidence_not_findings():

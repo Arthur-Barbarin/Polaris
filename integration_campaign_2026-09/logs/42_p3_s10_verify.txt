@@ -1,0 +1,22 @@
+### S10 verify after the phase 3 changes ###
+=== Fleet Certification Console — verification ===
+repo: /sessions/rcw-016pxiphhpqijgycmxqdt34i/mnt/Polaris_sprint
+catalog: v1.0.0
+fleet:   FINDINGS
+
+manifest present:
+  ✓ all three primary artefacts present: [('BATTERY_PACK', 'estimator_benchmark'), ('FIXED_WING_UAV', 'campaign'), ('LANDING_MULTIROTOR', 'campaign')]
+  ✓ requirements catalog size: 14
+  ✓ FC-BAT-002 worst-case EKF advantage where required: 74.3% (>=60)
+  ✓ FC-BAT-005 known finding, non-blocking: worst -100.0% (FAIL as expected)
+  ✓ FC-LDG-001 nominal touchdown worst-case: 0.03884134287306648 m (<=0.5)
+  ✓ FC-LDG-003 unsafe finals go around: PASS
+  ✓ FC-UAV-001 nominal mission pass fraction: 1.0
+
+PASS
+EXIT=0
+
+### battery requirement results in detail ###
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+TypeError: 'str' object is not callable

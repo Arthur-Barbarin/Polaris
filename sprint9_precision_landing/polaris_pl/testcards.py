@@ -113,9 +113,35 @@ class LandingReport:
     metrics: LandingMetrics
 
     def summary_row(self) -> dict:
-        return {"scenario": self.scenario, "label": self.label,
-                "outcome": self.outcome, "passed": self.passed,
-                **self.metrics.as_dict()}
+        """Serialise one graded run for downstream consumers.
+
+        Two different scores are called `outcome` in this module:
+
+          self.outcome          card verdict   PASS | FAIL | REJECT | TIMEOUT
+          self.metrics.outcome  flight outcome LANDED | GO_AROUND | TIMEOUT
+
+        Until 2026-09-11 this method wrote the card verdict under "outcome"
+        and then splatted `**self.metrics.as_dict()` over it. The splat landed
+        last, so the verdict was overwritten by the flight outcome on every
+        run and never reached any consumer: Sprint 10 graded FC-LDG-003 on the
+        field that displaced it, and Sprint 9's own dashboard rendered its
+        PASS/FAIL/REJECT matrix as zeros.
+
+        Both values are now serialised under names that say which is which,
+        and the bare "outcome" key is deliberately gone, so no consumer can
+        read one while meaning the other. Consumers that need the verdict read
+        `card_verdict`; consumers that need what the vehicle physically did
+        read `flight_outcome`, or the `landed` / `go_around` booleans beside it.
+
+        See integration_campaign_2026-09, findings F2-1 to F2-3.
+        """
+        row = dict(self.metrics.as_dict())
+        row["flight_outcome"] = row.pop("outcome")
+        row["card_verdict"] = self.outcome
+        row["scenario"] = self.scenario
+        row["label"] = self.label
+        row["passed"] = self.passed
+        return row
 
 
 def grade(m: LandingMetrics, criteria: List[Criterion] | None = None) -> LandingReport:

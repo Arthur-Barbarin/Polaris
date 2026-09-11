@@ -24,7 +24,14 @@ from enum import Enum
 from typing import List
 
 
-CATALOG_VERSION = "1.0.0"
+CATALOG_VERSION = "1.1.0"
+# 1.1.0 (2026-09-11): FC-BAT-002 re-expressed from a mean of percentage
+#   advantages to a worst-case bound over the conditions that require
+#   closed-loop estimation, and FC-BAT-005 split out of it so the one
+#   condition where the EKF loses to open-loop counting cannot be averaged
+#   away. An exported evidence package tagged 1.0.0 was graded against the
+#   old catalogue and is NOT comparable requirement-for-requirement with a
+#   1.1.0 package. See integration_campaign_2026-09 finding F2-4.
 
 
 class Subsystem(str, Enum):
@@ -77,15 +84,21 @@ BATTERY_REQS: List[Requirement] = [
     Requirement(
         id="FC-BAT-002",
         subsystem=Subsystem.BATTERY_PACK,
-        title="EKF advantage over coulomb counting",
+        title="EKF advantage where closed-loop estimation is required",
         rationale=(
-            "Justifies the added complexity of the EKF vs. a coulomb "
-            "counter: mean SOC-RMS reduction must exceed 60% across the "
-            "characterisation matrix."),
+            "Justifies the added complexity of the EKF vs. a coulomb counter "
+            "in the conditions it exists to handle: a wrong initial state of "
+            "charge, which open-loop counting can never recover from, and "
+            "off-nominal soak temperature. In EVERY such condition the "
+            "SOC-RMS reduction must exceed 60%. This requirement "
+            "deliberately does not average across the characterisation "
+            "matrix. Until 2026-09-11 it did, on a statistic FA-002 rev B "
+            "withdrew, and the average hid the behaviour FC-BAT-005 now "
+            "states outright. See integration_campaign_2026-09 finding F2-4."),
         artefact_role="estimator_benchmark",
-        metric="ekf_advantage_pct",
+        metric="__ekf_advantage_where_required__",
         op=">=", bound=60.0, unit="%",
-        aggregate="mean",
+        aggregate="worst_case",
         severity=Severity.MAJOR,
     ),
     Requirement(
@@ -116,6 +129,28 @@ BATTERY_REQS: List[Requirement] = [
         op="==True", bound=1.0, unit="bool",
         aggregate="exists_pass",
         severity=Severity.CRITICAL,
+    ),
+    Requirement(
+        id="FC-BAT-005",
+        subsystem=Subsystem.BATTERY_PACK,
+        title="EKF must not be worse than open-loop counting in any condition",
+        rationale=(
+            "A closed-loop estimator beaten by the open-loop counter it "
+            "replaces is a net loss in that condition, whatever its average "
+            "across the matrix. Split out of FC-BAT-002 on 2026-09-11 so the "
+            "condition cannot be averaged away a second time. This "
+            "requirement is EXPECTED TO FAIL on the current characterisation: "
+            "under a pure current-shunt bias with a correct initial guess the "
+            "EKF reaches 0.0575 SOC RMS against the counter's 0.0287, because "
+            "its state vector [SOC, v_rc1, v_rc2] carries no current-bias "
+            "term and a DC offset is therefore not observable to it. That is "
+            "a real deficiency, tracked as a finding rather than hidden. See "
+            "FA-002 rev B section 4."),
+        artefact_role="estimator_benchmark",
+        metric="__ekf_never_worse_than_open_loop__",
+        op=">=", bound=0.0, unit="%",
+        aggregate="worst_case",
+        severity=Severity.MAJOR,
     ),
 ]
 
