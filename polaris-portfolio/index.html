@@ -285,6 +285,7 @@
     }
     .badge-live   { background: rgba(45,189,126,0.12); color: var(--green); border: 1px solid rgba(45,189,126,0.25); }
     .badge-deploy { background: rgba(74,144,217,0.12); color: var(--accent); border: 1px solid rgba(74,144,217,0.25); }
+    .badge-code   { background: rgba(139,127,212,0.12); color: #a99ff0; border: 1px solid rgba(139,127,212,0.25); }
 
     .card-title {
       font-size: 18px;
@@ -432,8 +433,8 @@
 <!-- Sprints -->
 <section id="sprints">
   <div class="section-label">Portfolio</div>
-  <h2 class="section-title">Five sprints. Five domains.</h2>
-  <p class="section-sub">Each tool is self-contained, source-cited, and built for structured decision conversations — not dashboards.</p>
+  <h2 class="section-title">Six decision tools. One verification toolchain.</h2>
+  <p class="section-sub">Each tool is self-contained, source-cited, and built for structured decision conversations — not dashboards. The verification toolchain is engineering infrastructure rather than a demo: source, reproducible test suites, and a dated integration report.</p>
 
   <div class="sprint-grid">
 
@@ -556,7 +557,7 @@
     <!-- S6 -->
     <div class="sprint-card" style="--card-accent: #c2c63d;">
       <div class="card-header">
-        <span class="card-num">S5</span>
+        <span class="card-num">S6</span>
         <span class="card-badge badge-live">● Live</span>
       </div>
       <div class="card-title">Drone Mission Studio</div>
@@ -574,7 +575,30 @@
           Open tool →
         </a>
       </div>
-    </div>    
+    </div>
+
+    <!-- S7-S12 -->
+    <div class="sprint-card" style="--card-accent: #8b7fd4;">
+      <div class="card-header">
+        <span class="card-num">S7&ndash;S12</span>
+        <span class="card-badge badge-code">&#9670; Code &amp; report</span>
+      </div>
+      <div class="card-title">Verification &amp; Evidence Toolchain</div>
+      <div class="card-desc">
+        Battery cell characterisation, fault-injection flight test, precision-landing validation, and a requirements-to-evidence traceability console read by an automated certification analyst. Exercised end to end on a nominal and a degraded configuration; the integration report states what the chain proves and what it does not.
+      </div>
+      <div class="card-tags">
+        <span class="tag">Python</span>
+        <span class="tag">C++</span>
+        <span class="tag">pytest</span>
+        <span class="tag">V&amp;V</span>
+      </div>
+      <div class="card-footer">
+        <a class="card-link" href="https://github.com/Arthur-Barbarin/Polaris/blob/main/POLARIS_S7-S12_Integration_Report_v1.0_2026-09-11.md" target="_blank" rel="noopener">
+          Read the report &rarr;
+        </a>
+      </div>
+    </div>
 
   </div>
 </section>
