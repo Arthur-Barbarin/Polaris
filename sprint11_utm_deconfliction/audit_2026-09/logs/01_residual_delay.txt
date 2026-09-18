@@ -1,0 +1,17 @@
+=== P1 : coherence intent vs delai declare (vols residuels) ===
+
+N=120 : residuels=2
+  vol 17: dep=549.7s delay_s=900 -> depart DECLARE 1449.7s, intent REELLEMENT vole a 549.7s  ecart=900s
+  vol 86: dep=551.2s delay_s=900 -> depart DECLARE 1451.2s, intent REELLEMENT vole a 551.2s  ecart=900s
+  delai total declare = 39390s dont 1800s fantomes (5%)
+  delai moyen affiche = 5.47 min
+  delai moyen si on retire les fantomes = 5.22 min
+
+N=150 : residuels=20
+  vol 17: dep=549.7s delay_s=900 -> depart DECLARE 1449.7s, intent REELLEMENT vole a 549.7s  ecart=900s
+  vol 44: dep=594.9s delay_s=900 -> depart DECLARE 1494.9s, intent REELLEMENT vole a 594.9s  ecart=900s
+  vol 46: dep=527.0s delay_s=900 -> depart DECLARE 1427.0s, intent REELLEMENT vole a 527.0s  ecart=900s
+  vol 49: dep=527.7s delay_s=900 -> depart DECLARE 1427.7s, intent REELLEMENT vole a 527.7s  ecart=900s
+  delai total declare = 67320s dont 18000s fantomes (27%)
+  delai moyen affiche = 7.48 min
+  delai moyen si on retire les fantomes = 5.48 min

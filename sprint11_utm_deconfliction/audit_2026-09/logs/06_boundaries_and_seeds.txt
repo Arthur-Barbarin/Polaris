@@ -1,0 +1,12 @@
+=== P6a : valeurs limites de la taille de flotte ===
+  N=0 -> vols generes=0 conflits=0 delai_moy=NaNmin debit=0.0/h residuel=0
+  N=1 -> vols generes=1 conflits=0 delai_moy=0.00min debit=4.8/h residuel=0
+  N=2 -> vols generes=2 conflits=0 delai_moy=0.00min debit=9.3/h residuel=0
+  N=5 -> vols generes=5 conflits=0 delai_moy=0.30min debit=16.1/h residuel=0
+
+=== P6b : le genou de capacite depend-il de la graine ? ===
+  graine 1     -> genou=80    conflits@150=41   residuel@150=37   debit@150=207/h
+  graine 7     -> genou=80    conflits@150=42   residuel@150=28   debit@150=189/h
+  graine 42    -> genou=100   conflits@150=40   residuel@150=20   debit@150=238/h
+  graine 99    -> genou=120   conflits@150=45   residuel@150=26   debit@150=218/h
+  graine 1234  -> genou=150   conflits@150=46   residuel@150=16   debit@150=203/h

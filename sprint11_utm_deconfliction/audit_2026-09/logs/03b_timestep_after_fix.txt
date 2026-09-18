@@ -1,0 +1,11 @@
+=== P3 : le verdict de securite depend-il du pas de temps ? ===
+(dt = 0.5 x le curseur 'Sim speed' de l'interface : 0.5 a 10 s)
+
+popup_m |  dt=0.5s      dt=1s        dt=3s(defaut) dt=5s        dt=10s(max)
+300     |  PERTE 0m      PERTE 0m      PERTE 0m      PERTE 0m      PERTE 0m    
+500     |  PERTE 33m     PERTE 33m     PERTE 33m     PERTE 33m     PERTE 33m   
+600     |  PERTE 53m     PERTE 53m     PERTE 53m     PERTE 53m     PERTE 53m   
+700     |  ok 73m        ok 73m        ok 73m        ok 73m        ok 73m      
+900     |  ok 112m       ok 112m       ok 112m       ok 112m       ok 112m     
+1200    |  ok 170m       ok 170m       ok 170m       ok 170m       ok 170m     
+1600    |  ok 173m       ok 173m       ok 173m       ok 173m       ok 173m     

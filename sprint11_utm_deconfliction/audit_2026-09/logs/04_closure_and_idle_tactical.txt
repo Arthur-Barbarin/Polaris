@@ -1,0 +1,10 @@
+=== P4 : a portee de pop-up IDENTIQUE, la cible tiree au hasard change le verdict ===
+  Wisk Gen 6 (v=55 m/s, fermeture 110 m/s, t_CPA=5.5s)                   -> LOSS OF SEP min=55m
+  Archer Midnight (v=67 m/s, fermeture 122 m/s, t_CPA=4.9s)              -> LOSS OF SEP min=24m
+  Volocopter VoloCity (v=25 m/s, fermeture 80 m/s, t_CPA=7.5s)           -> resolved min=77m
+  Joby S4 (v=89 m/s, fermeture 144 m/s, t_CPA=4.2s)                      -> LOSS OF SEP min=24m
+
+=== P5 : la couche tactique sert-elle a quelque chose sans injection ? ===
+  N=40 : conflits tactiques predits (cumul pas-a-pas) = 0, evenements LoS = 0, duree = 1818s
+  N=100 : conflits tactiques predits (cumul pas-a-pas) = 4, evenements LoS = 0, duree = 2834s
+  N=150 : conflits tactiques predits (cumul pas-a-pas) = 21, evenements LoS = 0, duree = 3130s
