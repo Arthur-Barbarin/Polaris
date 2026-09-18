@@ -71,7 +71,16 @@ export function countBaselineConflicts(flights, ref) {
 // Greedy strategic deconfliction. For each flight (ordered by departure) try to
 // place it on its preferred layer at its planned time; if it conflicts with an
 // already-scheduled flight, try other layers, then add departure delay in
-// steps until clear (up to maxDelay). Returns per-flight assignments + metrics.
+// steps until clear (up to maxDelay).
+//
+// An operation that fits nowhere within the cap is REJECTED. It is not placed,
+// holds no layer and no pad, and is excluded from the delay and throughput
+// statistics — it is demand the network could not serve. Throughput is
+// therefore accepted operations over the busy span, which is the quantity that
+// plateaus when the network saturates. (Counting rejected operations as
+// completed made the headline throughput RISE as the network failed.)
+//
+// Returns per-flight assignments + metrics.
 export function deconflict(flights, ref, opts = {}) {
   const dStep = opts.delayStep ?? 30;      // s
   const maxDelay = opts.maxDelay ?? 900;    // s (15 min cap)
@@ -103,36 +112,56 @@ export function deconflict(flights, ref, opts = {}) {
       }
     }
     if (!placed) {
-      // Could not fit within the delay cap — accept on preferred layer,
-      // flag as residual (unresolved) conflict.
+      // No layer/delay combination fits within the cap. The operation is
+      // REJECTED, not silently accepted: a USS would not authorise the intent.
+      // A rejected flight occupies no layer and no pad, and is excluded from
+      // the delay, pad-occupancy and throughput statistics. It is demand the
+      // network did not serve, and that is the quantity the capacity chart
+      // must show.
       const intent = buildIntent(f, ref);
-      placed = { layer: prefLayer, delay_s: maxDelay, intent, resolved: false };
+      result[i] = {
+        flight: f, layer: null, delay_s: null, intent,
+        accepted: false, resolved: false,
+      };
+      continue;
     }
     scheduled.push({ layer: placed.layer, intent: placed.intent });
     (padDeps[f.origin.id] ||= []).push(f.dep + placed.delay_s);
-    result[i] = { flight: f, ...placed };
+    result[i] = { flight: f, ...placed, accepted: true };
   }
 
-  const delays = result.map((r) => r.delay_s);
-  const delayTotal = delays.reduce((a, b) => a + b, 0);
-  const residual = result.filter((r) => !r.resolved).length;
+  const acc = result.filter((r) => r.accepted);
+  const rejected = result.length - acc.length;
+  const delayTotal = acc.reduce((a, r) => a + r.delay_s, 0);
   const layerChanges = result.filter(
-    (r, i) => r.layer !== ALT_LAYERS[i % ALT_LAYERS.length]
+    (r, i) => r.accepted && r.layer !== ALT_LAYERS[i % ALT_LAYERS.length]
   ).length;
-  const arrs = result.map((r) => r.intent.arr);
-  const deps = result.map((r) => r.flight.dep + r.delay_s);
-  const span = Math.max(1, Math.max(...arrs) - Math.min(...deps));
-  const throughput = (flights.length / span) * 3600; // completed ops/hour over the busy span
+
+  // Throughput is ACCEPTED MOVEMENTS PER HOUR over the departure span — the
+  // unit a network or vertiport planner uses. It is deliberately not measured
+  // over "first departure to last arrival": that span is dominated by the
+  // single longest route, so one flight moving between accepted and rejected
+  // shifted the headline by 38% with no change in what the network served.
+  let span = 1, throughput = 0;
+  if (acc.length) {
+    const deps = acc.map((r) => r.flight.dep + r.delay_s);
+    span = Math.max(1, Math.max(...deps) - Math.min(...deps));
+    throughput = (acc.length / span) * 3600;
+  }
 
   return {
     assignments: result,
     metrics: {
       n: flights.length,
+      accepted: acc.length,
+      rejected,
       baselineConflicts: countBaselineConflicts(flights, ref),
       delayTotal_s: delayTotal,
-      delayMean_s: delayTotal / flights.length,
-      residual,
+      delayMean_s: acc.length ? delayTotal / acc.length : 0,
+      residual: rejected,     // kept as an alias for the previous field name
+      acceptanceRate: flights.length ? acc.length / flights.length : 1,
       layerChanges,
+      span_s: span,
       throughput_ph: throughput,
     },
   };

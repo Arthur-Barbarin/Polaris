@@ -1,5 +1,16 @@
 // Live simulation stepper that drives the map animation.
 //
+// TIME STEP. The model is always integrated at a FIXED internal step
+// (SIM_DT = 0.5 s), whatever the display rate. `step(sim, dt)` advances the
+// model by `dt` simulated seconds using ceil(dt / SIM_DT) sub-steps, so the
+// animation-speed control changes how fast time is shown and nothing else.
+// Before this was decoupled, the speed slider was the integrator step: at 3 s
+// per step a pair closing at 110 m/s jumped 330 m between samples, tunnelled
+// straight through the 60 m loss-of-separation floor and was scored "resolved".
+// Encounter minima are additionally taken from the analytic closest point of
+// approach WITHIN each sub-step, not from the sampled endpoints, so the safety
+// verdict no longer depends on the step at all.
+//
 // Agents fly their deconflicted cruise legs. Every step we run the tactical
 // detect-and-avoid scan and, for each predicted well-clear violation, issue a
 // resolution to the give-way vehicle. Crucially the resolution is NOT free: the
@@ -39,7 +50,8 @@ export function buildSim(assignments, ref) {
       alt: asg.layer, altTarget: asg.layer,
       speedFactor: 1,
       maneuver: null, // { adv, react, t } — advisory applied only after react<=0
-      pos: { ...a }, prevPos: { ...a }, vel: { x: 0, y: 0 },
+      latRate: TACT.lat_rate_ms,
+      pos: { ...a }, prevPos: { ...a }, prevAlt: asg.layer, vel: { x: 0, y: 0 },
       airborne: false, done: false,
     };
   });
@@ -67,7 +79,42 @@ function separation(A, B) {
   return { h, v, slant: Math.hypot(h, v) };
 }
 
+// Smallest separation actually reached between two agents DURING a sub-step,
+// from the analytic closest point of approach of their relative motion over the
+// step rather than from the two sampled endpoints.
+function minSepOverStep(A, B, dt) {
+  const end = separation(A, B);
+  if (!(dt > 0)) return end;
+  const r0 = sub(A.prevPos, B.prevPos);
+  const dA = sub(A.pos, A.prevPos), dB = sub(B.pos, B.prevPos);
+  const v = { x: (dA.x - dB.x) / dt, y: (dA.y - dB.y) / dt };
+  const vv = v.x * v.x + v.y * v.y;
+  let t = vv > 1e-12 ? -(r0.x * v.x + r0.y * v.y) / vv : 0;
+  t = Math.max(0, Math.min(t, dt));
+  const h = norm({ x: r0.x + v.x * t, y: r0.y + v.y * t });
+  // altitude is integrated linearly over the step, so interpolate it the same way
+  const vA = A.alt - (A.prevAlt ?? A.alt), vB = B.alt - (B.prevAlt ?? B.alt);
+  const altA = (A.prevAlt ?? A.alt) + vA * (t / dt);
+  const altB = (B.prevAlt ?? B.alt) + vB * (t / dt);
+  const vert = Math.abs(altA - altB);
+  const cand = { h, v: vert, slant: Math.hypot(h, vert) };
+  return cand.h < end.h ? cand : end;
+}
+
+// Fixed internal integration step. Everything physical is integrated at this
+// step; the display rate only decides how many sub-steps run per frame.
+export const SIM_DT = 0.5;
+
+// Advance the model by `dt` SIMULATED seconds, at the fixed internal step.
 export function step(sim, dt, sep = SEP) {
+  const n = Math.max(1, Math.ceil(dt / SIM_DT - 1e-9));
+  const h = dt / n;
+  let conflicts = [];
+  for (let k = 0; k < n; k++) conflicts = stepOnce(sim, h, sep);
+  return conflicts;
+}
+
+function stepOnce(sim, dt, sep = SEP) {
   sim.t += dt;
 
   // 1) advance each agent (maneuvers are latency + rate limited)
@@ -76,6 +123,7 @@ export function step(sim, dt, sep = SEP) {
     if (sim.t < ag.dep) { ag.airborne = false; ag.pos = computePos(ag); continue; }
     ag.airborne = true;
     ag.prevPos = ag.pos;
+    ag.prevAlt = ag.alt;
 
     if (ag.maneuver) {
       ag.maneuver.t -= dt;
@@ -83,20 +131,28 @@ export function step(sim, dt, sep = SEP) {
         ag.maneuver.react -= dt;                 // still reacting — fly straight
       } else if (!ag.maneuver.applied) {
         const adv = ag.maneuver.adv;             // commit the advisory now
-        if (adv.type === "speed") ag.speedFactor = 0.6;
+        if (adv.type === "speed") ag.speedFactor = 0.65;
         else if (adv.type === "vertical") ag.altTarget = ag.alt + adv.dAlt;
-        else ag.crossTarget = sep.daa_hmd_m * 1.15; // turn right, open ~170 m
+        else {
+          // Turn right and open the required offset at the rate the SELECTED
+          // turn angle actually produces (speed * sin(angle)), capped by the
+          // airframe limit. The angle chosen by `resolve` therefore matters.
+          ag.crossTarget = sep.daa_hmd_m * 1.15;
+          ag.latRate = adv.latRate ?? TACT.lat_rate_ms;
+        }
         ag.maneuver.applied = true;
       }
       if (ag.maneuver.t <= 0) {
         ag.maneuver = null;
         ag.crossTarget = 0; ag.altTarget = ag.layer; ag.speedFactor = 1;
+        ag.latRate = TACT.lat_rate_ms;
       }
     }
 
     ag.s += ag.speed * ag.speedFactor * dt;
     const dCross = ag.crossTarget - ag.cross;      // bounded lateral rate
-    ag.cross += Math.sign(dCross) * Math.min(Math.abs(dCross), TACT.lat_rate_ms * dt);
+    const latRate = ag.latRate ?? TACT.lat_rate_ms;
+    ag.cross += Math.sign(dCross) * Math.min(Math.abs(dCross), latRate * dt);
     const dAlt = ag.altTarget - ag.alt;            // bounded vertical rate
     ag.alt += Math.sign(dAlt) * Math.min(Math.abs(dAlt), ag.climb * dt);
 
@@ -132,12 +188,14 @@ export function step(sim, dt, sep = SEP) {
   }
   for (const ag of sim.agents) if (!ag.maneuver) ag.conflictColor = false;
 
-  // 3) score the tracked intruder encounters (resolved vs loss of separation)
+  // 3) score the tracked intruder encounters (resolved vs loss of separation).
+  // The minimum is the analytic CPA WITHIN this sub-step, not the endpoint
+  // sample — otherwise a fast pair tunnels through the LoS floor unseen.
   for (const e of sim.encounters) {
     if (e.classified) continue;
     const A = e.intruder, B = e.target;
     if (!A.airborne || !B.airborne || A.done || B.done) { classify(sim, e); continue; }
-    const s = separation(A, B);
+    const s = minSepOverStep(A, B, dt);
     if (s.h < e.minH) { e.minH = s.h; e.vAtMinH = s.v; e.minSlant = s.slant; }
     // past closest approach once they start diverging
     const p = predictPair(A, B, sep);
@@ -155,6 +213,8 @@ function classify(sim, e) {
   sim.stats.last = {
     range: Math.round(e.range),
     tcpa: e.tcpa,
+    closure: Math.round(e.closure ?? 0),
+    target: e.targetName ?? "",
     outcome: los ? "LOSS OF SEP" : "resolved",
     minSep: Math.round(e.minSlant),
   };
@@ -172,15 +232,23 @@ export function viewModel(sim) {
     }));
 }
 
-// Spawn a non-cooperative intruder on a converging course with a random
-// airborne cooperative agent. `rangeM` is the pop-up detection range: small =
-// late detection = little time to recover. Returns the predicted time-to-CPA.
+// Spawn a non-cooperative intruder on a converging course with an airborne
+// cooperative agent. `rangeM` is the pop-up detection range: small = late
+// detection = little time to recover.
+//
+// The target is drawn from a caller-supplied PRNG (`opts.rng`), not
+// Math.random, so an injection is reproducible from the scenario seed. Closure
+// speed depends on which vehicle is drawn (VoloCity 25 m/s to Joby S4 89 m/s
+// against a 55 m/s intruder, i.e. 80 to 144 m/s), so the range alone does not
+// determine the difficulty: the realised closure and time-to-CPA are returned
+// and must be displayed alongside the verdict.
 export function injectConflict(sim, opts = {}, sep = SEP) {
   const rangeM = opts.rangeM ?? 1200;
   const intrSpeed = opts.speed ?? 55;
+  const rng = opts.rng ?? Math.random;
   const targets = sim.agents.filter((a) => a.airborne && a.cooperative && !a.done);
   if (!targets.length) return null;
-  const T = targets[Math.floor(Math.random() * targets.length)];
+  const T = targets[Math.floor(rng() * targets.length)];
   const dir = unit(T.vel.x || T.vel.y ? T.vel : T.dir);
   const start = { x: T.pos.x + dir.x * rangeM, y: T.pos.y + dir.y * rangeM };
   const heading = { x: -dir.x, y: -dir.y }; // head-on toward T
@@ -194,14 +262,16 @@ export function injectConflict(sim, opts = {}, sep = SEP) {
     dir: heading, legLen: 8000, speed: intrSpeed, climb: 3,
     dep: sim.t, layer: T.alt,
     s: 0, cross: 0, crossTarget: 0, alt: T.alt, altTarget: T.alt, speedFactor: 1,
-    maneuver: null, pos: { ...start }, prevPos: { ...start },
+    maneuver: null, latRate: TACT.lat_rate_ms,
+    pos: { ...start }, prevPos: { ...start }, prevAlt: T.alt,
     vel: { x: heading.x * intrSpeed, y: heading.y * intrSpeed },
     airborne: true, done: false,
   };
   sim.agents.push(intruder);
   sim.encounters.push({
-    intruder, target: T, range: rangeM, tcpa,
+    intruder, target: T, range: rangeM, tcpa, closure,
+    targetName: T.name, targetSpeed: T.speed,
     minH: Infinity, vAtMinH: Infinity, minSlant: Infinity, classified: false,
   });
-  return { tcpa, rangeM };
+  return { tcpa, rangeM, closure, targetName: T.name };
 }

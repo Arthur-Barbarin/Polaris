@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MapView from "./components/MapView.jsx";
 import ScalingChart from "./components/ScalingChart.jsx";
 import { REGIONS } from "./data/vertiports.js";
-import { generateFleet, scalingSweep } from "./models/fleet.js";
+import { generateFleet, capacityBand } from "./models/fleet.js";
 import { deconflict } from "./models/strategic.js";
-import { buildSim, step, viewModel, injectConflict } from "./models/sim.js";
-import { toLatLng } from "./models/geo.js";
+import { buildSim, step, viewModel, injectConflict, SIM_DT } from "./models/sim.js";
+import { toLatLng, makeRng } from "./models/geo.js";
 import { SEP } from "./data/airspace.js";
 
-const SWEEP_SIZES = [10, 20, 30, 40, 50, 60, 80, 100, 120, 150];
+const SWEEP_SIZES = [10, 20, 40, 60, 80, 100, 120, 140, 160];
+const CAPACITY_SEEDS = 30;
 
 export default function App() {
   const [regionId, setRegionId] = useState("paris");
@@ -33,8 +34,18 @@ export default function App() {
     return deconflict(flights, REF);
   }, [fleetSize, seed, regionId]);
 
-  // capacity sweep (fixed sizes; cheap enough to recompute on seed/region change)
-  const sweep = useMemo(() => scalingSweep(REF, SWEEP_SIZES, seed, region.vertiports), [seed, regionId]);
+  // Capacity band: 30 independent demand draws, not one. A single draw put this
+  // network's knee anywhere between 80 and 150 depending on the seed, so the
+  // headline is now a median with a 10th-90th percentile band.
+  const cap = useMemo(
+    () => capacityBand(REF, SWEEP_SIZES, { nSeeds: CAPACITY_SEEDS, vertiports: region.vertiports }),
+    [regionId]
+  );
+
+  // Seeded PRNG for intruder injection, so an encounter is reproducible from
+  // the scenario seed rather than from Math.random.
+  const injRng = useRef(makeRng(seed * 7919 + 13));
+  useEffect(() => { injRng.current = makeRng(seed * 7919 + 13); }, [seed, regionId]);
 
   // (re)build the live sim whenever the plan changes
   useEffect(() => {
@@ -120,12 +131,12 @@ export default function App() {
                      onChange={(e) => setFleetSize(+e.target.value)} />
             </div>
             <div className="ctl">
-              <label>Sim speed — {speedMult}×</label>
+              <label>Sim speed — {speedMult}× <span className="fine">(display only; model integrated at {SIM_DT} s)</span></label>
               <input type="range" min="1" max="20" step="1" value={speedMult}
                      onChange={(e) => setSpeedMult(+e.target.value)} />
             </div>
             <div className="ctl">
-              <label>Intruder pop-up range — {popupRange} m {popupRange <= 600 ? "(late — hard)" : popupRange >= 1600 ? "(early — easy)" : ""}</label>
+              <label>Intruder pop-up range — {popupRange} m {popupRange <= 600 ? "(inside the recovery envelope — expect a loss of separation)" : popupRange >= 1600 ? "(early — easy)" : ""}</label>
               <input type="range" min="300" max="2200" step="100" value={popupRange}
                      onChange={(e) => setPopupRange(+e.target.value)} />
             </div>
@@ -134,7 +145,7 @@ export default function App() {
                 {running ? "❚❚ Pause" : "▶ Play"}
               </button>
               <button className="btn danger"
-                      onClick={() => simRef.current && injectConflict(simRef.current, { rangeM: popupRange, speed: 55 }, SEP)}>
+                      onClick={() => simRef.current && injectConflict(simRef.current, { rangeM: popupRange, speed: 55, rng: injRng.current }, SEP)}>
                 ⚠ Inject intruder
               </button>
               <button className="btn ghost" onClick={() => setSeed((s) => s + 1)}>↻ New scenario #{seed}</button>
@@ -145,9 +156,15 @@ export default function App() {
             <h3>Tactical detect &amp; avoid · {stats.resolved} avoided / {stats.los} loss-of-sep</h3>
             {stats.last ? (
               <div className={`encounter ${stats.last.outcome === "resolved" ? "ok" : "bad"}`}>
-                Last intruder: popped up at <b>{stats.last.range} m</b> →{" "}
+                Last intruder: popped up at <b>{stats.last.range} m</b> on a{" "}
+                <b>{stats.last.target}</b> → closure <b>{stats.last.closure} m/s</b> →{" "}
                 <b>{stats.last.tcpa.toFixed(1)} s</b> to closest approach →{" "}
                 <b>{stats.last.outcome}</b> (min sep {stats.last.minSep} m)
+                <div className="fine" style={{ marginTop: 4 }}>
+                  Range alone does not set the difficulty: closure runs from 80 m/s
+                  (VoloCity) to 144 m/s (Joby S4), so the same pop-up range gives a
+                  different time to closest approach. Time is what the envelope is made of.
+                </div>
               </div>
             ) : (
               <p className="fine" style={{ marginTop: 2 }}>
@@ -164,18 +181,27 @@ export default function App() {
             <h3>Strategic plan for {m.n} ops</h3>
             <Row k="conflicts before deconfliction" v={m.baselineConflicts} />
             <Row k="resolved by altitude layering" v={m.layerChanges} />
-            <Row k="mean departure delay" v={`${(m.delayMean_s / 60).toFixed(1)} min`} />
-            <Row k="unresolved (over delay cap)" v={m.residual} warn={m.residual > 0} />
-            <Row k="network throughput" v={`${m.throughput_ph.toFixed(0)} ops/h`} accent />
+            <Row k="mean departure delay (accepted)" v={`${(m.delayMean_s / 60).toFixed(1)} min`} />
+            <Row k="accepted" v={`${m.accepted} / ${m.n} (${(m.acceptanceRate * 100).toFixed(0)}%)`} />
+            <Row k="rejected (no slot within the delay cap)" v={m.rejected} warn={m.rejected > 0} />
+            <Row k="accepted movements" v={`${m.throughput_ph.toFixed(0)} /h`} accent />
           </div>
 
           <div className="planbox">
-            <h3>Capacity scaling {sweep.knee ? `· knee ≈ ${sweep.knee} ops` : "· headroom to 150"}</h3>
-            <ScalingChart rows={sweep.rows} knee={sweep.knee} />
+            <h3>
+              Capacity {cap.knee_med != null
+                ? `≈ ${Math.round(cap.knee_med)} ops (band ${Math.round(cap.knee_p10)}–${Math.round(cap.knee_p90)})`
+                : "· headroom across the whole sweep"}
+            </h3>
+            <ScalingChart band={cap.band} kneeMed={cap.knee_med} kneeP10={cap.knee_p10}
+                          kneeP90={cap.knee_p90} serviceLevel={cap.serviceLevel} />
             <p className="fine">
-              Conflicts grow ~quadratically with fleet size; strategic deconfliction
-              absorbs them into altitude layers and small departure delays until the
-              airspace saturates. That knee is the number to put in front of an operator.
+              Strategic deconfliction absorbs conflicts into altitude layers and departure
+              delays until the network can no longer serve the request. Measured over{" "}
+              <b>{cap.nSeeds} independent demand draws</b>: capacity is a property of the
+              network <i>and</i> of the demand profile, and a single draw moves this
+              network's answer by roughly ±10%. The number to put in front of an operator
+              is the band, not the point.
             </p>
           </div>
 

@@ -10,12 +10,22 @@
 //
 // When a conflict is predicted, the lower-priority ("give-way") vehicle gets a
 // resolution advisory. We search a small, ordered maneuver set and pick the
-// first that restores well clear when re-simulated against the intruder:
-//   1) speed brake (reduce ground speed),
+// first that restores well clear when re-simulated against the intruder, in
+// order of increasing intrusiveness:
+//   1) horizontal offset (smallest right turn that works — mirrors the VFR
+//      right-of-way convention),
 //   2) vertical maneuver (climb/descend one layer),
-//   3) horizontal offset (turn right — mirrors VFR right-of-way convention).
+//   3) speed brake (last resort).
+//
+// A resolution is NOT free. The horizontal advisory carries the turn angle it
+// was selected for, and the simulator opens lateral separation at the rate that
+// angle actually produces (speed * sin(angle), capped by the airframe's lateral
+// rate limit). The vertical advisory is only offered when the vehicle's climb
+// rate can actually build the vertical threshold before the closest point of
+// approach. Both gates are what give the demo a computable recovery envelope.
 
 import { cpaHoriz, tauMod, norm } from "./geo.js";
+import { TACT } from "../data/airspace.js";
 import { SEP } from "../data/airspace.js";
 
 const rot = (v, deg) => {
@@ -48,26 +58,45 @@ export function resolve(give, keep, sep = SEP) {
   const speed = norm(give.vel) || give.speed || 1;
   const dir = { x: give.vel.x / speed, y: give.vel.y / speed };
 
-  // 1) Horizontal offset (visible on the map, mirrors VFR right-of-way):
-  // search right turns until the predicted HMD recovers.
+  // Time available before the closest point of approach — every gate below is
+  // measured against it, minus the detect-and-commit latency.
+  const t_cpa = cpaHoriz(give.pos, give.vel, keep.pos, keep.vel).t_cpa;
+  const t_avail = t_cpa - TACT.react_s;
+
+  // 1) Horizontal offset (least intrusive, visible on the map): the smallest
+  // right turn that both restores the predicted HMD AND can physically open
+  // the required lateral separation in the time left.
+  const needLateral = sep.daa_hmd_m * 1.15;
   for (const deg of [20, 30, 45, 60, 75]) {
     const turned = rot(give.vel, deg);
-    if (trialHmd(give.pos, turned, keep) >= sep.daa_hmd_m)
-      return { type: "heading", vel: turned, ok: true };
+    if (trialHmd(give.pos, turned, keep) < sep.daa_hmd_m) continue;
+    // Lateral opening rate this turn actually produces, capped by the airframe.
+    const latRate = Math.min(TACT.lat_rate_ms, speed * Math.sin((deg * Math.PI) / 180));
+    if (latRate * t_avail < needLateral) continue;   // cannot finish in time
+    return { type: "heading", deg, latRate, vel: turned, ok: true };
   }
 
-  // 2) Vertical: step one layer away from the intruder.
+  // 2) Vertical: step one layer away — only if the climb rate can build the
+  // vertical threshold before CPA. `give.climb` is m/s; no climb rate, no gate.
+  const climb = give.climb ?? 0;
   const dAlt = give.alt <= keep.alt ? -sep.daa_vert_m : sep.daa_vert_m;
-  if (Math.abs(give.alt + dAlt - keep.alt) >= sep.daa_vert_m)
+  const vertNeeded = Math.abs(give.alt + dAlt - keep.alt);
+  if (vertNeeded >= sep.daa_vert_m && climb * t_avail >= sep.daa_vert_m)
     return { type: "vertical", dAlt, vel: give.vel, ok: true };
 
-  // 3) Speed brake as a last resort.
-  const braked = { x: dir.x * speed * 0.6, y: dir.y * speed * 0.6 };
+  // 3) Speed brake as a last resort (65% of ground speed).
+  const braked = { x: dir.x * speed * 0.65, y: dir.y * speed * 0.65 };
   if (trialHmd(give.pos, braked, keep) >= sep.daa_hmd_m)
     return { type: "speed", vel: braked, ok: true };
 
-  // Fallback: hardest turn even if it doesn't fully clear.
-  return { type: "heading", vel: rot(give.vel, 75), ok: false };
+  // Nothing in the set can recover in the time available: fly the hardest turn
+  // anyway and let the encounter be scored for what it is.
+  const deg = 75;
+  return {
+    type: "heading", deg,
+    latRate: Math.min(TACT.lat_rate_ms, speed * Math.sin((deg * Math.PI) / 180)),
+    vel: rot(give.vel, deg), ok: false,
+  };
 }
 
 // Scan all airborne pairs. Returns predicted conflicts and current LoS events.
