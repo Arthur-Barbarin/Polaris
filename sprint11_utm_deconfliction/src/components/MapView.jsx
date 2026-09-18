@@ -42,8 +42,10 @@ export default function MapView({ vehicles, conflicts, assignments, vertiports, 
     >
       <Recenter center={center} zoom={zoom} />
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; OpenStreetMap &copy; CARTO'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        className="basemap-dark"
+        maxZoom={19}
       />
 
       {/* planned cruise legs (faint) */}

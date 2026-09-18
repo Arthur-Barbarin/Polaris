@@ -93,3 +93,13 @@ select {
 .site-dot { width: 10px; height: 10px; background: #fbbf24; border: 2px solid #0b1222; border-radius: 50%; box-shadow: 0 0 8px #fbbf24; }
 .leaflet-tooltip { font-size: 11px; }
 .leaflet-container { outline: none; }
+
+/* Dark basemap without a tile-provider API key.
+   CARTO's dark_all basemap now requires an API key, so we use the standard
+   OpenStreetMap tiles and invert them in CSS. No key, no third-party account.
+   NOTE: openstreetmap.org tiles are governed by the OSM tile usage policy,
+   which is intended for low-volume use. A production deployment would move to
+   a paid provider. */
+.basemap-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.86) saturate(0.55);
+}
