@@ -1,0 +1,16 @@
+=== Que mesure vraiment la tuile MIN SEP ? (aucune injection) ===
+
+N=40
+  tuile MIN SEP affichee (slant) = 46 m
+  decomposition de ce minimum    : horizontal 21 m, vertical 45 m
+  separation HORIZONTALE minimale reelle = 4 m
+  vraies pertes de separation (h<60 ET v<15) = 0
+  -> plancher LoS horizontal = 60 m ; espacement des couches = 45 m
+
+N=100
+  tuile MIN SEP affichee (slant) = 45 m
+  decomposition de ce minimum    : horizontal 2 m, vertical 45 m
+  separation HORIZONTALE minimale reelle = 0 m
+  vraies pertes de separation (h<60 ET v<15) = 0
+  -> plancher LoS horizontal = 60 m ; espacement des couches = 45 m
+

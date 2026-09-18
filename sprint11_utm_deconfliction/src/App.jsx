@@ -24,7 +24,10 @@ export default function App() {
 
   const [vehicles, setVehicles] = useState([]);
   const [conflictLines, setConflictLines] = useState([]);
-  const [stats, setStats] = useState({ minSep: Infinity, encounters: 0, resolved: 0, los: 0, last: null });
+  const [stats, setStats] = useState({
+    minHoriz: Infinity, vertAtMinHoriz: Infinity, minSep: Infinity,
+    encounters: 0, resolved: 0, los: 0, last: null,
+  });
 
   const simRef = useRef(null);
 
@@ -81,7 +84,8 @@ export default function App() {
   }, [running, speedMult, plan]);
 
   const airborne = vehicles.length;
-  const minSep = stats.minSep === Infinity ? "—" : Math.round(stats.minSep);
+  const minHoriz = stats.minHoriz === Infinity ? "—" : Math.round(stats.minHoriz);
+  const vertAtMin = stats.vertAtMinHoriz === Infinity ? null : Math.round(stats.vertAtMinHoriz);
   const m = plan.metrics;
 
   return (
@@ -94,7 +98,11 @@ export default function App() {
         </div>
         <div className="live-metrics">
           <Metric label="airborne" value={airborne} />
-          <Metric label="min sep (m)" value={minSep} warn={stats.minSep < SEP.los_horiz_m} />
+          <Metric
+            label={vertAtMin != null ? `min horiz sep (m) · ${vertAtMin} m vert` : "min horiz sep (m)"}
+            value={minHoriz}
+            warn={stats.minHoriz < SEP.los_horiz_m && stats.vertAtMinHoriz < SEP.los_vert_m}
+          />
           <Metric label="intruders avoided" value={stats.resolved} accent />
           <Metric label="loss-of-sep" value={stats.los} warn={stats.los > 0} />
         </div>

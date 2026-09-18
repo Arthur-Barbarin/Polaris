@@ -14,7 +14,18 @@
 export const SEP = {
   // Strategic (pre-departure, 4D intent) protected volume.
   strat_horiz_m: 300,   // horizontal buffer around a 4D trajectory (corridor-scale)
-  strat_vert_m: 30,     // vertical buffer (also the altitude-layer spacing)
+  strat_vert_m: 45,     // vertical buffer (also the altitude-layer spacing)
+  //
+  // The layer spacing is deliberately LARGER than the tactical vertical
+  // threshold below. When the two were both 30 m, adjacent layers sat exactly
+  // on the DAA test (`vert < daa_vert_m`, a strict inequality), so traffic one
+  // layer apart could never be a tactical conflict — and at 150 operations, 90
+  // distinct pairs overflew each other within 60 m horizontally, some at 0 m,
+  // with the tactical layer blind to every one of them. At 45 m spacing,
+  // correctly-flown adjacent-layer traffic is still ignored, but an aircraft
+  // more than 15 m off its assigned altitude is seen. Layer spacing does not
+  // enter strategic deconfliction (which compares layer identity, not
+  // distance), so no capacity figure moves.
 
   // Tactical (in-flight) DAA "well clear" thresholds (DO-365 formulation,
   // scaled to urban eVTOL speeds).
@@ -30,7 +41,7 @@ export const SEP = {
 // Cruise altitude layers (m AGL). Strategic deconfliction assigns vehicles to
 // layers spaced by strat_vert_m so climb/descent legs are the only vertical
 // conflict risk. Values are illustrative UAM corridor bands.
-export const ALT_LAYERS = [300, 330, 360, 390, 420, 450];
+export const ALT_LAYERS = [300, 345, 390, 435, 480, 525];
 
 // Tactical maneuver dynamics — what gives the detect-and-avoid an ENVELOPE.
 // A resolution is not instantaneous: the give-way vehicle takes `react_s` to

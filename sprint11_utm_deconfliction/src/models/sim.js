@@ -59,7 +59,14 @@ export function buildSim(assignments, ref) {
     ref, agents, t: 0,
     encounters: [],            // injected-intruder test cases we track to outcome
     stats: {
-      minSep: Infinity,        // smallest live 3-D separation seen this run
+      // Smallest HORIZONTAL separation seen this run, with the vertical gap at
+      // that moment. A single slant range is the wrong headline here: its floor
+      // is the deliberate altitude-layer spacing, so normal layered traffic
+      // pinned it at ~30 m and it read as an alarm, while the quantity a
+      // controller actually watches — lateral separation — reached 0 m unseen.
+      minHoriz: Infinity,
+      vertAtMinHoriz: Infinity,
+      minSep: Infinity,        // smallest live 3-D slant separation (secondary)
       encounters: 0, resolved: 0, los: 0,
       last: null,              // { range, tcpa, outcome, minSep } of last injection
     },
@@ -170,8 +177,12 @@ function stepOnce(sim, dt, sep = SEP) {
       const A = sim.agents[i], B = sim.agents[j];
       if (!A.airborne || !B.airborne) continue;
       const p = predictPair(A, B, sep);
-      const s = separation(A, B);
+      const s = minSepOverStep(A, B, dt);
       if (s.slant < sim.stats.minSep) sim.stats.minSep = s.slant;
+      if (s.h < sim.stats.minHoriz) {
+        sim.stats.minHoriz = s.h;
+        sim.stats.vertAtMinHoriz = s.v;
+      }
       if (p.wellClearViolation) conflicts.push({ i, j, p });
     }
   }

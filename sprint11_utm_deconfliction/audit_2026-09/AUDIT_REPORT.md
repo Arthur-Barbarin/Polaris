@@ -401,3 +401,49 @@ of a demonstrator and are now stated rather than silent.
   rendered a watermark across the map) to OpenStreetMap tiles with a CSS dark
   filter. OSM's tile policy targets low-volume use; a real deployment needs a
   paid provider.
+
+---
+
+# Addendum — 21 September 2026
+
+Raised by visual review of the running tool, after the fixes above.
+
+## F14 — The headline separation tile measured the wrong quantity
+
+The "MIN SEP" tile showed the minimum 3-D **slant** range. Its floor is the
+deliberate altitude-layer spacing, so it sat at ~30 m in normal operation and
+was permanently coloured as an alarm, while the quantity a controller watches —
+lateral separation — was never displayed.
+
+Measured over a full run with no injection (`tools/p10_minsep_decomposition.mjs`):
+
+| fleet | tile showed | which decomposed as | true minimum horizontal |
+|---:|---:|---|---:|
+| 40 | 31 m | 21 m horizontal + 30 m vertical | **4 m** |
+| 100 | 30 m | 2 m horizontal + 30 m vertical | **0 m** |
+
+**Fixed.** The tile now reports minimum horizontal separation with the vertical
+gap at that instant, and only raises the alarm state when both the horizontal
+and vertical loss-of-separation floors are breached.
+
+## F11 upgraded — layer spacing decoupled from the DAA vertical threshold
+
+F11 was graded *moderate, disclosed* above. The measurement behind F14 shows it
+is more consequential than that grading. With `V_strat = V_DWC = 30 m` and a
+strict `<` in the tactical test, adjacent-layer traffic could never raise a
+conflict — and at 150 operations **90 distinct pairs overfly each other within
+60 m horizontally**, some at 0 m, with nothing between them but that 30 m band
+and no part of the model watching it.
+
+**Fixed.** `V_strat` is now 45 m (layers at 300/345/390/435/480/525 m) while
+`V_DWC` stays 30 m. Correctly-flown adjacent-layer traffic remains outside the
+DAA threshold; an aircraft more than 15 m off its assigned altitude is now seen.
+
+The change is free: layer spacing does not enter strategic deconfliction, which
+compares layer identity rather than distance. Re-measured after the change —
+capacity **123 operations, band 109–131**, and the tactical envelope crossover
+still between 600 and 650 m, both identical to before.
+
+Remaining and disclosed: the model still has no altitude-keeping error, so the
+15 m margin is nominal. A layered-corridor design of this kind would in practice
+be justified against an altimetry error budget, which is out of scope here.

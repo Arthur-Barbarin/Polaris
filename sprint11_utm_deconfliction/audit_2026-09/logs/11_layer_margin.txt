@@ -1,0 +1,9 @@
+capacite actuelle : mediane 123, bande 109-131
+
+La deconfliction strategique ne compare que l'identite de la couche (a.layer !== b.layer),
+pas la distance verticale. Changer l'espacement 30 -> 45 m ne touche donc AUCUN chiffre de capacite.
+Cela ne change que le seuil tactique vertical et la marge reelle entre couches.
+
+N=40 : 5 paires distinctes se croisent a moins de 60 m horizontalement, separees uniquement par les 45 m de couche
+N=100 : 39 paires distinctes se croisent a moins de 60 m horizontalement, separees uniquement par les 45 m de couche
+N=150 : 90 paires distinctes se croisent a moins de 60 m horizontalement, separees uniquement par les 45 m de couche

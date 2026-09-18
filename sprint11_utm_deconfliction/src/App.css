@@ -98,5 +98,7 @@ body {
    which is intended for low-volume use. A production deployment would move to
    a paid provider. */
 .basemap-dark {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.86) saturate(0.55);
+  /* Heavy desaturation first: inverting OSM turns its green landcover into a
+     muddy olive that reads as a rendering fault rather than a basemap. */
+  filter: grayscale(0.82) invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.92) saturate(0.7);
 }

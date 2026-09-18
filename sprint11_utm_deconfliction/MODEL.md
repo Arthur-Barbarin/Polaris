@@ -166,7 +166,7 @@ envelope shifts accordingly.
 
 Each flight is a 4D **operational intent**: a straight cruise leg from origin to
 destination vertiport at cruise speed `v_c`, giving duration `d/v_c`, on one of
-six altitude layers spaced by `V_strat = 30 m`. Position along the leg is
+six altitude layers spaced by `V_strat = 45 m`. Position along the leg is
 `p(t) = a + \hat d\,v_c(t - t_{dep})` for `t ∈ [t_dep, t_arr]`.
 
 **Same-layer conflict:** two intents conflict iff their airborne windows overlap
@@ -195,7 +195,19 @@ first departure to last arrival: that span is set by the single longest route,
 so one flight crossing between accepted and rejected moved the headline by 38 %
 with no change in what the network served.
 
-$$H_{\text{strat}} = 300\text{ m},\quad V_{\text{strat}} = 30\text{ m},\quad T_{\text{pad}} = 90\text{ s}$$
+$$H_{\text{strat}} = 300\text{ m},\quad V_{\text{strat}} = 45\text{ m},\quad T_{\text{pad}} = 90\text{ s}$$
+
+**Layer spacing is deliberately larger than the tactical vertical threshold**
+(`V_strat = 45 m` against `V_DWC = 30 m`). When the two were equal, adjacent
+layers sat exactly on the DAA test (`vert < V_DWC`, a strict inequality), so
+traffic one layer apart could never raise a tactical conflict. Measured: at 150
+operations, **90 distinct pairs overfly each other within 60 m horizontally**,
+some at 0 m, separated only by the altitude band — and the tactical layer saw
+none of them. At 45 m spacing, correctly-flown adjacent-layer traffic is still
+(correctly) ignored, while an aircraft more than 15 m off its assigned altitude
+is seen. Layer spacing does not enter strategic deconfliction, which compares
+layer identity rather than distance, so **no capacity figure changes**: the knee
+is 123 operations with a 109–131 band before and after.
 
 **Sources / rationale.** The 4D-intent, pre-departure conflict-detection design
 follows the **FAA UTM ConOps v2.0** and **ASTM F3548-21** (USS strategic
@@ -269,10 +281,16 @@ to time vertical resolution maneuvers.
 - Geometric tactical resolution, not a certified sense-and-avoid logic.
 - A vehicle already flying a resolution is not re-tasked for a second intruder,
   and a resolution is held for a fixed 16 s before the vehicle returns to track.
-- Altitude layers are spaced exactly `V_strat = V_DWC = 30 m` and the tactical
-  vertical test is a strict `<`, so adjacent layers are never a tactical
-  conflict. This is deliberate for cruise but it is a knife edge; separating the
-  layer spacing from the DAA threshold would remove the degeneracy.
+- Cruise separation between adjacent layers rests entirely on the 45 m altitude
+  band: the planner routinely allows two aircraft to overfly each other with
+  **zero lateral separation** as long as they are on different layers. That is
+  the intended design of a layered corridor system, but it means the model has
+  no lateral margin at all in that geometry, and no altitude-keeping error model.
+- The headline separation figure is the minimum **horizontal** separation, with
+  the vertical gap at that instant shown beside it. A single slant range was
+  misleading: its floor is the layer spacing, so normal layered traffic pinned
+  it at ~30 m and it read as an alarm, while lateral separation reached 0 m
+  unreported.
 - At the default fleet of 40 the strategic plan is good enough that the tactical
   layer never fires on its own over a whole run. Use "Inject intruder" to
   exercise it; that is what the control is for.
