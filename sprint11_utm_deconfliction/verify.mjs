@@ -2,14 +2,17 @@
 // Written to be audited by a UTM / UAM engineer: every number the UI shows can
 // be reconstructed here. Deterministic (seeded RNG), so results are stable.
 
-import { REF } from "./src/data/vertiports.js";
+import { REF, REGIONS } from "./src/data/vertiports.js";
 import { SEP, ALT_LAYERS } from "./src/data/airspace.js";
 import { cpaHoriz, tauMod, haversine_m, toENU } from "./src/models/geo.js";
 import { predictPair, resolve } from "./src/models/tactical.js";
-import { generateFleet, scalingSweep } from "./src/models/fleet.js";
+import { generateFleet, scalingSweep, capacityBand } from "./src/models/fleet.js";
 import { deconflict, minSep, buildIntent } from "./src/models/strategic.js";
 import { buildSim, step, injectConflict } from "./src/models/sim.js";
+import { makeRng } from "./src/models/geo.js";
+import { VEHICLE_LIST } from "./src/data/vehicles.js";
 
+const TACT_LAT = 22, REACT = 2.5;   // mirrors data/airspace.js TACT
 const fmt = (x, n = 1) => (x == null ? "—" : Number(x).toFixed(n));
 const line = (l, v) => console.log(l.padEnd(46), v);
 let fails = 0;
@@ -150,6 +153,111 @@ console.log("\n=== 8. Network geometry spot checks (Paris) ===");
   check("distance in plausible urban range", d > 8000 && d < 14000, `${fmt(d / 1000, 2)} km`);
   const enu = toENU({ lat: 48.8920, lng: 2.2380 }, REF);
   line("La Défense ENU from Paris centre:", `(${fmt(enu.x, 0)}, ${fmt(enu.y, 0)}) m`);
+}
+
+// ---------------------------------------------------------------------------
+// Sections 9-12 were added after the September 2026 pre-deployment audit. Each
+// asserts a property whose absence the audit found and the fixes restored, so
+// a regression on any of them fails the suite instead of shipping quietly.
+// ---------------------------------------------------------------------------
+
+console.log("\n=== 9. The safety verdict is independent of the display rate ===");
+{
+  const runAt = (dt, popup) => {
+    const flights = generateFleet(40, 42, 600);
+    const { assignments } = deconflict(flights, REF);
+    const sim = buildSim(assignments, REF);
+    for (let t = 0; t < 200; t++) step(sim, 1, SEP);
+    const inj = injectConflict(sim, { rangeM: popup, speed: 55, rng: makeRng(7) }, SEP);
+    if (!inj) return null;
+    for (let k = 0; k < 800 && !sim.stats.last; k++) step(sim, dt, SEP);
+    return sim.stats.last;
+  };
+  for (const popup of [500, 900]) {
+    const ref0 = runAt(0.5, popup);
+    let same = true, detail = [];
+    for (const dt of [1, 3, 5, 10]) {
+      const r = runAt(dt, popup);
+      const ok = r && ref0 && r.outcome === ref0.outcome && Math.abs(r.minHoriz - ref0.minHoriz) <= 1;
+      if (!ok) same = false;
+      detail.push(`${dt}s:${r ? r.outcome.slice(0, 4) : "n/a"}`);
+    }
+    check(`pop-up ${popup} m: same verdict at 0.5/1/3/5/10 s per frame`, same,
+          `${ref0 ? ref0.outcome : "n/a"} (${detail.join(" ")})`);
+  }
+}
+
+console.log("\n=== 10. The recovery envelope crosses where the closed form says ===");
+{
+  const scan = (popup) => {
+    const flights = generateFleet(40, 42, 600);
+    const { assignments } = deconflict(flights, REF);
+    const sim = buildSim(assignments, REF);
+    for (let t = 0; t < 200; t++) step(sim, 1, SEP);
+    const inj = injectConflict(sim, { rangeM: popup, speed: 55, rng: makeRng(7) }, SEP);
+    if (!inj) return null;
+    for (let k = 0; k < 800 && !sim.stats.last; k++) step(sim, 1, SEP);
+    return { ...sim.stats.last, closure: inj.closure };
+  };
+  const near = scan(400), far = scan(1300);
+  check("late pop-up (400 m) => loss of separation", near && near.outcome === "LOSS OF SEP",
+        near ? `${near.minHoriz} m horizontal` : "n/a");
+  check("early pop-up (1300 m) => resolved", far && far.outcome === "resolved",
+        far ? `${far.minHoriz} m horizontal` : "n/a");
+  // Horizontal separation must grow monotonically with pop-up range.
+  let mono = true, prev = -1;
+  const pts = [];
+  for (const p of [400, 600, 800, 1000, 1200]) {
+    const r = scan(p);
+    if (!r) { mono = false; break; }
+    pts.push(r.minHoriz);
+    if (r.minHoriz < prev - 1) mono = false;
+    prev = r.minHoriz;
+  }
+  check("envelope monotone in pop-up range", mono, pts.join(" → ") + " m");
+  // Closed form: avoiding the LoS floor needs t_CPA >= los/lat_rate + react.
+  if (near) {
+    const tNeed = SEP.los_horiz_m / TACT_LAT + REACT;
+    line("closed-form LoS threshold:", `${fmt(tNeed, 2)} s => ${fmt(tNeed * near.closure, 0)} m at ${near.closure} m/s`);
+  }
+}
+
+console.log("\n=== 11. Capacity is a band over many demand draws, not one number ===");
+{
+  const SIZES = [10, 20, 40, 60, 80, 100, 120, 140, 160];
+  for (const id of ["paris", "dallas"]) {
+    const R = REGIONS[id];
+    const b = capacityBand(R.ref, SIZES, { nSeeds: 30, vertiports: R.vertiports });
+    line(`${id} capacity (median, band):`, `${fmt(b.knee_med, 0)} ops [${fmt(b.knee_p10, 0)}–${fmt(b.knee_p90, 0)}]`);
+    check(`${id}: all 30 draws reach the service level`, b.kneeSeedsReached === 30, `${b.kneeSeedsReached}/30`);
+    check(`${id}: band is non-degenerate (one draw is not the answer)`,
+          b.knee_p90 - b.knee_p10 >= 5, `spread ${fmt(b.knee_p90 - b.knee_p10, 0)} ops`);
+    // Accepted must never exceed demand, and must be non-decreasing in demand.
+    let ok = true;
+    for (let i = 0; i < b.band.length; i++) {
+      if (b.band[i].accepted_med > b.band[i].n + 1e-9) ok = false;
+      if (i && b.band[i].accepted_med < b.band[i - 1].accepted_med - 1e-9) ok = false;
+    }
+    check(`${id}: accepted <= requested and non-decreasing`, ok,
+          b.band.map((r) => Math.round(r.accepted_med)).join(" "));
+  }
+}
+
+console.log("\n=== 12. Every generated flight is within its vehicle's published range ===");
+{
+  for (const id of ["paris", "dallas"]) {
+    const R = REGIONS[id];
+    const f = generateFleet(400, 42, 600, R.vertiports);
+    let bad = 0, worst = 0, worstV = "";
+    for (const x of f) {
+      const d = haversine_m(x.origin, x.dest) / 1000;
+      if (d > x.vehicle.range_km) { bad++; if (d - x.vehicle.range_km > worst) { worst = d - x.vehicle.range_km; worstV = x.vehicle.name; } }
+    }
+    check(`${id}: no flight exceeds its vehicle range`, bad === 0,
+          bad ? `${bad} over, worst ${fmt(worst, 1)} km on ${worstV}` : "0 / 400");
+  }
+  check("every vehicle declares a range", VEHICLE_LIST.every((v) => v.range_km > 0),
+        VEHICLE_LIST.map((v) => `${v.id}:${v.range_km}`).join(" "));
 }
 
 console.log(`\n${fails === 0 ? "ALL CHECKS PASSED ✓" : `${fails} CHECK(S) FAILED ✗`}`);

@@ -86,11 +86,13 @@ physically be completed before CPA**:
    `min(lat_rate, v·sin θ)`, so a gentle turn genuinely takes longer to build
    separation than a hard one. A turn is only offered if
    `lat_rate_eff · (t_CPA − react) ≥ 1.15·H_DWC`.
-2. **Vertical** step of `±V_DWC` (climb/descend one layer) — offered only if the
-   vehicle's climb rate can build `V_DWC` in the time left,
-   `climb · (t_CPA − react) ≥ V_DWC`. Climb rates are 2.5–6 m/s, so a 30 m step
-   needs 5–12 s plus the reaction: this branch is genuinely unavailable in a
-   late encounter.
+2. **Vertical** step of one full **layer** (`V_strat = 45 m`), not of the DAA
+   threshold — offered only if the climb rate can build it before CPA,
+   `climb · (t_CPA − react) ≥ V_strat`. A 30 m step left the aircraft sitting
+   exactly on `vert < V_DWC`, a strict inequality: the encounter scored
+   "resolved" with 30 m horizontal and 30 m vertical, safe by the letter of the
+   test and on its knife edge. Climb rates are 2.5–6 m/s, so 45 m needs 7.5–18 s
+   plus the reaction: this branch is genuinely unavailable in a late encounter.
 3. **Speed brake** to 65 % ground speed, as a last resort.
 
 If nothing in the set can recover in the time available the vehicle flies the
@@ -142,22 +144,24 @@ achieved separation against its target and label the encounter **loss of
 separation** iff horizontal `< 60 m` and vertical `< 15 m` at closest approach
 (a genuine near-mid-air-collision-like breach), else **resolved**.
 
-**Verification (§3b and `audit_2026-09/logs/09_envelope_scan.txt`).** Head-on
-non-cooperative intruder, closure 110 m/s, seeded target:
+**Verification (§3b, §10 and `audit_2026-09/logs/09_envelope_scan.txt`).**
+Head-on non-cooperative intruder, seeded target, closure 122 m/s. Horizontal and
+vertical separation are reported separately, because a slant range means
+different things depending on which maneuver was flown:
 
-| pop-up | `t_CPA` | outcome | min sep |
-|---:|---:|---|---:|
-| 400 m | 3.6 s | loss of separation | 14 m |
-| 500 m | 4.5 s | loss of separation | 33 m |
-| 600 m | 5.5 s | loss of separation | 53 m |
-| **650 m** | **5.9 s** | **resolved** | **63 m** |
-| 800 m | 7.3 s | resolved | 92 m |
-| 1 000 m | 9.1 s | resolved | 131 m |
+| pop-up | `t_CPA` | maneuver | outcome | min horizontal |
+|---:|---:|---|---|---:|
+| 400 m | 3.3 s | heading | loss of separation | 6 m |
+| 600 m | 4.9 s | heading | loss of separation | 42 m |
+| 700 m | 5.7 s | heading | loss of separation | 59 m |
+| **800 m** | **6.6 s** | heading | **resolved** | **77 m** |
+| 1 000 m | 8.2 s | heading | resolved | 113 m |
+| 1 300 m | 10.7 s | heading | resolved | 166 m |
 
-The measured crossover sits between **600 and 650 m**, against the closed-form
-575 m from the table above, and the minimum separation grows by 20 m per 100 m
-of pop-up range — exactly `lat_rate × Δt_CPA = 22 × (100/110)`. Model and closed
-form agree. Move `react_s` or `lat_rate_ms` in `data/airspace.js` and the
+The crossover sits between 700 and 800 m, against the closed-form 638 m at this
+closure (`5.23 s × 122 m/s`), and horizontal separation grows by 18 m per 100 m
+of pop-up range — `lat_rate × Δt_CPA = 22 × (100/122)`. Model and closed form
+agree. Move `react_s` or `lat_rate_ms` in `data/airspace.js` and the
 envelope shifts accordingly.
 
 ---
@@ -245,23 +249,32 @@ factor of 1.9. The tool therefore runs **30 independent demand draws** and
 reports a median with a 10th–90th percentile band (0.1 s for the whole sweep, so
 it recomputes live).
 
-Paris network, 30 seeds, 95 % service level:
+Two networks, 30 seeds each, 95 % service level:
 
-| requested | accepted p10 / median / p90 | mean delay p10 / median / p90 (min) |
-|---:|---:|---:|
-| 40 | 40 / 40 / 40 | 0.74 / 1.03 / 1.63 |
-| 80 | 79 / 80 / 80 | 2.89 / 3.30 / 3.67 |
-| 100 | 97 / 99 / 100 | 4.11 / 4.56 / 4.86 |
-| 120 | 111 / 115 / 117 | 5.35 / 5.63 / 5.94 |
-| 140 | 123 / 126 / 130 | 6.23 / 6.52 / 6.78 |
-| 160 | 130 / 135 / 140 | 6.95 / 7.20 / 7.48 |
+| network | capacity (median) | band (p10–p90) | accepted at 160 requested |
+|---|---:|---:|---:|
+| **Paris** (Groupe ADP sites) | **120 ops** | 108–133 | 136 |
+| **Dallas–Fort Worth** | **127 ops** | 112–136 | 137 |
 
-**Capacity ≈ 123 simultaneous operations, band 109–131** (all 30 draws reach the
-threshold). The accepted curve leaves the "everything served" diagonal
-progressively rather than at a cliff, which is the honest shape: acceptance
-degrades, it does not collapse. Change the thresholds in `data/airspace.js` and
-the band moves — which is exactly the sensitivity an operator or vertiport
-planner cares about, and the band is what should be quoted, not the point.
+Dallas carries slightly more traffic on the same thresholds: its ten sites are
+more spread out (30.3 km mean pair separation against 26.6 km for Paris), so
+fewer operations share a corridor at the same time. That difference — same
+model, same thresholds, different geography — is the sensitivity an operator or
+vertiport planner is actually buying.
+
+The accepted curve leaves the "everything served" diagonal progressively rather
+than at a cliff, which is the honest shape: acceptance degrades, it does not
+collapse. Change the thresholds in `data/airspace.js` and the band moves. **The
+band is what should be quoted, not the point.**
+
+**Vehicle range is enforced per type.** Each vehicle carries its published
+maximum range (Joby S4 240 km, Vertical VX4 160 km, Wisk Gen 6 145 km, Archer
+Midnight 97 km, Volocopter VoloCity 35 km) and a hop is only generated if the
+drawn vehicle can fly it. A single global 45 km filter applied before the
+vehicle was drawn assigned the VoloCity hops of up to 41 km — 18 % of its Paris
+flights were beyond its published range — while refusing a Joby S4 anything past
+45 km. No reserve is applied: this sprint carries no energy state, so range here
+is a feasibility ceiling rather than an operational range.
 
 **Vehicle cruise speeds** (manufacturer-published nominal, rounded): Volocopter
 VoloCity 25 m/s, Wisk Gen 6 55 m/s, Archer Midnight / Vertical VX4 67 m/s, Joby

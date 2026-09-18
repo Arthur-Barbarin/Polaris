@@ -17,13 +17,20 @@ export function generateFleet(n, seed = 42, windowSec = 600, vertiports = VERTIP
     const o = pick(vertiports);
     let d = pick(vertiports);
     if (d.id === o.id) continue;
-    // reject implausibly long hops (> 45 km) — outside urban eVTOL range
-    if (haversine_m(o, d) > 45000) continue;
+    // The vehicle is drawn BEFORE the hop is accepted, so the hop can be
+    // checked against THAT vehicle's published range. A single global 45 km
+    // filter applied before the draw assigned a VoloCity (35 km published)
+    // hops of up to 41 km — 18% of its Paris flights — while refusing a Joby S4
+    // (240 km) anything past 45 km. No reserve is applied: this sprint carries
+    // no energy state, so range here is a feasibility ceiling, not an
+    // operational range.
+    const vehicle = pick(VEHICLE_LIST);
+    if (haversine_m(o, d) > vehicle.range_km * 1000) continue;
     flights.push({
       id: flights.length,
       origin: { lat: o.lat, lng: o.lng, id: o.id },
       dest: { lat: d.lat, lng: d.lng, id: d.id },
-      vehicle: pick(VEHICLE_LIST),
+      vehicle,
       dep: rng() * windowSec,
       priority: 0, // set below by departure order
     });

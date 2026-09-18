@@ -194,6 +194,7 @@ function stepOnce(sim, dt, sep = SEP) {
     else { give = A.priority > B.priority ? A : B; keep = give === A ? B : A; }
     if (give.maneuver || !give.cooperative) continue;
     const adv = resolve(give, keep, sep);
+    give.lastAdvType = adv.type;
     give.maneuver = { adv, react: TACT.react_s, applied: false, t: 16 };
     give.conflictColor = true;
   }
@@ -218,6 +219,11 @@ function stepOnce(sim, dt, sep = SEP) {
 
 function classify(sim, e) {
   e.classified = true;
+  // A single slant range means different things depending on which maneuver was
+  // flown: a horizontal resolution ends 100+ m abeam, a vertical one ends
+  // directly above with a small horizontal gap. Reporting only the slant made a
+  // late, safely-resolved vertical encounter look worse than an early
+  // horizontal one. Horizontal and vertical are reported separately.
   const los = e.minH < SEP.los_horiz_m && e.vAtMinH < SEP.los_vert_m;
   sim.stats.encounters++;
   if (los) sim.stats.los++; else sim.stats.resolved++;
@@ -228,6 +234,9 @@ function classify(sim, e) {
     target: e.targetName ?? "",
     outcome: los ? "LOSS OF SEP" : "resolved",
     minSep: Math.round(e.minSlant),
+    minHoriz: Math.round(e.minH),
+    vertAtMin: Math.round(e.vAtMinH),
+    maneuver: e.target?.lastAdvType ?? null,
   };
 }
 

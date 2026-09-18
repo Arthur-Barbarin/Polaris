@@ -1,0 +1,19 @@
+Faisabilite de portee par vehicule — le generateur filtre a 45 km GLOBAL,
+et tire le vehicule APRES avoir accepte le trajet.
+
+### paris (400 vols)
+  wisk6      portee 145 km | 93 vols | 0 infaisables (0%)
+  midnight   portee  97 km | 88 vols | 0 infaisables (0%)
+  vx4        portee 160 km | 90 vols | 0 infaisables (0%)
+  volocity   portee  35 km | 59 vols | 0 infaisables (0%)
+  jobys4     portee 240 km | 70 vols | 0 infaisables (0%)
+  TOTAL 0/400 vols infaisables (0.0%)
+
+### dallas (400 vols)
+  wisk6      portee 145 km | 103 vols | 0 infaisables (0%)
+  midnight   portee  97 km | 81 vols | 0 infaisables (0%)
+  volocity   portee  35 km | 59 vols | 0 infaisables (0%)
+  jobys4     portee 240 km | 75 vols | 0 infaisables (0%)
+  vx4        portee 160 km | 82 vols | 0 infaisables (0%)
+  TOTAL 0/400 vols infaisables (0.0%)
+

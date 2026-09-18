@@ -447,3 +447,102 @@ still between 600 and 650 m, both identical to before.
 Remaining and disclosed: the model still has no altitude-keeping error, so the
 15 m margin is nominal. A layered-corridor design of this kind would in practice
 be justified against an altimetry error budget, which is out of scope here.
+
+---
+
+# Second pass — 18 September 2026
+
+Closing the two items the first pass left open: the Dallas–Fort Worth network,
+and assertions in `verify.mjs` for the properties the fixes restored. Three
+further findings came out of it.
+
+## F15 — Vehicle range was not modelled, and the hop filter ran before the draw
+
+`fleet.js` picked an origin/destination pair, rejected it against a single
+global 45 km ceiling, and only then drew the vehicle. The catalogue carried no
+range at all. Consequences, measured over 400 generated flights
+(`tools/p13_range_feasibility.mjs`):
+
+| network | infeasible flights | VoloCity specifically | worst hop |
+|---|---:|---:|---:|
+| Paris | 16 / 400 (4.0 %) | 16 / 87 (**18 %**) | 41.1 km on a 35 km aircraft |
+| Dallas | 7 / 400 (1.8 %) | 7 / 81 (9 %) | 44.8 km on a 35 km aircraft |
+
+The error runs both ways: a Joby S4 (240 km published) was refused anything past
+45 km, so the Dallas network — whose sites are more spread out — had 24 % of its
+vertiport pairs excluded outright.
+
+**Fixed.** Each vehicle carries its published range (Joby S4 240 km, VX4 160 km,
+Wisk Gen 6 145 km, Midnight 97 km, VoloCity 35 km; same sources as Sprint 5
+where they overlap). The vehicle is drawn first and the hop is checked against
+that vehicle's range. No reserve is applied and that is stated: this sprint has
+no energy state, so range is a feasibility ceiling, not an operational range.
+
+Capacity moves as a result, and the Dallas figure moves a lot: **Paris 123 → 120
+ops (band 108–133), Dallas 110 → 127 ops (band 112–136)**. Dallas gains because
+its long pairs are now flyable by the long-range types.
+
+## F16 — A vertical resolution ended exactly on the DAA threshold
+
+The vertical branch stepped by `daa_vert_m` (30 m), leaving the aircraft
+precisely on `vert < 30`, a strict inequality. At long pop-up ranges, where the
+horizontal gate cannot fully restore well clear, the encounter came out
+"resolved" with 30 m horizontal and 30 m vertical — safe by the letter of the
+test and on its knife edge. It also made the reported minimum separation
+*non-monotone*: a 1 100 m pop-up reported 30 m where a 1 000 m pop-up reported
+113 m, because the two were measuring different geometries.
+
+**Fixed.** The vertical branch now steps one full layer (45 m), gated on
+`climb · (t_CPA − react) ≥ 45 m`, and the encounter panel reports horizontal and
+vertical separation separately together with which maneuver was flown. The
+envelope is monotone across its whole range: 6 → 42 → 77 → 113 → 148 m
+horizontal for pop-ups of 400 → 1 200 m.
+
+## F17 — `resolve()`'s `ok` flag is calibrated against the wrong criterion (open)
+
+The maneuver gates ask whether the advisory can restore *well clear* (150 m),
+while the encounter is scored against the *loss-of-separation floor* (60 m). At
+long range both gates can fail while the fallback turn comfortably avoids a
+loss. The flag is currently unused by the simulator, so nothing misbehaves, but
+`ok: false` does not mean "this will fail" — it means "this will not fully
+restore well clear". A real DAA distinguishes a corrective from a warning
+advisory; this one should too before the flag is given any consequence.
+
+**Not fixed**, deliberately: it changes no output today, and doing it properly
+means introducing the corrective/warning distinction rather than patching a
+boolean.
+
+## Dallas–Fort Worth network — audited, no defects found
+
+| | Paris | Dallas |
+|---|---:|---:|
+| vertiport pairs | 45 | 45 |
+| shortest / longest pair | 4.1 / 59.6 km | 2.6 / 60.0 km |
+| mean pair separation | 26.6 km | 30.3 km |
+| worst equirectangular distortion | 0.101 % | 0.058 % |
+| capacity (median, band) | 120 [108–133] | 127 [112–136] |
+
+Both networks are well inside the 0.3 % projection distortion `MODEL.md` claims.
+The one substantive note is that neither network has a *minimum* hop: Dallas
+generates a 2.6 km leg, which is a 30-second cruise at Joby speeds, where pad
+occupancy (90 s) dominates entirely and a cruise-deconfliction model is not the
+right tool. Disclosed rather than filtered, since the short legs are a real
+feature of both networks.
+
+## `verify.mjs` — four new sections
+
+The suite went from 8 sections to 12. The new ones assert exactly the properties
+whose absence this audit found:
+
+- **§9** the verdict is identical at 0.5, 1, 3, 5 and 10 s per displayed frame,
+  at two pop-up ranges (would have caught F1);
+- **§10** late pop-up loses separation, early pop-up resolves, and horizontal
+  separation is monotone in pop-up range, with the closed-form threshold printed
+  alongside (would have caught F1, F6, F7, F16);
+- **§11** capacity is a band over 30 draws on both networks, the band is
+  non-degenerate, and accepted never exceeds requested nor decreases (would have
+  caught F2, F3, F4);
+- **§12** no generated flight exceeds its vehicle's published range, on both
+  networks (would have caught F15).
+
+All 12 sections pass.

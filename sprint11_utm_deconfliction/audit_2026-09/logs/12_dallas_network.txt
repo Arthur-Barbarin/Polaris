@@ -1,0 +1,18 @@
+
+########## PARIS  (ref 48.8566, 2.3522)
+  paires 45 | plus courte 4.1 km | plus longue 59.6 km | moyenne 26.6 km
+  paires rejetees par le filtre 45 km : 4/45 (9%)
+  distorsion equirectangulaire max : 0.101 % (pontoise)  [MODEL.md annonce < 0.3 %]
+  capacite : mediane 120 ops, bande 108-133 (30/30 graines atteignent le seuil)
+  a 160 demandees : acceptees 131/136/141, retard median 7.12 min
+  flotte 160 : 160 vols generes | trajet min 4.1 km | max 59.6 km
+  duree de vol : min 0.8 min | max 22.8 min
+
+########## DALLAS  (ref 32.85, -97.04)
+  paires 45 | plus courte 2.6 km | plus longue 60.0 km | moyenne 30.3 km
+  paires rejetees par le filtre 45 km : 11/45 (24%)
+  distorsion equirectangulaire max : 0.058 % (alliance)  [MODEL.md annonce < 0.3 %]
+  capacite : mediane 127 ops, bande 112-136 (30/30 graines atteignent le seuil)
+  a 160 demandees : acceptees 130/137/141, retard median 7.15 min
+  flotte 160 : 160 vols generes | trajet min 2.6 km | max 60.0 km
+  duree de vol : min 0.5 min | max 22.6 min

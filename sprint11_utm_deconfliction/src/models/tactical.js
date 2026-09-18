@@ -76,12 +76,18 @@ export function resolve(give, keep, sep = SEP) {
     return { type: "heading", deg, latRate, vel: turned, ok: true };
   }
 
-  // 2) Vertical: step one layer away — only if the climb rate can build the
-  // vertical threshold before CPA. `give.climb` is m/s; no climb rate, no gate.
+  // 2) Vertical: step one full LAYER away (`strat_vert_m`), not exactly the DAA
+  // threshold. A 30 m step left the aircraft sitting precisely on
+  // `vert < daa_vert_m`, a strict inequality, so the encounter came out
+  // "resolved" with 30 m of horizontal separation and 30 m of vertical — safe
+  // by the letter of the test and on its knife edge. One layer is 45 m and
+  // clears the threshold with margin. Offered only if the climb rate can build
+  // it before CPA.
   const climb = give.climb ?? 0;
-  const dAlt = give.alt <= keep.alt ? -sep.daa_vert_m : sep.daa_vert_m;
+  const step = sep.strat_vert_m;
+  const dAlt = give.alt <= keep.alt ? -step : step;
   const vertNeeded = Math.abs(give.alt + dAlt - keep.alt);
-  if (vertNeeded >= sep.daa_vert_m && climb * t_avail >= sep.daa_vert_m)
+  if (vertNeeded >= sep.daa_vert_m && climb * t_avail >= step)
     return { type: "vertical", dAlt, vel: give.vel, ok: true };
 
   // 3) Speed brake as a last resort (65% of ground speed).

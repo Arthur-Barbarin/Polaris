@@ -1,19 +1,16 @@
 Enveloppe de recuperation apres correction (cible deterministe, graine 7)
 
-popup_m  fermeture  t_CPA   verdict          sep_min
-400      110        3.6     LOSS OF SEP      14 m
-450      110        4.1     LOSS OF SEP      24 m
-500      110        4.5     LOSS OF SEP      33 m
-550      110        5.0     LOSS OF SEP      43 m
-600      110        5.5     LOSS OF SEP      53 m
-650      110        5.9     resolved         63 m
-700      110        6.4     resolved         73 m
-750      110        6.8     resolved         82 m
-800      110        7.3     resolved         92 m
-850      110        7.7     resolved         102 m
-900      110        8.2     resolved         112 m
-950      110        8.6     resolved         122 m
-1000     110        9.1     resolved         131 m
+popup_m  fermeture  t_CPA   manoeuvre  verdict          horiz  vert
+400      122        3.3     heading    LOSS OF SEP         6 m     0 m
+500      122        4.1     heading    LOSS OF SEP        24 m     0 m
+600      122        4.9     heading    LOSS OF SEP        42 m     0 m
+700      122        5.7     heading    LOSS OF SEP        59 m     0 m
+800      122        6.6     heading    resolved           77 m     0 m
+900      122        7.4     heading    resolved           95 m     0 m
+1000     122        8.2     heading    resolved          113 m     0 m
+1100     122        9.0     heading    resolved          130 m     0 m
+1200     122        9.8     heading    resolved          148 m     0 m
+1300     122        10.7    heading    resolved          166 m     0 m
 
 Seuil analytique de non-perte : t_CPA >= 60/22 + 2.5 = 5.23 s
 Seuil analytique de retablissement du well clear : 150/22 + 2.5 = 9.32 s
