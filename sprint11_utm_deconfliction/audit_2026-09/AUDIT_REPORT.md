@@ -404,7 +404,7 @@ of a demonstrator and are now stated rather than silent.
 
 ---
 
-# Addendum — 21 September 2026
+# Addendum — 18 September 2026
 
 Raised by visual review of the running tool, after the fixes above.
 
